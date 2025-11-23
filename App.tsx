@@ -424,8 +424,15 @@ const App = () => {
                     <span className="text-xs text-orange-500 font-bold tracking-wider uppercase">{t('streak')}</span>
                     <span className="text-xl font-bold text-gray-800 dark:text-white">{settings.streak} 🔥</span>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 overflow-hidden">
-                    <img src={settings.avatar} alt="Profile" className="w-full h-full object-cover" />
+                <div className="relative">
+                    {settings.isPro && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
+                             <Crown size={18} className="text-yellow-400 fill-yellow-400 drop-shadow-sm filter" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
+                        </div>
+                    )}
+                    <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 border-2 overflow-hidden ${settings.isPro ? 'border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-700'}`}>
+                        <img src={settings.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -558,7 +565,14 @@ const App = () => {
                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-xl flex items-center justify-between border border-blue-500/30 shadow-md mb-6">
                     <div className="flex items-center gap-4">
                         <span className="text-blue-500 font-mono font-bold">YOU</span>
-                        <img src={settings.avatar} alt="You" className="w-12 h-12 rounded-full border-2 border-blue-500" />
+                        <div className="relative">
+                            {settings.isPro && (
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
+                                     <Crown size={20} className="text-yellow-400 fill-yellow-400 drop-shadow-sm" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
+                                </div>
+                            )}
+                            <img src={settings.avatar} alt="You" className={`w-12 h-12 rounded-full border-2 ${settings.isPro ? 'border-yellow-400' : 'border-blue-500'}`} />
+                        </div>
                         <div>
                             <p className="font-bold text-gray-900 dark:text-white">{settings.name}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{settings.streak} day streak</p>
@@ -594,7 +608,12 @@ const App = () => {
                 {/* Avatar Selection */}
                 <div className="flex flex-col items-center py-6">
                     <div className="relative group cursor-pointer" onClick={() => setShowAvatarSelector(true)}>
-                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 group-hover:border-blue-500 transition shadow-xl">
+                        {settings.isPro && (
+                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
+                                  <Crown size={40} className="text-yellow-400 fill-yellow-400 drop-shadow-md" style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.3))' }} />
+                             </div>
+                        )}
+                        <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${settings.isPro ? 'border-yellow-400' : 'border-white dark:border-gray-800'} group-hover:border-blue-500 transition shadow-xl`}>
                             <img src={settings.avatar} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                         <div className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-4 border-gray-100 dark:border-gray-900 text-white">
