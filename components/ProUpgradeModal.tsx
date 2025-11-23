@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { X, Check, Star, Zap, TrendingUp, Shield, Loader2, Crown } from 'lucide-react';
+import { X, Check, Star, Zap, TrendingUp, Shield, Loader2, Crown, Utensils } from 'lucide-react';
 import { ApiService } from '../services/api';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
@@ -114,6 +115,15 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                         <p className="text-xs text-gray-500">{t('smartCorrectionDesc')}</p>
                     </div>
                 </div>
+                <div className="flex items-center gap-3">
+                    <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 dark:text-orange-400">
+                        <Utensils size={20} />
+                    </div>
+                    <div>
+                        <p className="font-bold text-gray-900 dark:text-white">{t('aiNutritionScan')}</p>
+                        <p className="text-xs text-gray-500">{t('aiNutritionScanDesc')}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Pricing Card */}
@@ -121,7 +131,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                 <p className="text-gray-500 text-sm">{t('monthlySubscription')}</p>
                 <div className="flex items-baseline justify-center gap-1 mt-1">
                     <span className="text-3xl font-bold text-gray-900 dark:text-white">$4.99</span>
-                    <span className="text-gray-500">/mo</span>
+                    <span className="text-gray-500">{t('perMonth')}</span>
                 </div>
             </div>
 

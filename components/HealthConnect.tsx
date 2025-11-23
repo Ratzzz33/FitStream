@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Activity, Check, RefreshCw, Bell } from 'lucide-react';
 import { StorageService } from '../services/storageService';
@@ -108,9 +109,9 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
             <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-3 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <Bell size={16} className="text-orange-500 mt-0.5 shrink-0" />
                 <div className="flex-1">
-                    <p className="text-xs font-bold text-orange-800 dark:text-orange-200">Sync Required</p>
+                    <p className="text-xs font-bold text-orange-800 dark:text-orange-200">{t('syncRequired')}</p>
                     <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 leading-relaxed">
-                        Background sync is unavailable in browser mode. It has been a while since your last update.
+                        {t('backgroundSyncNote')}
                     </p>
                 </div>
                 <button 
@@ -118,7 +119,7 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
                     disabled={syncing}
                     className="bg-orange-100 dark:bg-orange-800 hover:bg-orange-200 dark:hover:bg-orange-700 text-orange-700 dark:text-orange-200 text-[10px] font-bold px-3 py-1.5 rounded transition"
                 >
-                    {syncing ? <RefreshCw size={12} className="animate-spin" /> : 'Sync'}
+                    {syncing ? <RefreshCw size={12} className="animate-spin" /> : t('sync')}
                 </button>
             </div>
         )}

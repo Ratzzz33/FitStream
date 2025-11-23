@@ -254,7 +254,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     <div className="h-64 rounded-xl bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-center p-6 animate-pulse">
                         <Loader2 size={40} className="text-orange-500 animate-spin mb-4" />
                         <p className="text-gray-500 font-medium">{t('analyzingFood')}</p>
-                        <p className="text-xs text-gray-400 mt-2">Using "{settings.referenceObject}" for scale</p>
+                        <p className="text-xs text-gray-400 mt-2">{t('usingForScale')} "{settings.referenceObject}"</p>
                     </div>
                 ) : scannedFood ? (
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-orange-200 dark:border-orange-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
@@ -264,20 +264,20 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                  <p className="text-orange-500 font-mono font-bold text-lg">{scannedFood.calories} kcal</p>
                              </div>
                              <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded text-xs font-bold">
-                                 AI Est.
+                                 {t('aiEst')}
                              </div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-6">
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500">Prot</span>
+                                <span className="block text-xs text-gray-500">{t('protShort')}</span>
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.protein}g</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500">Carb</span>
+                                <span className="block text-xs text-gray-500">{t('carbShort')}</span>
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.carbs}g</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500">Fat</span>
+                                <span className="block text-xs text-gray-500">{t('fatShort')}</span>
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.fat}g</span>
                             </div>
                         </div>
@@ -334,9 +334,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg flex items-start gap-3 border border-yellow-200 dark:border-yellow-800">
                     <AlertCircle size={20} className="text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div>
-                        <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Missing Reference Object</p>
+                        <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">{t('missingRefObject')}</p>
                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                            Go to Settings to define your reference object (e.g., Keys) for accurate AI sizing.
+                            {t('missingRefObjectDesc')}
                         </p>
                     </div>
                 </div>
@@ -378,7 +378,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Protein (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('protein')} (g)</label>
                                     <input 
                                         type="number" 
                                         value={manualProt}
@@ -388,7 +388,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Carbs (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('carbs')} (g)</label>
                                     <input 
                                         type="number" 
                                         value={manualCarbs}
@@ -398,7 +398,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Fat (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('fat')} (g)</label>
                                     <input 
                                         type="number" 
                                         value={manualFat}

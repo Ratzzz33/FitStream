@@ -60,6 +60,7 @@ export interface UserSettings {
   referenceObject: string; // e.g., "AirPods Case", "Credit Card"
   referenceDimensions?: string; // e.g., "8.5 x 5.4 cm"
   phoneModel: string;
+  phoneWeight?: number; // Weight of the phone in kg
   goals: DailyGoal[];
   targetWeight: number;
   streak: number;

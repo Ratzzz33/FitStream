@@ -1,3 +1,5 @@
+
+
 import React, { useState, useRef } from 'react';
 import { Camera, Loader2, Smartphone, CheckCircle, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { StorageService } from '../services/storageService';
@@ -8,10 +10,11 @@ import { t } from '../services/i18n';
 export const WeightTracker: React.FC = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [lastSaved, setLastSaved] = useState<{raw: number, net: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const settings = StorageService.getSettings();
 
   const startCamera = async () => {
     setLastSaved(null);
@@ -49,20 +52,21 @@ export const WeightTracker: React.FC = () => {
     setLoading(false);
     
     if (result.weight) {
+        const phoneWeight = settings.phoneWeight || 0;
+        const netWeight = Math.max(0, result.weight - phoneWeight);
+        
         const log: WeightLog = {
             id: Date.now().toString(),
             date: new Date().toISOString().split('T')[0],
             timestamp: Date.now(),
-            weight: result.weight
+            weight: Number(netWeight.toFixed(1))
         };
         StorageService.saveWeight(log);
-        setLastSaved(result.weight);
+        setLastSaved({ raw: result.weight, net: Number(netWeight.toFixed(1)) });
     } else {
         setError(t('scanError'));
     }
   };
-
-  const settings = StorageService.getSettings();
 
   return (
     <div className="p-4 space-y-6 pb-24">
@@ -71,9 +75,13 @@ export const WeightTracker: React.FC = () => {
                <Smartphone size={20} className="text-purple-500"/>
                {t('deviceProfile')}
            </h2>
-           <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">{t('registeredDevice')}</p>
+           <div className="flex justify-between items-center mb-2">
+               <p className="text-gray-500 dark:text-gray-400 text-sm">{t('registeredDevice')}</p>
+               {settings.phoneModel && <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 px-2 py-1 rounded font-bold">-{settings.phoneWeight}kg</span>}
+           </div>
+           
            <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg text-purple-600 dark:text-purple-200 font-mono text-sm border border-purple-200 dark:border-purple-500/30">
-               {settings.phoneModel}
+               {settings.phoneModel || "Unknown Model"}
            </div>
            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                {t('calibrationInfo')}
@@ -88,10 +96,10 @@ export const WeightTracker: React.FC = () => {
                   <div className="relative rounded-xl overflow-hidden aspect-video bg-black shadow-inner">
                       <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                       <canvas ref={canvasRef} className="hidden" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-64 h-32 border-2 border-white/50 rounded-lg pointer-events-none"></div>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-64 h-32 border-2 border-white/50 rounded-lg"></div>
                       </div>
-                      <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                      <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-auto">
                           <button 
                             onClick={captureAndScan}
                             disabled={loading}
@@ -120,9 +128,23 @@ export const WeightTracker: React.FC = () => {
                            <CheckCircle size={24} className="text-emerald-600 dark:text-emerald-300" />
                        </div>
                        <p className="text-emerald-800 dark:text-emerald-200 font-bold text-lg">{t('weightSaved')}</p>
-                       <p className="text-4xl font-mono font-bold text-gray-900 dark:text-white mt-2">
-                           {lastSaved} <span className="text-lg text-gray-500 font-normal">kg</span>
-                       </p>
+                       
+                       <div className="flex flex-col items-center mt-2">
+                           {settings.phoneModel && (
+                               <div className="text-xs text-gray-500 line-through mb-1">
+                                   {lastSaved.raw} kg
+                               </div>
+                           )}
+                           <p className="text-4xl font-mono font-bold text-gray-900 dark:text-white">
+                               {lastSaved.net} <span className="text-lg text-gray-500 font-normal">kg</span>
+                           </p>
+                           {settings.phoneModel && (
+                               <p className="text-[10px] text-gray-400 mt-1">
+                                   {t('phoneDeduction')}: -{settings.phoneWeight}kg
+                               </p>
+                           )}
+                       </div>
+
                        <button 
                          onClick={() => setLastSaved(null)}
                          className="mt-4 text-sm text-emerald-600 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 w-full"

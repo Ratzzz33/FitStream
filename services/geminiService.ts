@@ -1,4 +1,6 @@
 
+
+
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { t } from './i18n';
 
@@ -49,6 +51,7 @@ export const analyzeFood = async (
 ): Promise<{ name: string, calories: number, protein: number, carbs: number, fat: number }> => {
     if (!API_KEY) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const lang = navigator.language;
 
     const refContext = referenceDimensions 
         ? `The user is using a "${referenceObject}" (approx. ${referenceDimensions}) as a size reference.`
@@ -64,6 +67,7 @@ export const analyzeFood = async (
                       ${refContext}
                       Use this to estimate the physical size and portion of the food accurately. 
                       Based on the estimated portion size, calculate the calories and macros.
+                      Respond with the 'name' of the food in ${lang} language.
                       Return the result in JSON format.` 
                     }
                 ]
@@ -97,6 +101,7 @@ export const analyzeFood = async (
 export const identifyReferenceObject = async (base64Image: string): Promise<{ name: string, dimensions: string }> => {
     if (!API_KEY) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const lang = navigator.language;
 
     try {
         const response = await ai.models.generateContent({
@@ -106,7 +111,7 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
                     { text: `Identify the main object in this image that will be used as a size reference. 
                       Common examples: Credit Card, Keys, Ring, Lighter, AirPods Case.
-                      Return the name and estimated standard physical dimensions (width x height in cm, e.g. "8.5 x 5.4 cm").
+                      Return the name in ${lang} language and estimated standard physical dimensions (width x height in cm, e.g. "8.5 x 5.4 cm").
                       Return JSON: { "name": "...", "dimensions": "..." }` 
                     }
                 ]
@@ -133,7 +138,39 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
     }
 };
 
-// 4. Motivation & Recommendations
+// 4. Identify Phone Weight from Model
+export const getPhoneSpecs = async (modelName: string): Promise<{ weight: number }> => {
+    if (!API_KEY) return { weight: 0.2 }; // default 200g
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { text: `What is the weight of the smartphone model "${modelName}" in kilograms? Return JSON only.` }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        weight: { type: Type.NUMBER, description: "Weight in kg, e.g., 0.204" }
+                    }
+                }
+            }
+        });
+        const text = response.text;
+        if (text) return JSON.parse(text);
+        return { weight: 0.2 };
+    } catch (e) {
+        console.error("Error getting phone specs:", e);
+        return { weight: 0.2 };
+    }
+};
+
+// 5. Motivation & Recommendations
 export const getMotivation = async (streak: number, repsToday: number): Promise<string> => {
     if (!API_KEY) return t('defaultMotivation');
     const ai = new GoogleGenAI({ apiKey: API_KEY });

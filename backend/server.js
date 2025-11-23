@@ -7,32 +7,19 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 const app = express();
 
 // --- 1. ROBUST MANUAL CORS MIDDLEWARE ---
-// Explicitly handle CORS to prevent browser blocking.
 app.use((req, res, next) => {
-  // Allow any origin
   res.setHeader('Access-Control-Allow-Origin', '*');
-  
-  // Allow all standard methods
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-
-  // Dynamically allow whatever headers the client is asking for
-  // This prevents issues where specific browser extensions or headers block the request
   const requestHeaders = req.headers['access-control-request-headers'];
   if (requestHeaders) {
     res.setHeader('Access-Control-Allow-Headers', requestHeaders);
   } else {
-    // Fallback defaults
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, stripe-signature, Accept, Origin, Cache-Control, Pragma');
   }
-
-  // Cache preflight response for 24 hours to reduce OPTIONS requests
   res.setHeader('Access-Control-Max-Age', '86400');
-
-  // Handle Preflight (OPTIONS) immediately
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
   next();
 });
 
@@ -47,31 +34,28 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:
 
 const pool = new Pool({
   connectionString,
-  max: 4, // Reduce max connections for free tier stability
+  max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 });
 
-// CRITICAL: Prevent crash on idle client error
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client (DB Connection Lost)', err);
-  // Do not exit process; let the pool reconnect
 });
 
 // --- 4. ROUTES ---
 
 // Health Check
 app.get('/', (req, res) => {
-    // Prevent caching of health check to ensure diagnostics are real-time
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
-        message: 'FitStream Backend Ready',
+        message: 'FitStream Backend Ready v2 (Full Sync)',
         timestamp: new Date().toISOString() 
     });
 });
 
-// Stripe Webhook (MUST be before express.json() because it needs raw body)
+// Stripe Webhook
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(500).send("Stripe not configured");
   
@@ -106,14 +90,14 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   res.json({received: true});
 });
 
-// --- GLOBAL BODY PARSERS ---
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Initialize DB Table
+// Initialize DB Tables
 const initDb = async () => {
   try {
     const client = await pool.connect();
     try {
+        // Users table for Settings & Profile
         await client.query(`
           CREATE TABLE IF NOT EXISTS users (
             id VARCHAR(255) PRIMARY KEY,
@@ -124,7 +108,24 @@ const initDb = async () => {
             last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
         `);
-        console.log("✅ Database initialized: 'users' table ready.");
+
+        // Consolidated Logs table for Exercises, Weight, Nutrition
+        // Category: 'EXERCISE', 'WEIGHT', 'NUTRITION'
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS user_logs (
+            id VARCHAR(255) PRIMARY KEY,
+            user_id VARCHAR(255) REFERENCES users(id),
+            category VARCHAR(50) NOT NULL,
+            date VARCHAR(20) NOT NULL,
+            data JSONB NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        
+        // Index for faster retrieval by user
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);`);
+
+        console.log("✅ Database initialized: 'users' and 'user_logs' tables ready.");
     } finally {
         client.release();
     }
@@ -133,26 +134,123 @@ const initDb = async () => {
   }
 };
 
-// Sync User
+// --- API ENDPOINTS ---
+
+// 1. GET FULL DATA (Restore/Sync)
+app.get('/api/data/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const client = await pool.connect();
+        try {
+            // Get User Settings
+            const userRes = await client.query('SELECT settings, is_pro FROM users WHERE id = $1', [userId]);
+            
+            // Get All Logs
+            const logsRes = await client.query('SELECT * FROM user_logs WHERE user_id = $1', [userId]);
+            
+            const user = userRes.rows[0] || { settings: null, is_pro: false };
+            const logs = logsRes.rows;
+
+            // Group logs
+            const exercises = logs.filter(l => l.category === 'EXERCISE').map(l => l.data);
+            const weights = logs.filter(l => l.category === 'WEIGHT').map(l => l.data);
+            const nutrition = logs.filter(l => l.category === 'NUTRITION').map(l => l.data);
+
+            res.json({
+                settings: user.settings,
+                isPro: user.is_pro,
+                exercises,
+                weights,
+                nutrition
+            });
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. SAVE SETTINGS (Sync Settings only)
 app.post('/api/user/sync', async (req, res) => {
     const { userId, settings } = req.body;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        // Upsert User
+        await pool.query(`
+            INSERT INTO users (id, settings, last_synced_at) 
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (id) DO UPDATE 
+            SET settings = $2, last_synced_at = CURRENT_TIMESTAMP
+        `, [userId, settings]);
         
-        if (userResult.rows.length === 0) {
-            await pool.query('INSERT INTO users (id, settings) VALUES ($1, $2)', [userId, settings]);
-            return res.json({ isPro: false });
-        } else {
-            const user = userResult.rows[0];
-            await pool.query('UPDATE users SET settings = $1, last_synced_at = CURRENT_TIMESTAMP WHERE id = $2', [settings, userId]);
-            return res.json({ isPro: user.is_pro });
-        }
+        // Return Pro Status for confirmation
+        const resPro = await pool.query('SELECT is_pro FROM users WHERE id = $1', [userId]);
+        return res.json({ isPro: resPro.rows[0]?.is_pro || false });
     } catch (err) {
-        console.error("Sync Error:", err.message);
-        // Fallback response so frontend doesn't crash
+        console.error("Sync Settings Error:", err.message);
         res.status(200).json({ isPro: false, error: 'DB_UNAVAILABLE' });
+    }
+});
+
+// 3. PUSH LOG (Save single Exercise/Weight/Nutrition item)
+app.post('/api/data/log', async (req, res) => {
+    const { userId, category, data } = req.body; 
+    // data must have an 'id' field
+    if (!userId || !category || !data || !data.id) return res.status(400).json({ error: "Invalid payload" });
+
+    try {
+        // Ensure user exists first
+        await pool.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [userId]);
+
+        await pool.query(`
+            INSERT INTO user_logs (id, user_id, category, date, data)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (id) DO UPDATE
+            SET data = $5
+        `, [data.id, userId, category, data.date, data]);
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Save Log Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 4. BULK SYNC (Push arrays of data - for initial migration or offline sync)
+app.post('/api/data/bulk', async (req, res) => {
+    const { userId, exercises, weights, nutrition } = req.body;
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // Helper to insert
+        const insertHelper = async (items, category) => {
+            for (const item of items) {
+                await client.query(`
+                    INSERT INTO user_logs (id, user_id, category, date, data)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (id) DO NOTHING
+                `, [item.id, userId, category, item.date, item]);
+            }
+        };
+
+        if (exercises?.length) await insertHelper(exercises, 'EXERCISE');
+        if (weights?.length) await insertHelper(weights, 'WEIGHT');
+        if (nutrition?.length) await insertHelper(nutrition, 'NUTRITION');
+
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error("Bulk Sync Error", e);
+        res.status(500).json({ error: e.message });
+    } finally {
+        client.release();
     }
 });
 

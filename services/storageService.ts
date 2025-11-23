@@ -8,21 +8,28 @@ const KEYS = {
   NUTRITION: 'fitstream_nutrition',
   SETTINGS: 'fitstream_settings_v4',
   FRIENDS: 'fitstream_friends',
-  USER_ID: 'fitstream_user_id'
+  USER_ID: 'fitstream_user_id',
+  SYNC_STATUS: 'fitstream_sync_status'
 };
 
 // --- Avatar Helpers ---
-export const generateTotem = (emoji: string, colorFrom: string, colorTo: string) => {
+export const generateTotem = (emoji: string, colorFrom: string, colorTo: string, accent: string = '#ffffff') => {
     const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
       <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:${colorFrom};stop-opacity:1" />
           <stop offset="100%" style="stop-color:${colorTo};stop-opacity:1" />
         </linearGradient>
+        
+        <filter id="shadow">
+           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="black" flood-opacity="0.5"/>
+        </filter>
       </defs>
-      <circle cx="50" cy="50" r="50" fill="url(#grad)" />
-      <text x="50" y="55" font-size="50" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+      <circle cx="50" cy="50" r="50" fill="url(#bgGrad)" />
+      <circle cx="50" cy="50" r="48" fill="none" stroke="${accent}" stroke-width="1.5" opacity="0.4" />
+      <circle cx="50" cy="50" r="44" fill="none" stroke="${accent}" stroke-width="0.5" opacity="0.2" stroke-dasharray="4 2" />
+      <text x="50" y="68" font-size="55" text-anchor="middle" style="filter: url(#shadow);">${emoji}</text>
     </svg>`.trim();
     
     const encoder = new TextEncoder();
@@ -38,38 +45,30 @@ export const generateTotem = (emoji: string, colorFrom: string, colorTo: string)
 export const AVATAR_ANIMALS = [
     { id: 'wolf', emoji: '🐺', name: 'Wolf' },
     { id: 'lion', emoji: '🦁', name: 'Lion' },
-    { id: 'eagle', emoji: '🦅', name: 'Eagle' },
-    { id: 'bear', emoji: '🐻', name: 'Bear' },
     { id: 'tiger', emoji: '🐯', name: 'Tiger' },
-    { id: 'fox', emoji: '🦊', name: 'Fox' },
-    { id: 'gorilla', emoji: '🦍', name: 'Gorilla' },
-    { id: 'owl', emoji: '🦉', name: 'Owl' },
-    { id: 'panda', emoji: '🐼', name: 'Panda' },
-    { id: 'koala', emoji: '🐨', name: 'Koala' },
-    { id: 'cat', emoji: '🐱', name: 'Cat' },
-    { id: 'dog', emoji: '🐶', name: 'Dog' },
     { id: 'dragon', emoji: '🐲', name: 'Dragon' },
-    { id: 'unicorn', emoji: '🦄', name: 'Unicorn' },
-    { id: 'rabbit', emoji: '🐰', name: 'Rabbit' },
-    { id: 'turtle', emoji: '🐢', name: 'Turtle' },
+    { id: 'eagle', emoji: '🦅', name: 'Eagle' },
+    { id: 'gorilla', emoji: '🦍', name: 'Gorilla' },
+    { id: 'fox', emoji: '🦊', name: 'Fox' },
+    { id: 'bull', emoji: '🐂', name: 'Bull' },
+    { id: 'leopard', emoji: '🐆', name: 'Leopard' },
+    { id: 'snake', emoji: '🐍', name: 'Snake' },
     { id: 'shark', emoji: '🦈', name: 'Shark' },
-    { id: 'butterfly', emoji: '🦋', name: 'Butterfly' },
+    { id: 'scorpion', emoji: '🦂', name: 'Scorpion' },
 ];
 
 export const AVATAR_THEMES = [
-    { id: 'forest', from: '#4ade80', to: '#065f46', name: 'Forest' },
-    { id: 'sun', from: '#fbbf24', to: '#b45309', name: 'Sun' },
-    { id: 'ocean', from: '#60a5fa', to: '#1e3a8a', name: 'Ocean' },
-    { id: 'royal', from: '#a78bfa', to: '#581c87', name: 'Royal' },
-    { id: 'fire', from: '#f87171', to: '#991b1b', name: 'Fire' },
-    { id: 'midnight', from: '#94a3b8', to: '#1e293b', name: 'Midnight' },
-    { id: 'candy', from: '#f472b6', to: '#be185d', name: 'Candy' },
-    { id: 'earth', from: '#a3e635', to: '#3f6212', name: 'Earth' },
+    { id: 'obsidian', from: '#1a1a1a', to: '#000000', accent: '#38bdf8', name: 'Obsidian' },
+    { id: 'crimson', from: '#2a0a0a', to: '#000000', accent: '#f87171', name: 'Crimson' },
+    { id: 'midnight', from: '#1e1b4b', to: '#020617', accent: '#818cf8', name: 'Midnight' },
+    { id: 'gold', from: '#271a00', to: '#000000', accent: '#facc15', name: 'Gold' },
+    { id: 'venom', from: '#052e16', to: '#000000', accent: '#4ade80', name: 'Venom' },
+    { id: 'neon', from: '#2e0225', to: '#000000', accent: '#e879f9', name: 'Neon' },
 ];
 
 export const PREDEFINED_AVATARS = AVATAR_ANIMALS.slice(0, 8).map((a, i) => ({
     ...a,
-    url: generateTotem(a.emoji, AVATAR_THEMES[i % AVATAR_THEMES.length].from, AVATAR_THEMES[i % AVATAR_THEMES.length].to)
+    url: generateTotem(a.emoji, AVATAR_THEMES[i % AVATAR_THEMES.length].from, AVATAR_THEMES[i % AVATAR_THEMES.length].to, AVATAR_THEMES[i % AVATAR_THEMES.length].accent)
 }));
 
 const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
@@ -85,7 +84,7 @@ const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
 const DEFAULT_GOALS: DailyGoal[] = [
   { type: 'STEPS', target: 5000, current: 0, isEnabled: true, unit: 'steps', color: GOAL_DEFAULTS.STEPS.color },
   { type: 'PUSHUPS', target: 50, current: 0, isEnabled: true, unit: 'reps', color: GOAL_DEFAULTS.PUSHUPS.color },
-  { type: 'SQUATS', target: 50, current: 0, isEnabled: true, unit: 'reps', color: GOAL_DEFAULTS.SQUATS.color },
+  { type: 'SQUATS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SQUATS.color },
   { type: 'SITUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SITUPS.color },
   { type: 'JUMPING_JACKS', target: 100, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.JUMPING_JACKS.color },
   { type: 'LUNGES', target: 40, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.LUNGES.color },
@@ -102,7 +101,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   installDate: new Date().toISOString(),
   referenceObject: '',
   referenceDimensions: '',
-  phoneModel: 'Unknown Device',
+  phoneModel: '',
+  phoneWeight: 0,
   goals: DEFAULT_GOALS,
   targetWeight: 70,
   streak: 0,
@@ -128,21 +128,64 @@ export const StorageService = {
       return id;
   },
 
-  syncWithBackend: async () => {
+  // --- INITIALIZATION ---
+  initializeFromBackend: async () => {
       const userId = StorageService.getUserId();
       const settings = StorageService.getSettings();
       
-      const result = await ApiService.syncUser(userId, settings, settings.backendUrl);
+      console.log("📥 Syncing with backend DB...");
       
-      if (result) {
-          // Update local status based on server truth
-          if (settings.isPro !== result.isPro) {
-              settings.isPro = result.isPro;
-              StorageService.saveSettings(settings);
-              return true; // Status changed
+      const fullData = await ApiService.fetchFullUserData(userId, settings.backendUrl);
+      
+      if (fullData) {
+          // Merge Settings
+          if (fullData.settings) {
+              // Be careful not to overwrite local sync status or newly changed local settings if backend is stale
+              // For simplicity in this logic: Server Truth wins on boot
+              const mergedSettings = { ...settings, ...fullData.settings, isPro: fullData.isPro };
+              // Ensure backendUrl isn't overwritten by old data
+              mergedSettings.backendUrl = settings.backendUrl;
+              StorageService.saveSettings(mergedSettings, false); // Don't push back immediately
           }
+          
+          // Merge Logs (Naive merge: add missing ones)
+          // Ideally we check IDs
+          const localExercises = StorageService.getExercises();
+          const localWeights = StorageService.getWeights();
+          const localNutrition = StorageService.getNutritionLogs();
+          
+          if (fullData.exercises) {
+              const newEx = fullData.exercises.filter((r: any) => !localExercises.find(l => l.id === r.id));
+              const mergedEx = [...localExercises, ...newEx].sort((a,b) => a.timestamp - b.timestamp);
+              localStorage.setItem(KEYS.EXERCISES, JSON.stringify(mergedEx));
+          }
+          if (fullData.weights) {
+               const newW = fullData.weights.filter((r: any) => !localWeights.find(l => l.id === r.id));
+               const mergedW = [...localWeights, ...newW].sort((a,b) => a.timestamp - b.timestamp);
+               localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(mergedW));
+          }
+          if (fullData.nutrition) {
+               const newN = fullData.nutrition.filter((r: any) => !localNutrition.find(l => l.id === r.id));
+               const mergedN = [...localNutrition, ...newN].sort((a,b) => a.timestamp - b.timestamp);
+               localStorage.setItem(KEYS.NUTRITION, JSON.stringify(mergedN));
+          }
+          
+          console.log("✅ Sync complete. Data merged.");
+          return true;
+      } else {
+          // New user or offline? 
+          // If we have local data but server returned null (404), maybe we should push?
+          const ex = StorageService.getExercises();
+          if (ex.length > 0) {
+              console.log("📤 pushing local data to fresh backend account...");
+              ApiService.pushBulk(userId, {
+                  exercises: ex,
+                  weights: StorageService.getWeights(),
+                  nutrition: StorageService.getNutritionLogs()
+              }, settings.backendUrl);
+          }
+          return false;
       }
-      return false;
   },
 
   // --- Exercises ---
@@ -165,6 +208,10 @@ export const StorageService = {
     localStorage.setItem(KEYS.EXERCISES, JSON.stringify(exercises));
     StorageService.updateGoalProgress(log.exerciseName, log.reps);
     StorageService.updateStreak();
+    
+    // Background Push
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'EXERCISE', log, s.backendUrl);
   },
 
   // --- Nutrition ---
@@ -189,13 +236,16 @@ export const StorageService = {
       const logs = StorageService.getNutritionLogs();
       logs.push(log);
       localStorage.setItem(KEYS.NUTRITION, JSON.stringify(logs));
+      
+      // Background Push
+      const s = StorageService.getSettings();
+      ApiService.pushLog(StorageService.getUserId(), 'NUTRITION', log, s.backendUrl);
   },
 
   calculateDailyNeeds: (): { calories: number, water: number } => {
       const s = StorageService.getSettings();
       const weight = StorageService.getLastWeight() || s.targetWeight || 70;
       
-      // Mifflin-St Jeor Equation
       let bmr = (10 * weight) + (6.25 * s.height) - (5 * s.age);
       bmr += s.gender === 'MALE' ? 5 : -161;
 
@@ -207,7 +257,7 @@ export const StorageService = {
       };
 
       const calories = Math.round(bmr * (activityMultipliers[s.activityLevel] || 1.2));
-      const water = Math.round(weight * 35); // Approx 35ml per kg
+      const water = Math.round(weight * 35); 
 
       return { calories, water };
   },
@@ -228,11 +278,18 @@ export const StorageService = {
     const lastLog = weights[weights.length - 1];
     const fiveMinutes = 5 * 60 * 1000;
     
+    // Logic to update recent entry or add new
     if (lastLog && (log.timestamp - lastLog.timestamp < fiveMinutes)) {
         lastLog.weight = log.weight;
         weights[weights.length - 1] = lastLog;
+        // Push update
+        const s = StorageService.getSettings();
+        ApiService.pushLog(StorageService.getUserId(), 'WEIGHT', lastLog, s.backendUrl);
     } else {
         weights.push(log);
+        // Push new
+        const s = StorageService.getSettings();
+        ApiService.pushLog(StorageService.getUserId(), 'WEIGHT', log, s.backendUrl);
     }
     weights.sort((a, b) => a.timestamp - b.timestamp);
     localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(weights));
@@ -253,25 +310,23 @@ export const StorageService = {
     if (!settings.avatar) settings.avatar = DEFAULT_SETTINGS.avatar;
     if (settings.isPro === undefined) settings.isPro = false;
     
-    // New Fields Migration
     if (!settings.height) settings.height = 175;
     if (!settings.gender) settings.gender = 'MALE';
     if (!settings.activityLevel) settings.activityLevel = 'MODERATE';
     if (!settings.referenceObject) settings.referenceObject = '';
-    
-    // Migration for trial tracking
+    if (!settings.phoneModel) settings.phoneModel = '';
+    if (settings.phoneWeight === undefined) settings.phoneWeight = 0;
     if (!settings.installDate) settings.installDate = new Date().toISOString();
-
-    // Auto-update to production URL if empty or undefined
-    if (!settings.backendUrl) {
-        settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
-    }
+    if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
     
     return settings;
   },
 
-  saveSettings: (settings: UserSettings) => {
+  saveSettings: (settings: UserSettings, pushToBackend: boolean = true) => {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    if (pushToBackend) {
+        ApiService.syncUser(StorageService.getUserId(), settings, settings.backendUrl);
+    }
   },
 
   updateGoalProgress: (exerciseName: string, amount: number) => {
@@ -283,7 +338,7 @@ export const StorageService = {
       });
       if (goalIndex !== -1) {
           settings.goals[goalIndex].current += amount;
-          StorageService.saveSettings(settings);
+          StorageService.saveSettings(settings); // This triggers sync
       }
   },
 
@@ -292,7 +347,7 @@ export const StorageService = {
       const stepGoal = settings.goals.find(g => g.type === 'STEPS');
       if (stepGoal) {
           stepGoal.current += steps;
-          StorageService.saveSettings(settings);
+          StorageService.saveSettings(settings); // Triggers sync
       }
   },
   
@@ -302,7 +357,7 @@ export const StorageService = {
       if (stepGoal) {
           stepGoal.current += stepsToAdd;
           settings.connectedPlatforms.lastSync = new Date().toISOString();
-          StorageService.saveSettings(settings);
+          StorageService.saveSettings(settings); // Triggers sync
       }
   },
 
@@ -311,7 +366,6 @@ export const StorageService = {
       const lastActive = new Date(settings.lastActiveDate);
       const today = new Date();
       
-      // Reset hours to compare dates only
       lastActive.setHours(0,0,0,0);
       today.setHours(0,0,0,0);
       

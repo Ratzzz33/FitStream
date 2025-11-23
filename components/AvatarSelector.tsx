@@ -1,3 +1,5 @@
+
+
 import React, { useRef, useState, useMemo } from 'react';
 import { X, Upload } from 'lucide-react';
 import { AVATAR_ANIMALS, AVATAR_THEMES, generateTotem } from '../services/storageService';
@@ -18,7 +20,7 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ currentAvatar, o
 
   // Live preview of the constructed totem
   const previewAvatar = useMemo(() => {
-    return generateTotem(selectedAnimal.emoji, selectedTheme.from, selectedTheme.to);
+    return generateTotem(selectedAnimal.emoji, selectedTheme.from, selectedTheme.to, selectedTheme.accent);
   }, [selectedAnimal, selectedTheme]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,13 +41,13 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ currentAvatar, o
 
   const handleAnimalSelect = (animal: typeof AVATAR_ANIMALS[0]) => {
       setSelectedAnimal(animal);
-      const newAvatar = generateTotem(animal.emoji, selectedTheme.from, selectedTheme.to);
+      const newAvatar = generateTotem(animal.emoji, selectedTheme.from, selectedTheme.to, selectedTheme.accent);
       onSelect(newAvatar);
   };
 
   const handleThemeSelect = (theme: typeof AVATAR_THEMES[0]) => {
       setSelectedTheme(theme);
-      const newAvatar = generateTotem(selectedAnimal.emoji, theme.from, theme.to);
+      const newAvatar = generateTotem(selectedAnimal.emoji, theme.from, theme.to, theme.accent);
       onSelect(newAvatar);
   };
 
@@ -63,7 +65,7 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ currentAvatar, o
             
             {/* Live Preview */}
             <div className="flex flex-col items-center gap-4">
-                <div className="w-32 h-32 rounded-full border-4 border-blue-500 shadow-xl overflow-hidden relative">
+                <div className="w-32 h-32 rounded-full border-4 border-gray-800 shadow-xl overflow-hidden relative shadow-blue-500/20">
                      <img src={previewAvatar} alt="Preview" className="w-full h-full object-cover" />
                 </div>
             </div>
@@ -89,12 +91,12 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ currentAvatar, o
             {/* Animal Selection */}
             <div className="space-y-3">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('chooseAnimal')}</h3>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-4 gap-3">
                     {AVATAR_ANIMALS.map((animal) => (
                         <button
                             key={animal.id}
                             onClick={() => handleAnimalSelect(animal)}
-                            className={`aspect-square rounded-lg flex items-center justify-center text-2xl transition hover:bg-gray-100 dark:hover:bg-gray-800 ${selectedAnimal.id === animal.id ? 'bg-blue-100 dark:bg-blue-900/50 ring-2 ring-blue-500' : 'bg-gray-50 dark:bg-gray-800/30'}`}
+                            className={`aspect-square rounded-lg flex items-center justify-center text-3xl transition hover:bg-gray-100 dark:hover:bg-gray-800 ${selectedAnimal.id === animal.id ? 'bg-gray-100 dark:bg-gray-800 ring-2 ring-blue-500' : 'bg-gray-50 dark:bg-gray-900'}`}
                         >
                             {animal.emoji}
                         </button>
@@ -105,15 +107,18 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ currentAvatar, o
             {/* Background Selection */}
             <div className="space-y-3">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('chooseBackground')}</h3>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     {AVATAR_THEMES.map((theme) => (
                         <button
                             key={theme.id}
                             onClick={() => handleThemeSelect(theme)}
-                            className={`h-10 rounded-lg transition relative overflow-hidden ${selectedTheme.id === theme.id ? 'ring-2 ring-blue-500 scale-105' : 'opacity-70 hover:opacity-100'}`}
+                            className={`h-12 rounded-lg transition relative overflow-hidden flex items-center justify-center border border-gray-700 ${selectedTheme.id === theme.id ? 'ring-2 ring-white scale-105' : 'opacity-80 hover:opacity-100'}`}
                             style={{ background: `linear-gradient(135deg, ${theme.from}, ${theme.to})` }}
                         >
-                            <span className="sr-only">{theme.name}</span>
+                            <span className="text-[10px] font-bold text-white/90 uppercase tracking-widest" style={{ textShadow: '0 1px 2px black' }}>{theme.name}</span>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                            {/* Accent Dot */}
+                            <div className="absolute top-1 right-1 w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: theme.accent, boxShadow: `0 0 5px ${theme.accent}` }}></div>
                         </button>
                     ))}
                 </div>

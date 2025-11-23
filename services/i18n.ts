@@ -1,5 +1,6 @@
 
 
+
 export type Language = 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh';
 
 const translations = {
@@ -59,7 +60,7 @@ const translations = {
     uploadPhoto: 'Upload Photo',
     upload: 'Upload',
     or: 'OR',
-    chooseAnimal: 'Choose Animal',
+    chooseAnimal: 'Choose Avatar',
     chooseBackground: 'Choose Background',
     saving: 'Saving...',
     saved: 'Saved',
@@ -85,6 +86,7 @@ const translations = {
     lastActivity: 'Last Activity',
 
     // Bio Data & Nutrition
+    bioData: 'Bio Data',
     height: 'Height (cm)',
     gender: 'Gender',
     activityLevel: 'Activity Level',
@@ -114,6 +116,13 @@ const translations = {
     calGoal: 'Calorie Goal',
     placeObjectInfo: 'Place your reference object next to the food for accurate sizing.',
     analyzingFood: 'Analyzing food & size...',
+    protShort: 'Prot',
+    carbShort: 'Carb',
+    fatShort: 'Fat',
+    aiEst: 'AI Est.',
+    usingForScale: 'Using for scale:',
+    missingRefObject: 'Missing Reference Object',
+    missingRefObjectDesc: 'Go to Settings to define your reference object (e.g., Keys) for accurate AI sizing.',
     
     // Manual Food Entry & Trial
     trialEnded: 'AI Scan Trial Ended',
@@ -125,7 +134,7 @@ const translations = {
     addFood: 'Add Food',
     scannerLocked: 'AI Scanner Locked',
     
-    // Reference Object Scanner
+    // Scanner
     scanRefObject: 'Scan Object',
     captureRefObject: 'Capture Reference',
     placeRefObjectCenter: 'Place object in center',
@@ -137,6 +146,18 @@ const translations = {
     notSet: 'Not Set',
     set: 'Set',
     update: 'Update',
+
+    // Phone Scale Scanner
+    phoneModelPrompt: "What phone do you have?",
+    phoneModelDesc: "We need this to subtract your phone's weight from the scale reading.",
+    phonePlaceholder: "e.g. iPhone 14 Pro, Samsung S23",
+    calcPhoneWeight: "Calculate Phone Weight",
+    calculating: "Calculating...",
+    phoneWeightSet: "Phone Weight Set",
+    netWeight: "Net Weight",
+    rawReading: "Scale Reading",
+    phoneDeduction: "Phone Deduction",
+    confirmWeight: "Confirm Weight",
     
     // Pro Features
     upgradeToPro: "Upgrade to Pro",
@@ -155,10 +176,26 @@ const translations = {
     fullHistoryDesc: "See progress over months.",
     smartCorrection: "Smart Form Correction",
     smartCorrectionDesc: "Advanced AI feedback on posture.",
+    aiNutritionScan: "AI Nutrition Scanner",
+    aiNutritionScanDesc: "Instant calorie & macro tracking.",
     monthlySubscription: "Monthly Subscription",
     startTrial: "Start 7-Day Free Trial",
     securedByStripe: "Secured by Stripe. Cancel anytime.",
-    freeLimitReached: "7 Days Free Limit"
+    freeLimitReached: "7 Days Free Limit",
+    perMonth: "/mo",
+    welcomePro: "Welcome to Pro! Your subscription is active.",
+
+    // Backend / Status
+    online: "Online",
+    offline: "Offline",
+    checking: "Checking",
+    url: "URL",
+    test: "Test",
+    apiKeyMissing: "API Key Missing",
+    apiKeyMissingDesc: "Please configure your process.env.API_KEY to use this application.",
+    syncRequired: "Sync Required",
+    backgroundSyncNote: "Background sync is unavailable in browser mode. It has been a while since your last update.",
+    sync: "Sync"
   },
   ru: {
     dashboard: 'Главная',
@@ -216,7 +253,7 @@ const translations = {
     uploadPhoto: 'Загрузить фото',
     upload: 'Загрузить',
     or: 'ИЛИ',
-    chooseAnimal: 'Выберите животное',
+    chooseAnimal: 'Выберите аватар',
     chooseBackground: 'Выберите фон',
     saving: 'Сохранение...',
     saved: 'Сохранено',
@@ -242,6 +279,7 @@ const translations = {
     lastActivity: 'Посл. активность',
 
     // Nutrition & Bio
+    bioData: 'Биометрические данные',
     height: 'Рост (см)',
     gender: 'Пол',
     activityLevel: 'Уровень активности',
@@ -271,6 +309,13 @@ const translations = {
     calGoal: 'Цель ккал',
     placeObjectInfo: 'Положите предмет-ориентир рядом с едой для оценки размера.',
     analyzingFood: 'Анализ еды и размера...',
+    protShort: 'Бел.',
+    carbShort: 'Угл.',
+    fatShort: 'Жир',
+    aiEst: 'ИИ Оценка',
+    usingForScale: 'Масштаб по:',
+    missingRefObject: 'Нет предмета для масштаба',
+    missingRefObjectDesc: 'Перейдите в настройки, чтобы задать предмет (например, ключи) для точности ИИ.',
     
     // Manual Food Entry
     trialEnded: 'Пробный период завершен',
@@ -294,6 +339,18 @@ const translations = {
     notSet: 'Не задано',
     set: 'Задать',
     update: 'Обновить',
+
+    // Phone Scale Scanner
+    phoneModelPrompt: "Какая у вас модель телефона?",
+    phoneModelDesc: "Это нужно, чтобы вычесть вес телефона из показаний весов.",
+    phonePlaceholder: "напр. iPhone 14 Pro, Samsung S23",
+    calcPhoneWeight: "Рассчитать вес телефона",
+    calculating: "Считаю...",
+    phoneWeightSet: "Вес телефона задан",
+    netWeight: "Чистый вес",
+    rawReading: "На весах",
+    phoneDeduction: "Вес телефона",
+    confirmWeight: "Подтвердить вес",
     
     // Pro Features
     upgradeToPro: "Перейти на Pro",
@@ -312,14 +369,30 @@ const translations = {
     fullHistoryDesc: "Следите за прогрессом по месяцам.",
     smartCorrection: "Умная коррекция техники",
     smartCorrectionDesc: "Продвинутая ИИ обратная связь.",
+    aiNutritionScan: "ИИ Сканер питания",
+    aiNutritionScanDesc: "Мгновенный подсчет калорий по фото.",
     monthlySubscription: "Ежемесячная подписка",
     startTrial: "Начать 7 дней бесплатно",
     securedByStripe: "Защищено Stripe. Отмена в любой момент.",
-    freeLimitReached: "Лимит 7 дней (Бесплатно)"
+    freeLimitReached: "Лимит 7 дней (Бесплатно)",
+    perMonth: "/мес",
+    welcomePro: "Добро пожаловать в Pro! Подписка активна.",
+
+    // Backend / Status
+    online: "В сети",
+    offline: "Офлайн",
+    checking: "Проверка",
+    url: "URL",
+    test: "Тест",
+    apiKeyMissing: "Отсутствует API ключ",
+    apiKeyMissingDesc: "Пожалуйста, настройте process.env.API_KEY для использования приложения.",
+    syncRequired: "Требуется синхронизация",
+    backgroundSyncNote: "Фоновая синхронизация недоступна в браузере. Данные давно не обновлялись.",
+    sync: "Синхр."
   },
   es: {
     dashboard: 'Inicio',
-    // ... (truncated for brevity)
+    // ... (truncated for brevity - relying on fallback)
     trialEnded: 'Prueba de IA finalizada',
     manualEntry: 'Entrada manual',
     manualEntryDesc: 'Los usuarios gratuitos solo pueden ingresar alimentos manualmente.',

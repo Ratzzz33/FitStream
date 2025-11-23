@@ -1,11 +1,10 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
-import { getMotivation } from './services/geminiService';
+import { getMotivation, getPhoneSpecs, scanScaleDisplay } from './services/geminiService';
 import { AchievementRing } from './components/AchievementRings';
 import { WorkoutSession } from './components/WorkoutSession';
 import { WeightTracker } from './components/WeightTracker';
@@ -20,6 +19,7 @@ import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
 
 const App = () => {
+  const [isInitializing, setIsInitializing] = useState(true);
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(StorageService.getSettings());
@@ -32,6 +32,16 @@ const App = () => {
   const [showRefScanner, setShowRefScanner] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   
+  // Phone Weight Scan Logic
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showQuickScan, setShowQuickScan] = useState(false);
+  const [phoneModelInput, setPhoneModelInput] = useState("");
+  const [isCalculatingPhone, setIsCalculatingPhone] = useState(false);
+  const [quickScanVideoRef, setQuickScanVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [quickScanResult, setQuickScanResult] = useState<{ raw: number, net: number } | null>(null);
+  const [isQuickScanning, setIsQuickScanning] = useState(false);
+  const quickScanCanvasRef = useRef<HTMLCanvasElement>(null);
+
   // Diagnostics State
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
@@ -58,6 +68,24 @@ const App = () => {
     }
   }, []);
 
+  // Initialization: Fetch full data from DB
+  useEffect(() => {
+      const init = async () => {
+          setIsInitializing(true);
+          try {
+              // Try to pull data from backend and merge with local
+              await StorageService.initializeFromBackend();
+              refreshData();
+          } catch(e) {
+              console.error("Initialization error:", e);
+          } finally {
+              setIsInitializing(false);
+              checkServerConnection();
+          }
+      };
+      init();
+  }, []);
+
   // Function to check connection status (Quick Check)
   const checkServerConnection = async (customUrl?: string) => {
       setServerStatus('checking');
@@ -66,15 +94,13 @@ const App = () => {
       const urlToCheck = customUrl || currentSettings.backendUrl;
       
       try {
-          // Try to sync with cache buster
           const result = await ApiService.syncUser(userId, currentSettings, urlToCheck);
           
           if (result) {
               setServerStatus('online');
-              // Update local status based on server truth
               if (currentSettings.isPro !== result.isPro) {
                   currentSettings.isPro = result.isPro;
-                  StorageService.saveSettings(currentSettings);
+                  StorageService.saveSettings(currentSettings, false); // No push needed, we just pulled
                   refreshData();
               }
           } else {
@@ -106,27 +132,21 @@ const App = () => {
       if (!url.startsWith('http')) {
           addLog("⚠️ Warning: URL should start with http:// or https://");
       }
-      
-      // Normalize URL for checks
-      // Remove trailing slash
       if (url.endsWith('/')) url = url.slice(0, -1);
       
-      // Base URL (without /api if present, for root check)
       const baseUrl = url.endsWith('/api') ? url.slice(0, -4) : url;
-      // API URL (ensure /api is present for sync check)
       const apiUrl = url.endsWith('/api') ? url : `${url}/api`;
       
       addLog(`ℹ️ Base Root: ${baseUrl}`);
       addLog(`ℹ️ API Endpoint: ${apiUrl}`);
 
-      // 2. Network Check (Simple GET - No Preflight)
-      addLog(`[2] Pinging Server (Simple Request)...`);
+      // 2. Network Check
+      addLog(`[2] Pinging Server...`);
       const start = Date.now();
       try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 15000); 
           
-          // No custom headers = No Preflight (Simple Request)
           const res = await fetch(`${baseUrl}?t=${Date.now()}`, { 
               method: 'GET', 
               signal: controller.signal,
@@ -138,31 +158,18 @@ const App = () => {
           addLog(`${res.ok ? '✅' : '❌'} Status: ${res.status} ${res.statusText}`);
           addLog(`⏱️ Latency: ${latency}ms`);
           
-          if (latency > 2000) addLog("⚠️ High latency (Cold Start?)");
-          
-          const text = await res.text();
-          addLog(`📄 Response: "${text.substring(0, 50)}..."`);
-          
       } catch (e: any) {
-          addLog(`❌ Simple Connection Failed: ${e.name}: ${e.message}`);
-          // Probe opaque
-          try {
-             await fetch(`${baseUrl}?t=${Date.now()}`, { method: 'GET', mode: 'no-cors' });
-             addLog("⚠️ DIAGNOSIS: Server reachable via no-cors. Likely strict CORS blocking Simple Requests.");
-          } catch(probeErr) {
-             addLog("❌ DIAGNOSIS: Server Unreachable/Down.");
-          }
+          addLog(`❌ Simple Connection Failed: ${e.message}`);
       }
 
-      // 3. API Route Check (Preflighted POST)
-      addLog(`[3] Testing API Route (Preflighted)...`);
+      // 3. API Route Check
+      addLog(`[3] Testing API Route...`);
       try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000); 
 
           const res = await fetch(`${apiUrl}/user/sync`, {
               method: 'POST',
-              // These headers trigger OPTIONS preflight
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } }),
               signal: controller.signal
@@ -192,9 +199,8 @@ const App = () => {
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('pro_status') === 'success') {
               window.history.replaceState({}, document.title, window.location.pathname);
-              alert("Welcome to Pro! Your subscription is active.");
+              alert(t('welcomePro'));
           }
-          checkServerConnection();
       };
       sync();
   }, []);
@@ -208,7 +214,6 @@ const App = () => {
     }
   }, [settings.theme]);
 
-  // Fetch Motivation (Expensive AI call) - Only run on mount or significant events
   const fetchMotivation = useCallback(async () => {
     if (!process.env.API_KEY) {
         setMotivation(t('defaultMotivation'));
@@ -229,11 +234,9 @@ const App = () => {
     }
   }, []);
 
-  // Refresh Data (Cheap local storage sync) - Runs often
   const refreshData = () => {
     const s = StorageService.getSettings();
     setSettings(s);
-    // Only update inputs if they are not being edited (simple check: if active element isn't an input)
     if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
         setNameInput(s.name);
         setAgeInput(s.age.toString());
@@ -247,14 +250,13 @@ const App = () => {
   useEffect(() => {
     refreshData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, showGoalSettings, isWorkoutActive, sessionSteps]); // Refresh on steps or workout end
+  }, [activeTab, showGoalSettings, isWorkoutActive, sessionSteps]);
 
-  // Initial Motivation Load
   useEffect(() => {
      fetchMotivation();
   }, [fetchMotivation]);
 
-  // Debounce logic for Settings
+  // Debounce Settings Save
   useEffect(() => {
       const timer = setTimeout(() => {
           if (nameInput !== settings.name || 
@@ -275,15 +277,12 @@ const App = () => {
               StorageService.saveSettings(newSettings);
               setSettings(newSettings);
               
-              // Trigger a sync check if URL changed
               if (backendUrlInput !== settings.backendUrl) {
                   checkServerConnection(backendUrlInput);
               }
-              
-              // Fake delay for visual feedback
               setTimeout(() => setIsSavingSettings(false), 800);
           }
-      }, 1500); // 1.5s debounce
+      }, 1500);
 
       return () => clearTimeout(timer);
   }, [nameInput, ageInput, heightInput, targetWeightInput, backendUrlInput, settings]);
@@ -307,7 +306,6 @@ const App = () => {
       setShowRefScanner(false);
   };
 
-  // Debounce logic for Current Weight (Logs to history)
   useEffect(() => {
       const timer = setTimeout(() => {
           const w = parseFloat(currentWeightInput);
@@ -315,7 +313,6 @@ const App = () => {
           
           if (!isNaN(w) && w > 0 && w !== lastStored) {
               setIsSavingWeight(true);
-              
               const log: WeightLog = {
                   id: Date.now().toString(),
                   date: new Date().toISOString().split('T')[0],
@@ -323,7 +320,6 @@ const App = () => {
                   weight: w
               };
               StorageService.saveWeight(log);
-              
               setTimeout(() => setIsSavingWeight(false), 800);
           }
       }, 1500);
@@ -350,10 +346,8 @@ const App = () => {
           setIsWorkoutActive(true);
           return;
       }
-
       const weeklyWorkouts = StorageService.getWeeklyWorkoutCount();
       const LIMIT = 3;
-
       if (weeklyWorkouts >= LIMIT) {
           setShowProModal(true);
       } else {
@@ -390,19 +384,117 @@ const App = () => {
         default: return (type as string).replace('_', ' ');
     }
   };
+  
+  // --- Phone Scan Handlers ---
+  const handleScanClick = () => {
+      if (!settings.phoneModel || !settings.phoneWeight) {
+          setShowPhoneModal(true);
+      } else {
+          startQuickScan();
+      }
+  };
+  
+  const calculatePhoneWeight = async () => {
+      if (!phoneModelInput) return;
+      setIsCalculatingPhone(true);
+      const result = await getPhoneSpecs(phoneModelInput);
+      
+      const newSettings = {
+          ...settings,
+          phoneModel: phoneModelInput,
+          phoneWeight: result.weight
+      };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+      setIsCalculatingPhone(false);
+      setShowPhoneModal(false);
+      startQuickScan();
+  };
+
+  const startQuickScan = async () => {
+      setShowQuickScan(true);
+      setQuickScanResult(null);
+      try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          const videoElement = document.createElement('video');
+          videoElement.srcObject = stream;
+          videoElement.play();
+          setQuickScanVideoRef(videoElement);
+      } catch(e) {
+          console.error(e);
+          alert(t('cameraDenied'));
+          setShowQuickScan(false);
+      }
+  };
+  
+  const captureQuickScan = async () => {
+      if (!quickScanVideoRef || !quickScanCanvasRef.current) return;
+      setIsQuickScanning(true);
+      
+      const canvas = quickScanCanvasRef.current;
+      canvas.width = quickScanVideoRef.videoWidth;
+      canvas.height = quickScanVideoRef.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(quickScanVideoRef, 0, 0);
+      
+      const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+      
+      quickScanVideoRef.pause();
+
+      const result = await scanScaleDisplay(base64);
+      
+      if (result.weight) {
+          const net = Math.max(0, result.weight - (settings.phoneWeight || 0));
+          setQuickScanResult({ raw: result.weight, net: Number(net.toFixed(1)) });
+      } else {
+          alert(t('scanError'));
+          quickScanVideoRef.play();
+      }
+      setIsQuickScanning(false);
+  };
+  
+  const confirmQuickScan = () => {
+      if (quickScanResult) {
+          setCurrentWeightInput(quickScanResult.net.toString());
+          closeQuickScan();
+      }
+  };
+  
+  const closeQuickScan = () => {
+      if (quickScanVideoRef && quickScanVideoRef.srcObject) {
+          const stream = quickScanVideoRef.srcObject as MediaStream;
+          stream.getTracks().forEach(t => t.stop());
+      }
+      setShowQuickScan(false);
+      setQuickScanResult(null);
+      setQuickScanVideoRef(null);
+  };
 
   const SaveIndicator = ({ saving }: { saving: boolean }) => {
       if (saving) return <div className="flex items-center gap-1 text-xs text-blue-500"><Loader2 size={12} className="animate-spin"/> {t('saving')}</div>;
       return <div className="flex items-center gap-1 text-xs text-green-500 opacity-0 transition duration-1000"><Check size={12}/> {t('saved')}</div>; 
   };
 
+  const enabledGoals = settings.goals.filter(g => g.isEnabled);
+
   if (apiKeyMissing) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-6 text-center">
               <div>
-                  <h1 className="text-3xl font-bold text-red-500 mb-4">API Key Missing</h1>
-                  <p>Please configure your <code>process.env.API_KEY</code> to use this application.</p>
+                  <h1 className="text-3xl font-bold text-red-500 mb-4">{t('apiKeyMissing')}</h1>
+                  <p>{t('apiKeyMissingDesc')}</p>
               </div>
+          </div>
+      );
+  }
+
+  // Loading Screen
+  if (isInitializing) {
+      return (
+          <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-gray-900 dark:text-white gap-4">
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="font-bold text-lg animate-pulse">{t('syncing')}</p>
+              <p className="text-xs text-gray-500">Retrieving data from cloud...</p>
           </div>
       );
   }
@@ -415,7 +507,7 @@ const App = () => {
             <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
                     FitStream
-                    {settings.isPro && <span className="bg-yellow-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5"><Crown size={10} fill="black"/> PRO</span>}
+                    {settings.isPro && <span className="bg-yellow-500 text-black text-[9px] font-bold px-1 py-0.5 rounded uppercase flex items-center gap-0.5"><Crown size={8} fill="black"/> PRO</span>}
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
             </div>
@@ -426,8 +518,8 @@ const App = () => {
                 </div>
                 <div className="relative">
                     {settings.isPro && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
-                             <Crown size={18} className="text-yellow-400 fill-yellow-400 drop-shadow-sm filter" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
+                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
+                                <Crown size={14} className="text-yellow-400 fill-yellow-400 drop-shadow-sm filter" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
                         </div>
                     )}
                     <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 border-2 overflow-hidden ${settings.isPro ? 'border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-700'}`}>
@@ -464,8 +556,8 @@ const App = () => {
                 
                 {/* Rings Grid */}
                 <div className="grid grid-cols-2 gap-4">
-                    {settings.goals.filter(g => g.isEnabled).map((goal) => (
-                        <div key={goal.type} className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-lg">
+                    {enabledGoals.map((goal, idx) => (
+                        <div key={goal.type} className={`bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-lg ${enabledGoals.length % 2 !== 0 && idx === enabledGoals.length - 1 ? 'col-span-2' : ''}`}>
                              <div className="absolute top-3 left-3">
                                  {getIconForType(goal.type)}
                              </div>
@@ -482,7 +574,7 @@ const App = () => {
                             </div>
                         </div>
                     ))}
-                    {settings.goals.filter(g => g.isEnabled).length === 0 && (
+                    {enabledGoals.length === 0 && (
                          <div className="col-span-2 text-center py-8 text-gray-500 bg-gray-100 dark:bg-gray-900/30 rounded-2xl border border-dashed border-gray-300 dark:border-gray-800">
                              {t('noGoals')}
                          </div>
@@ -567,8 +659,8 @@ const App = () => {
                         <span className="text-blue-500 font-mono font-bold">YOU</span>
                         <div className="relative">
                             {settings.isPro && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
-                                     <Crown size={20} className="text-yellow-400 fill-yellow-400 drop-shadow-sm" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
+                                     <Crown size={16} className="text-yellow-400 fill-yellow-400 drop-shadow-sm" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
                                 </div>
                             )}
                             <img src={settings.avatar} alt="You" className={`w-12 h-12 rounded-full border-2 ${settings.isPro ? 'border-yellow-400' : 'border-blue-500'}`} />
@@ -609,8 +701,8 @@ const App = () => {
                 <div className="flex flex-col items-center py-6">
                     <div className="relative group cursor-pointer" onClick={() => setShowAvatarSelector(true)}>
                         {settings.isPro && (
-                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
-                                  <Crown size={40} className="text-yellow-400 fill-yellow-400 drop-shadow-md" style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.3))' }} />
+                             <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
+                                  <Crown size={32} className="text-yellow-400 fill-yellow-400 drop-shadow-md" style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.3))' }} />
                              </div>
                         )}
                         <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${settings.isPro ? 'border-yellow-400' : 'border-white dark:border-gray-800'} group-hover:border-blue-500 transition shadow-xl`}>
@@ -652,7 +744,7 @@ const App = () => {
                         <div className="flex justify-between items-center mb-4">
                              <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
                                 <Users size={16} className="text-purple-500" />
-                                Bio Data
+                                {t('bioData')}
                              </h4>
                              <SaveIndicator saving={isSavingSettings} />
                         </div>
@@ -745,12 +837,20 @@ const App = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <label className="block">
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">{t('currentWeight')}</span>
-                                <input 
-                                    type="number" 
-                                    value={currentWeightInput}
-                                    onChange={(e) => setCurrentWeightInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-emerald-500 outline-none"
-                                />
+                                <div className="flex items-center gap-2 mt-1">
+                                    <input 
+                                        type="number" 
+                                        value={currentWeightInput}
+                                        onChange={(e) => setCurrentWeightInput(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none"
+                                    />
+                                    <button 
+                                        onClick={handleScanClick}
+                                        className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800 transition shadow-sm border border-emerald-200 dark:border-emerald-800"
+                                    >
+                                        <Camera size={20} />
+                                    </button>
+                                </div>
                             </label>
                             <label className="block">
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">{t('targetWeight')}</span>
@@ -796,11 +896,11 @@ const App = () => {
                                  {serverStatus === 'online' && <Wifi size={10} />}
                                  {serverStatus === 'offline' && <WifiOff size={10} />}
                                  
-                                 <span>{serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Checking'}</span>
+                                 <span>{serverStatus === 'online' ? t('online') : serverStatus === 'offline' ? t('offline') : t('checking')}</span>
                              </div>
                          </div>
                          <label className="block">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">URL</span>
+                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">{t('url')}</span>
                             <div className="flex items-center gap-2 mt-1">
                                 <Globe size={16} className="text-gray-400" />
                                 <input 
@@ -816,7 +916,7 @@ const App = () => {
                                     className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg text-xs font-bold whitespace-nowrap text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition flex items-center gap-2"
                                 >
                                     {isDiagnosing ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
-                                    Test
+                                    {t('test')}
                                 </button>
                             </div>
                          </label>
@@ -901,6 +1001,122 @@ const App = () => {
               refreshData();
               fetchMotivation();
           }} />
+      )}
+      
+      {/* Phone Model Modal */}
+      {showPhoneModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in duration-200">
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                      <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Smartphone size={18} className="text-blue-500"/>
+                          {t('phoneModelPrompt')}
+                      </h3>
+                      <button onClick={() => setShowPhoneModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                          <X size={20} />
+                      </button>
+                  </div>
+                  <div className="p-6 space-y-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('phoneModelDesc')}</p>
+                      <input 
+                          type="text"
+                          value={phoneModelInput}
+                          onChange={(e) => setPhoneModelInput(e.target.value)}
+                          placeholder={t('phonePlaceholder')}
+                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 outline-none focus:border-blue-500"
+                      />
+                      <button 
+                          onClick={calculatePhoneWeight}
+                          disabled={!phoneModelInput || isCalculatingPhone}
+                          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                      >
+                          {isCalculatingPhone ? <Loader2 className="animate-spin" /> : t('calcPhoneWeight')}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Quick Weight Scan Overlay */}
+      {showQuickScan && (
+          <div className="fixed inset-0 bg-black z-[70] flex flex-col items-center justify-center">
+             <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+                 <div className="flex items-center gap-2 text-white">
+                     <Settings2 size={16} />
+                     <span className="text-sm font-bold">{settings.phoneModel} ({settings.phoneWeight}kg)</span>
+                 </div>
+                 <button onClick={closeQuickScan} className="bg-white/20 p-2 rounded-full text-white backdrop-blur">
+                     <X size={20} />
+                 </button>
+             </div>
+             
+             <div className="relative w-full h-full bg-black">
+                 {/* Video container handled by DOM element logic, but we need a canvas for capture */}
+                 <div className="w-full h-full flex items-center justify-center" ref={(el) => {
+                     if (el && quickScanVideoRef) {
+                         el.innerHTML = '';
+                         quickScanVideoRef.className = "w-full h-full object-cover";
+                         el.appendChild(quickScanVideoRef);
+                     }
+                 }}></div>
+                 <canvas ref={quickScanCanvasRef} className="hidden" />
+
+                 {/* Results Overlay */}
+                 {quickScanResult ? (
+                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200">
+                         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
+                             <h3 className="text-xl font-bold text-center mb-6 text-white">{t('confirmWeight')}</h3>
+                             
+                             <div className="space-y-4 mb-6">
+                                 <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                     <span className="text-gray-400">{t('rawReading')}</span>
+                                     <span className="font-mono text-xl">{quickScanResult.raw} kg</span>
+                                 </div>
+                                 <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                     <span className="text-gray-400 flex items-center gap-1"><Smartphone size={14}/> {t('phoneDeduction')}</span>
+                                     <span className="font-mono text-xl text-red-400">- {settings.phoneWeight} kg</span>
+                                 </div>
+                                 <div className="flex justify-between items-center pt-2">
+                                     <span className="text-white font-bold text-lg">{t('netWeight')}</span>
+                                     <span className="font-mono text-4xl font-bold text-emerald-400">{quickScanResult.net} kg</span>
+                                 </div>
+                             </div>
+                             
+                             <div className="flex gap-3">
+                                 <button onClick={startQuickScan} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-white">
+                                     {t('retake')}
+                                 </button>
+                                 <button onClick={confirmQuickScan} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-white">
+                                     {t('useThis')}
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                 ) : (
+                     <>
+                        {/* Guide Box */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-64 h-32 border-2 border-emerald-500/50 border-dashed rounded-lg flex items-center justify-center">
+                                <span className="bg-black/40 text-white text-xs px-2 py-1 rounded backdrop-blur">
+                                    {t('scanScale')}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Capture Trigger */}
+                        <div className="absolute bottom-10 left-0 right-0 flex justify-center pointer-events-auto">
+                            <button 
+                                onClick={captureQuickScan}
+                                disabled={isQuickScanning}
+                                className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95"
+                            >
+                                {isQuickScanning ? <Loader2 className="animate-spin" /> : <Camera size={28} />}
+                            </button>
+                        </div>
+                     </>
+                 )}
+             </div>
+          </div>
       )}
 
       {/* Reference Object Scanner */}

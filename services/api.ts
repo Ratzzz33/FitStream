@@ -34,6 +34,7 @@ const fetchWithTimeout = async (resource: string, options: any = {}) => {
 }
 
 export const ApiService = {
+    // 1. Sync Settings (Legacy + Pro check)
     async syncUser(userId: string, settings: any, customBaseUrl?: string): Promise<{ isPro: boolean } | null> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
@@ -41,14 +42,64 @@ export const ApiService = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, settings }),
-                timeout: 15000 // 15s timeout for cold starts
+                timeout: 10000
             });
             if (!response.ok) throw new Error('Network response was not ok');
             return await response.json();
         } catch (e) {
-            // Silently fail to offline mode
-            console.warn(`Backend unreachable at ${url} (Offline Mode active)`);
+            console.warn(`Backend unreachable at ${url}`);
             return null; 
+        }
+    },
+
+    // 2. Fetch ALL Data (Settings + Logs)
+    async fetchFullUserData(userId: string, customBaseUrl?: string): Promise<any | null> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithTimeout(`${url}/data/${userId}`, {
+                method: 'GET',
+                timeout: 20000 // longer timeout for big data
+            });
+            if (!response.ok) {
+                if(response.status === 404) return null; // New user
+                throw new Error('Failed to fetch data');
+            }
+            return await response.json();
+        } catch (e) {
+            console.warn(`Failed to fetch full data:`, e);
+            return null;
+        }
+    },
+
+    // 3. Push Single Log Item (Exercise, Weight, Nutrition)
+    async pushLog(userId: string, category: 'EXERCISE' | 'WEIGHT' | 'NUTRITION', data: any, customBaseUrl?: string): Promise<boolean> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithTimeout(`${url}/data/log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, category, data }),
+                timeout: 5000 // fast timeout, background sync
+            });
+            return response.ok;
+        } catch (e) {
+            return false; // Queued locally if failed (logic handled in service)
+        }
+    },
+    
+    // 4. Bulk Push (for migration/offline sync)
+    async pushBulk(userId: string, payload: any, customBaseUrl?: string): Promise<boolean> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithTimeout(`${url}/data/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, ...payload }),
+                timeout: 30000
+            });
+            return response.ok;
+        } catch (e) {
+            return false;
         }
     },
 
