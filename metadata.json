@@ -1,0 +1,8 @@
+{
+  "name": "FitStream AI",
+  "description": "An AI-powered fitness tracker that counts reps via camera, tracks weight via scale scanning, and motivates you with daily goals and social competition.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
