@@ -99,7 +99,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   height: 175,
   gender: 'MALE',
   activityLevel: 'MODERATE',
-  referenceObject: 'Credit Card',
+  installDate: new Date().toISOString(),
+  referenceObject: '',
+  referenceDimensions: '',
   phoneModel: 'Unknown Device',
   goals: DEFAULT_GOALS,
   targetWeight: 70,
@@ -255,7 +257,10 @@ export const StorageService = {
     if (!settings.height) settings.height = 175;
     if (!settings.gender) settings.gender = 'MALE';
     if (!settings.activityLevel) settings.activityLevel = 'MODERATE';
-    if (!settings.referenceObject) settings.referenceObject = 'Credit Card';
+    if (!settings.referenceObject) settings.referenceObject = '';
+    
+    // Migration for trial tracking
+    if (!settings.installDate) settings.installDate = new Date().toISOString();
 
     // Auto-update to production URL if empty or undefined
     if (!settings.backendUrl) {

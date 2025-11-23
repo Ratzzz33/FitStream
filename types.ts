@@ -56,7 +56,9 @@ export interface UserSettings {
   height: number; // in cm
   gender: Gender;
   activityLevel: ActivityLevel;
+  installDate: string; // For tracking free trial
   referenceObject: string; // e.g., "AirPods Case", "Credit Card"
+  referenceDimensions?: string; // e.g., "8.5 x 5.4 cm"
   phoneModel: string;
   goals: DailyGoal[];
   targetWeight: number;

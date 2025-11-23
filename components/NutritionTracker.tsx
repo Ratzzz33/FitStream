@@ -1,14 +1,18 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
 
-export const NutritionTracker: React.FC = () => {
+interface NutritionTrackerProps {
+  onRequestPro: () => void;
+}
+
+export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [analyzing, setAnalyzing] = useState(false);
@@ -16,9 +20,23 @@ export const NutritionTracker: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     
+    // Manual Entry State
+    const [showManualEntry, setShowManualEntry] = useState(false);
+    const [manualName, setManualName] = useState('');
+    const [manualCals, setManualCals] = useState('');
+    const [manualProt, setManualProt] = useState('');
+    const [manualCarbs, setManualCarbs] = useState('');
+    const [manualFat, setManualFat] = useState('');
+
     const settings = StorageService.getSettings();
     const dailyNeeds = StorageService.calculateDailyNeeds();
     const todayStats = StorageService.getTodayNutrition();
+
+    // Check Trial Status
+    const installDate = new Date(settings.installDate).getTime();
+    const daysSinceInstall = (Date.now() - installDate) / (1000 * 60 * 60 * 24);
+    const isTrialActive = daysSinceInstall < 7;
+    const isScannerUnlocked = settings.isPro || isTrialActive;
 
     const addWater = (amount: number, name: string) => {
         const log: NutritionLog = {
@@ -94,9 +112,28 @@ export const NutritionTracker: React.FC = () => {
         }
     };
 
-    // Calculate percentages
-    const calProgress = Math.min(todayStats.calories, dailyNeeds.calories);
-    const waterProgress = Math.min(todayStats.water, dailyNeeds.water);
+    const saveManualFood = () => {
+        if (!manualName || !manualCals) return;
+        const log: NutritionLog = {
+            id: Date.now().toString(),
+            date: new Date().toISOString().split('T')[0],
+            timestamp: Date.now(),
+            type: 'FOOD',
+            name: manualName,
+            calories: parseInt(manualCals) || 0,
+            protein: parseInt(manualProt) || 0,
+            carbs: parseInt(manualCarbs) || 0,
+            fat: parseInt(manualFat) || 0
+        };
+        StorageService.saveNutrition(log);
+        setShowManualEntry(false);
+        setManualName('');
+        setManualCals('');
+        setManualProt('');
+        setManualCarbs('');
+        setManualFat('');
+        setNeedsUpdate(prev => prev + 1);
+    };
 
     return (
         <div className="p-4 space-y-6 pb-24">
@@ -254,20 +291,46 @@ export const NutritionTracker: React.FC = () => {
                         </div>
                     </div>
                 ) : (
-                    <button 
-                        onClick={startCamera}
-                        className="w-full py-12 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-orange-500 dark:hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-300 group"
-                    >
-                        <div className="p-4 bg-orange-100 dark:bg-orange-900/20 rounded-full group-hover:scale-110 transition">
-                            <Camera size={32} className="text-orange-500" />
-                        </div>
-                        <span className="font-medium">{t('scanFood')}</span>
-                    </button>
+                    <div className="space-y-3">
+                         {isScannerUnlocked ? (
+                            <button 
+                                onClick={startCamera}
+                                className="w-full py-12 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-orange-500 dark:hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-300 group"
+                            >
+                                <div className="p-4 bg-orange-100 dark:bg-orange-900/20 rounded-full group-hover:scale-110 transition">
+                                    <Camera size={32} className="text-orange-500" />
+                                </div>
+                                <span className="font-medium">{t('scanFood')}</span>
+                            </button>
+                         ) : (
+                             // LOCKED SCANNER STATE
+                             <div className="space-y-3">
+                                <button 
+                                    onClick={onRequestPro}
+                                    className="w-full py-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-2 relative overflow-hidden group hover:border-orange-300 dark:hover:border-orange-700 transition"
+                                >
+                                    <div className="absolute top-2 right-2 text-xs bg-black text-white px-2 py-0.5 rounded font-bold">{t('trialEnded')}</div>
+                                    <Lock size={24} className="text-gray-400 mb-1 group-hover:text-orange-500 transition-colors" />
+                                    <span className="font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200">{t('scannerLocked')}</span>
+                                    <span className="text-xs text-orange-500 font-medium">{t('upgradeToScan')}</span>
+                                </button>
+                                
+                                <button
+                                    onClick={() => setShowManualEntry(true)}
+                                    className="w-full py-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 transition"
+                                >
+                                    <PenTool size={18} />
+                                    <span className="font-medium">{t('manualEntry')}</span>
+                                </button>
+                                <p className="text-[10px] text-center text-gray-400 px-4">{t('manualEntryDesc')}</p>
+                             </div>
+                         )}
+                    </div>
                 )}
             </div>
 
             {/* Reference Object Warning if missing */}
-            {!settings.referenceObject && (
+            {!settings.referenceObject && isScannerUnlocked && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg flex items-start gap-3 border border-yellow-200 dark:border-yellow-800">
                     <AlertCircle size={20} className="text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div>
@@ -275,6 +338,84 @@ export const NutritionTracker: React.FC = () => {
                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
                             Go to Settings to define your reference object (e.g., Keys) for accurate AI sizing.
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Manual Entry Modal */}
+            {showManualEntry && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <PenTool size={16} /> {t('manualEntry')}
+                            </h3>
+                            <button onClick={() => setShowManualEntry(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('foodName')}</label>
+                                <input 
+                                    type="text" 
+                                    value={manualName}
+                                    onChange={(e) => setManualName(e.target.value)}
+                                    placeholder="e.g. Banana"
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('calories')}</label>
+                                    <input 
+                                        type="number" 
+                                        value={manualCals}
+                                        onChange={(e) => setManualCals(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Protein (g)</label>
+                                    <input 
+                                        type="number" 
+                                        value={manualProt}
+                                        onChange={(e) => setManualProt(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Carbs (g)</label>
+                                    <input 
+                                        type="number" 
+                                        value={manualCarbs}
+                                        onChange={(e) => setManualCarbs(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Fat (g)</label>
+                                    <input 
+                                        type="number" 
+                                        value={manualFat}
+                                        onChange={(e) => setManualFat(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <button 
+                                onClick={saveManualFood}
+                                disabled={!manualName || !manualCals}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                {t('addFood')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

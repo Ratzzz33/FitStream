@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
@@ -14,6 +15,7 @@ import { GoalSettings } from './components/GoalSettings';
 import { AvatarSelector } from './components/AvatarSelector';
 import { HealthConnect } from './components/HealthConnect';
 import { ProUpgradeModal } from './components/ProUpgradeModal';
+import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
 
@@ -27,6 +29,7 @@ const App = () => {
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [showRefScanner, setShowRefScanner] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   
   // Diagnostics State
@@ -38,7 +41,6 @@ const App = () => {
   const [nameInput, setNameInput] = useState(settings.name);
   const [ageInput, setAgeInput] = useState(settings.age.toString());
   const [heightInput, setHeightInput] = useState(settings.height.toString());
-  const [refObjectInput, setRefObjectInput] = useState(settings.referenceObject);
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
   const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
@@ -236,7 +238,6 @@ const App = () => {
         setNameInput(s.name);
         setAgeInput(s.age.toString());
         setHeightInput(s.height.toString());
-        setRefObjectInput(s.referenceObject);
         setTargetWeightInput(s.targetWeight.toString());
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
         setBackendUrlInput(s.backendUrl || '');
@@ -259,7 +260,6 @@ const App = () => {
           if (nameInput !== settings.name || 
               parseInt(ageInput) !== settings.age || 
               parseInt(heightInput) !== settings.height ||
-              refObjectInput !== settings.referenceObject ||
               parseFloat(targetWeightInput) !== settings.targetWeight ||
               backendUrlInput !== (settings.backendUrl || '')) {
               
@@ -269,7 +269,6 @@ const App = () => {
                   name: nameInput,
                   age: parseInt(ageInput) || 0,
                   height: parseInt(heightInput) || 170,
-                  referenceObject: refObjectInput,
                   targetWeight: parseFloat(targetWeightInput) || 0,
                   backendUrl: backendUrlInput
               };
@@ -287,7 +286,7 @@ const App = () => {
       }, 1500); // 1.5s debounce
 
       return () => clearTimeout(timer);
-  }, [nameInput, ageInput, heightInput, refObjectInput, targetWeightInput, backendUrlInput, settings]);
+  }, [nameInput, ageInput, heightInput, targetWeightInput, backendUrlInput, settings]);
 
   const updateGender = (g: Gender) => {
       const newSettings = { ...settings, gender: g };
@@ -299,6 +298,13 @@ const App = () => {
       const newSettings = { ...settings, activityLevel: a };
       setSettings(newSettings);
       StorageService.saveSettings(newSettings);
+  };
+
+  const updateReferenceObject = (name: string, dims: string) => {
+      const newSettings = { ...settings, referenceObject: name, referenceDimensions: dims };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+      setShowRefScanner(false);
   };
 
   // Debounce logic for Current Weight (Logs to history)
@@ -544,7 +550,7 @@ const App = () => {
         )}
 
         {activeTab === AppTab.WEIGHT && <WeightTracker />}
-        {activeTab === AppTab.NUTRITION && <NutritionTracker />}
+        {activeTab === AppTab.NUTRITION && <NutritionTracker onRequestPro={() => setShowProModal(true)} />}
 
         {activeTab === AppTab.SOCIAL && (
            <div className="px-4 space-y-4 pb-24">
@@ -696,17 +702,26 @@ const App = () => {
                              {t('nutrition')} & {t('weight')}
                         </h4>
                         
-                        <label className="block mb-4">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('referenceObject')}</span>
-                            <input 
-                                type="text" 
-                                value={refObjectInput}
-                                onChange={(e) => setRefObjectInput(e.target.value)}
-                                placeholder="e.g. Keys, Ring, AirPods Case"
-                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-green-500 outline-none"
-                            />
-                            <p className="text-[10px] text-gray-400 mt-1">{t('referenceDesc')}</p>
-                        </label>
+                        <div className="mb-4">
+                             <span className="text-gray-500 dark:text-gray-400 text-xs">{t('referenceObject')}</span>
+                             <div className="bg-gray-50 dark:bg-gray-950 p-3 rounded-lg mt-1 border border-gray-200 dark:border-gray-700">
+                                 <div className="flex justify-between items-center">
+                                     <div>
+                                         <p className="text-sm font-bold text-gray-900 dark:text-white">{settings.referenceObject || t('notSet')}</p>
+                                         {settings.referenceDimensions && (
+                                             <p className="text-xs text-gray-500">{settings.referenceDimensions}</p>
+                                         )}
+                                     </div>
+                                     <button 
+                                         onClick={() => setShowRefScanner(true)}
+                                         className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-green-200 dark:hover:bg-green-900/50 transition"
+                                     >
+                                         <Camera size={14}/> {settings.referenceObject ? t('update') : t('set')}
+                                     </button>
+                                 </div>
+                             </div>
+                             <p className="text-[10px] text-gray-400 mt-1">{t('referenceDesc')}</p>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <label className="block">
@@ -867,6 +882,14 @@ const App = () => {
               refreshData();
               fetchMotivation();
           }} />
+      )}
+
+      {/* Reference Object Scanner */}
+      {showRefScanner && (
+          <ReferenceObjectScanner 
+             onClose={() => setShowRefScanner(false)}
+             onSave={updateReferenceObject}
+          />
       )}
 
       {/* Pro Upgrade Modal */}
