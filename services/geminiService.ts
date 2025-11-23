@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { t } from './i18n';
 
@@ -40,6 +41,53 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
   }
 };
 
+// 2. Nutrition Analysis with Reference Object
+export const analyzeFood = async (
+    base64Image: string, 
+    referenceObject: string
+): Promise<{ name: string, calories: number, protein: number, carbs: number, fat: number }> => {
+    if (!API_KEY) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+                    { text: `Identify the food in this image. 
+                      There is a "${referenceObject}" in the image next to the food. Use this object to estimate the physical size and portion of the food. 
+                      Based on the estimated portion size, calculate the calories and macros.
+                      Return the result in JSON format.` 
+                    }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        calories: { type: Type.NUMBER },
+                        protein: { type: Type.NUMBER },
+                        carbs: { type: Type.NUMBER },
+                        fat: { type: Type.NUMBER }
+                    },
+                    required: ["name", "calories", "protein", "carbs", "fat"]
+                }
+            }
+        });
+        
+        const text = response.text;
+        if (text) return JSON.parse(text);
+        throw new Error("Failed to parse AI response");
+    } catch (error) {
+        console.error("Error analyzing food:", error);
+        throw error;
+    }
+};
+
+// 3. Motivation & Recommendations
 export const getMotivation = async (streak: number, repsToday: number): Promise<string> => {
     if (!API_KEY) return t('defaultMotivation');
     const ai = new GoogleGenAI({ apiKey: API_KEY });

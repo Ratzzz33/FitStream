@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
-import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog } from './types';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler } from 'lucide-react';
+import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
 import { getMotivation } from './services/geminiService';
 import { AchievementRing } from './components/AchievementRings';
 import { WorkoutSession } from './components/WorkoutSession';
 import { WeightTracker } from './components/WeightTracker';
+import { NutritionTracker } from './components/NutritionTracker';
 import { StatsCharts } from './components/Charts';
 import { GoalSettings } from './components/GoalSettings';
 import { AvatarSelector } from './components/AvatarSelector';
@@ -36,6 +37,8 @@ const App = () => {
   // Local state for auto-save fields
   const [nameInput, setNameInput] = useState(settings.name);
   const [ageInput, setAgeInput] = useState(settings.age.toString());
+  const [heightInput, setHeightInput] = useState(settings.height.toString());
+  const [refObjectInput, setRefObjectInput] = useState(settings.referenceObject);
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
   const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
@@ -229,9 +232,11 @@ const App = () => {
     const s = StorageService.getSettings();
     setSettings(s);
     // Only update inputs if they are not being edited (simple check: if active element isn't an input)
-    if (document.activeElement?.tagName !== 'INPUT') {
+    if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
         setNameInput(s.name);
         setAgeInput(s.age.toString());
+        setHeightInput(s.height.toString());
+        setRefObjectInput(s.referenceObject);
         setTargetWeightInput(s.targetWeight.toString());
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
         setBackendUrlInput(s.backendUrl || '');
@@ -248,11 +253,13 @@ const App = () => {
      fetchMotivation();
   }, [fetchMotivation]);
 
-  // Debounce logic for Settings (Name, Age, Target Weight, Backend URL)
+  // Debounce logic for Settings
   useEffect(() => {
       const timer = setTimeout(() => {
           if (nameInput !== settings.name || 
               parseInt(ageInput) !== settings.age || 
+              parseInt(heightInput) !== settings.height ||
+              refObjectInput !== settings.referenceObject ||
               parseFloat(targetWeightInput) !== settings.targetWeight ||
               backendUrlInput !== (settings.backendUrl || '')) {
               
@@ -261,6 +268,8 @@ const App = () => {
                   ...settings, 
                   name: nameInput,
                   age: parseInt(ageInput) || 0,
+                  height: parseInt(heightInput) || 170,
+                  referenceObject: refObjectInput,
                   targetWeight: parseFloat(targetWeightInput) || 0,
                   backendUrl: backendUrlInput
               };
@@ -278,7 +287,19 @@ const App = () => {
       }, 1500); // 1.5s debounce
 
       return () => clearTimeout(timer);
-  }, [nameInput, ageInput, targetWeightInput, backendUrlInput, settings]);
+  }, [nameInput, ageInput, heightInput, refObjectInput, targetWeightInput, backendUrlInput, settings]);
+
+  const updateGender = (g: Gender) => {
+      const newSettings = { ...settings, gender: g };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+  };
+
+  const updateActivity = (a: ActivityLevel) => {
+      const newSettings = { ...settings, activityLevel: a };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+  };
 
   // Debounce logic for Current Weight (Logs to history)
   useEffect(() => {
@@ -472,11 +493,11 @@ const App = () => {
                     )}
                 </button>
                 <button 
-                    onClick={() => setActiveTab(AppTab.WEIGHT)}
-                    className="bg-gradient-to-br from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white p-5 rounded-2xl shadow-xl shadow-emerald-500/20 dark:shadow-emerald-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
+                    onClick={() => setActiveTab(AppTab.NUTRITION)}
+                    className="bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-5 rounded-2xl shadow-xl shadow-orange-500/20 dark:shadow-orange-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
                 >
-                    <Weight size={28} />
-                    <span className="font-bold">{t('logWeight')}</span>
+                    <Utensils size={28} />
+                    <span className="font-bold">{t('nutrition')}</span>
                 </button>
             </div>
             
@@ -523,6 +544,7 @@ const App = () => {
         )}
 
         {activeTab === AppTab.WEIGHT && <WeightTracker />}
+        {activeTab === AppTab.NUTRITION && <NutritionTracker />}
 
         {activeTab === AppTab.SOCIAL && (
            <div className="px-4 space-y-4 pb-24">
@@ -599,25 +621,138 @@ const App = () => {
                             </div>
                         </div>
                     )}
-                    
-                    {settings.isPro && (
-                        <div className="bg-gray-800 p-4 rounded-xl border border-yellow-500/30 flex items-center justify-between">
-                             <div className="flex items-center gap-2">
-                                 <Crown size={20} className="text-yellow-500" fill="currentColor" />
-                                 <span className="text-white font-bold">{t('proActive')}</span>
-                             </div>
-                             <span className="text-gray-400 text-xs">{t('manageSubscription')}</span>
-                        </div>
-                    )}
 
+                    {/* Bio Data Section */}
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                                <Users size={16} className="text-purple-500" />
+                                Bio Data
+                             </h4>
+                             <SaveIndicator saving={isSavingSettings} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('yourName')}</span>
+                                <input 
+                                    type="text" 
+                                    value={nameInput}
+                                    onChange={(e) => setNameInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('age')}</span>
+                                <input 
+                                    type="number" 
+                                    value={ageInput}
+                                    onChange={(e) => setAgeInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('height')}</span>
+                                <input 
+                                    type="number" 
+                                    value={heightInput}
+                                    onChange={(e) => setHeightInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('gender')}</span>
+                                <select 
+                                    value={settings.gender}
+                                    onChange={(e) => updateGender(e.target.value as Gender)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                                >
+                                    <option value="MALE">{t('male')}</option>
+                                    <option value="FEMALE">{t('female')}</option>
+                                    <option value="OTHER">{t('other')}</option>
+                                </select>
+                            </label>
+                        </div>
+                        
+                        <label className="block mt-4">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
+                            <select 
+                                value={settings.activityLevel}
+                                onChange={(e) => updateActivity(e.target.value as ActivityLevel)}
+                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                            >
+                                <option value="SEDENTARY">{t('sedentary')}</option>
+                                <option value="LIGHT">{t('light')}</option>
+                                <option value="MODERATE">{t('moderate')}</option>
+                                <option value="VERY_ACTIVE">{t('very_active')}</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    {/* Weight & Reference Object */}
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <h4 className="text-gray-900 dark:text-white font-bold mb-4 flex items-center gap-2">
+                             <Ruler size={16} className="text-green-500" />
+                             {t('nutrition')} & {t('weight')}
+                        </h4>
+                        
+                        <label className="block mb-4">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('referenceObject')}</span>
+                            <input 
+                                type="text" 
+                                value={refObjectInput}
+                                onChange={(e) => setRefObjectInput(e.target.value)}
+                                placeholder="e.g. Keys, Ring, AirPods Case"
+                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-green-500 outline-none"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">{t('referenceDesc')}</p>
+                        </label>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('currentWeight')}</span>
+                                <input 
+                                    type="number" 
+                                    value={currentWeightInput}
+                                    onChange={(e) => setCurrentWeightInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-emerald-500 outline-none"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('targetWeight')}</span>
+                                <input 
+                                    type="number" 
+                                    value={targetWeightInput}
+                                    onChange={(e) => setTargetWeightInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-purple-500 outline-none"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400"/> : <Sun size={20} className="text-orange-500"/>}
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{t('theme')}</span>
+                        </div>
+                        <button 
+                            onClick={toggleTheme}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${settings.theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}
+                        >
+                            {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
+                        </button>
+                    </div>
+
+                    {/* Health Integrations */}
+                    <HealthConnect settings={settings} onUpdate={refreshData} />
+                    
                     {/* Backend Configuration UI */}
                     <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                          <div className="flex justify-between items-start mb-3">
                              <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
                                 <Server size={16} className="text-indigo-500" />
-                                Backend Configuration
+                                Backend
                              </h4>
-                             {/* Server Status Indicator */}
                              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold transition-all ${
                                  serverStatus === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 border-green-200 dark:border-green-800' :
                                  serverStatus === 'offline' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800' :
@@ -631,7 +766,7 @@ const App = () => {
                              </div>
                          </div>
                          <label className="block">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Railway App URL</span>
+                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">URL</span>
                             <div className="flex items-center gap-2 mt-1">
                                 <Globe size={16} className="text-gray-400" />
                                 <input 
@@ -669,74 +804,8 @@ const App = () => {
                              </div>
                          )}
                     </div>
-
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400"/> : <Sun size={20} className="text-orange-500"/>}
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">{t('theme')}</span>
-                        </div>
-                        <button 
-                            onClick={toggleTheme}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${settings.theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}
-                        >
-                            {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
-                        </button>
-                    </div>
-
-                    {/* Health Integrations (New) */}
-                    <HealthConnect settings={settings} onUpdate={refreshData} />
-
-                    <div className="flex justify-between items-center h-6">
-                         <span className="text-gray-500 text-xs uppercase tracking-wider">{t('deviceProfile')}</span>
-                         <SaveIndicator saving={isSavingSettings} />
-                    </div>
-
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-sm">{t('yourName')}</span>
-                        <input 
-                            type="text" 
-                            value={nameInput}
-                            onChange={(e) => setNameInput(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-1 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
-                        />
-                    </label>
-
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-sm">{t('age')}</span>
-                        <input 
-                            type="number" 
-                            value={ageInput}
-                            onChange={(e) => setAgeInput(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-1 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
-                        />
-                    </label>
-
-                    <div className="pt-4 flex justify-between items-center h-6">
-                         <span className="text-gray-500 text-xs uppercase tracking-wider">{t('weight')}</span>
-                         <SaveIndicator saving={isSavingWeight || isSavingSettings} />
-                    </div>
-
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-sm">{t('currentWeight')}</span>
-                        <input 
-                            type="number" 
-                            value={currentWeightInput}
-                            onChange={(e) => setCurrentWeightInput(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-1 text-gray-900 dark:text-white focus:border-emerald-500 outline-none transition"
-                        />
-                    </label>
-
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-sm">{t('targetWeight')}</span>
-                        <input 
-                            type="number" 
-                            value={targetWeightInput}
-                            onChange={(e) => setTargetWeightInput(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-1 text-gray-900 dark:text-white focus:border-purple-500 outline-none transition"
-                        />
-                    </label>
                     
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 mt-8 shadow-sm">
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 mt-2 shadow-sm">
                         <h4 className="text-gray-900 dark:text-white font-bold mb-2">{t('deviceSensor')}</h4>
                         <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
                              <span>{t('stepCounter')} (Beta)</span>
@@ -751,17 +820,24 @@ const App = () => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur border-t border-gray-200 dark:border-slate-900 px-6 py-4 flex justify-between items-center z-40 transition-colors duration-300">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur border-t border-gray-200 dark:border-slate-900 px-2 py-3 flex justify-between items-end z-40 transition-colors duration-300">
         <button 
             onClick={() => setActiveTab(AppTab.DASHBOARD)}
-            className={`flex flex-col items-center gap-1 ${activeTab === AppTab.DASHBOARD ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.DASHBOARD ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
         >
             <LayoutDashboard size={20} />
             <span className="text-[10px] font-medium">{t('dashboard')}</span>
         </button>
         <button 
+            onClick={() => setActiveTab(AppTab.NUTRITION)}
+            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+        >
+            <Utensils size={20} />
+            <span className="text-[10px] font-medium">{t('nutrition')}</span>
+        </button>
+        <button 
             onClick={() => setIsWorkoutActive(true)}
-            className={`flex flex-col items-center gap-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
         >
             <div className="bg-blue-600 text-white p-3 rounded-full -mt-8 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 hover:bg-blue-500 transition border-4 border-white dark:border-slate-950">
                 <Dumbbell size={24} />
@@ -770,14 +846,14 @@ const App = () => {
         </button>
         <button 
             onClick={() => setActiveTab(AppTab.SOCIAL)}
-            className={`flex flex-col items-center gap-1 ${activeTab === AppTab.SOCIAL ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SOCIAL ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
         >
             <Users size={20} />
             <span className="text-[10px] font-medium">{t('social')}</span>
         </button>
         <button 
             onClick={() => setActiveTab(AppTab.SETTINGS)}
-            className={`flex flex-col items-center gap-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
         >
             <Settings size={20} />
             <span className="text-[10px] font-medium">{t('settings')}</span>

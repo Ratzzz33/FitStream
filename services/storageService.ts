@@ -1,10 +1,11 @@
 
-import { ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType } from '../types';
+import { ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel } from '../types';
 import { ApiService } from './api';
 
 const KEYS = {
   EXERCISES: 'fitstream_exercises',
   WEIGHTS: 'fitstream_weights',
+  NUTRITION: 'fitstream_nutrition',
   SETTINGS: 'fitstream_settings_v4',
   FRIENDS: 'fitstream_friends',
   USER_ID: 'fitstream_user_id'
@@ -95,6 +96,10 @@ const DEFAULT_SETTINGS: UserSettings = {
   name: 'User',
   avatar: PREDEFINED_AVATARS[0].url, 
   age: 25,
+  height: 175,
+  gender: 'MALE',
+  activityLevel: 'MODERATE',
+  referenceObject: 'Credit Card',
   phoneModel: 'Unknown Device',
   goals: DEFAULT_GOALS,
   targetWeight: 70,
@@ -160,6 +165,51 @@ export const StorageService = {
     StorageService.updateStreak();
   },
 
+  // --- Nutrition ---
+  getNutritionLogs: (): NutritionLog[] => {
+      const data = localStorage.getItem(KEYS.NUTRITION);
+      return data ? JSON.parse(data) : [];
+  },
+
+  getTodayNutrition: (): { calories: number, water: number } => {
+      const logs = StorageService.getNutritionLogs();
+      const today = new Date().toISOString().split('T')[0];
+      return logs
+        .filter(l => l.date === today)
+        .reduce((acc, log) => {
+            if (log.type === 'FOOD') acc.calories += log.calories;
+            if (log.type === 'WATER') acc.water += (log.amount || 0);
+            return acc;
+        }, { calories: 0, water: 0 });
+  },
+
+  saveNutrition: (log: NutritionLog) => {
+      const logs = StorageService.getNutritionLogs();
+      logs.push(log);
+      localStorage.setItem(KEYS.NUTRITION, JSON.stringify(logs));
+  },
+
+  calculateDailyNeeds: (): { calories: number, water: number } => {
+      const s = StorageService.getSettings();
+      const weight = StorageService.getLastWeight() || s.targetWeight || 70;
+      
+      // Mifflin-St Jeor Equation
+      let bmr = (10 * weight) + (6.25 * s.height) - (5 * s.age);
+      bmr += s.gender === 'MALE' ? 5 : -161;
+
+      const activityMultipliers: Record<ActivityLevel, number> = {
+          'SEDENTARY': 1.2,
+          'LIGHT': 1.375,
+          'MODERATE': 1.55,
+          'VERY_ACTIVE': 1.725
+      };
+
+      const calories = Math.round(bmr * (activityMultipliers[s.activityLevel] || 1.2));
+      const water = Math.round(weight * 35); // Approx 35ml per kg
+
+      return { calories, water };
+  },
+
   // --- Weights ---
   getWeights: (): WeightLog[] => {
     const data = localStorage.getItem(KEYS.WEIGHTS);
@@ -201,6 +251,12 @@ export const StorageService = {
     if (!settings.avatar) settings.avatar = DEFAULT_SETTINGS.avatar;
     if (settings.isPro === undefined) settings.isPro = false;
     
+    // New Fields Migration
+    if (!settings.height) settings.height = 175;
+    if (!settings.gender) settings.gender = 'MALE';
+    if (!settings.activityLevel) settings.activityLevel = 'MODERATE';
+    if (!settings.referenceObject) settings.referenceObject = 'Credit Card';
+
     // Auto-update to production URL if empty or undefined
     if (!settings.backendUrl) {
         settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
@@ -246,7 +302,25 @@ export const StorageService = {
   },
 
   updateStreak: () => {
-      // Basic streak logic
+      const settings = StorageService.getSettings();
+      const lastActive = new Date(settings.lastActiveDate);
+      const today = new Date();
+      
+      // Reset hours to compare dates only
+      lastActive.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      
+      const diffTime = Math.abs(today.getTime() - lastActive.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+      if (diffDays === 1) {
+          settings.streak += 1;
+      } else if (diffDays > 1) {
+          settings.streak = 1;
+      }
+      
+      settings.lastActiveDate = new Date().toISOString().split('T')[0];
+      StorageService.saveSettings(settings);
   },
 
   getFriends: (): Friend[] => {

@@ -16,6 +16,19 @@ export interface WeightLog {
   photoUrl?: string;
 }
 
+export interface NutritionLog {
+    id: string;
+    date: string;
+    timestamp: number;
+    type: 'FOOD' | 'WATER';
+    name: string; // "Apple", "Glass of Water"
+    calories: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    amount?: number; // volume in ml for water
+}
+
 export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES';
 
 export interface DailyGoal {
@@ -33,10 +46,17 @@ export interface ConnectedPlatforms {
   lastSync: string | null;
 }
 
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'VERY_ACTIVE';
+
 export interface UserSettings {
   name: string;
   avatar: string;
   age: number;
+  height: number; // in cm
+  gender: Gender;
+  activityLevel: ActivityLevel;
+  referenceObject: string; // e.g., "AirPods Case", "Credit Card"
   phoneModel: string;
   goals: DailyGoal[];
   targetWeight: number;
@@ -45,7 +65,7 @@ export interface UserSettings {
   theme: 'light' | 'dark';
   connectedPlatforms: ConnectedPlatforms;
   isPro: boolean;
-  backendUrl?: string; // New field for dynamic backend configuration
+  backendUrl?: string;
 }
 
 export interface Friend {
@@ -58,6 +78,7 @@ export interface Friend {
 export enum AppTab {
   DASHBOARD = 'DASHBOARD',
   WORKOUT = 'WORKOUT',
+  NUTRITION = 'NUTRITION',
   WEIGHT = 'WEIGHT',
   SOCIAL = 'SOCIAL',
   SETTINGS = 'SETTINGS'
