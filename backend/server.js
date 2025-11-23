@@ -6,22 +6,33 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 
 const app = express();
 
-// --- 1. CRITICAL: CORS MIDDLEWARE (MUST BE FIRST) ---
+// --- 1. ROBUST MANUAL CORS MIDDLEWARE ---
+// Explicitly handle CORS to prevent browser blocking.
 app.use((req, res, next) => {
-  // Allow all origins
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  // Allow all standard methods
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-  // Allow headers usually sent by browsers and clients (Expanded list to prevent blocking)
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, stripe-signature, X-Requested-With, Accept, Origin, Cache-Control, Pragma");
+  // Allow any origin
+  res.setHeader('Access-Control-Allow-Origin', '*');
   
-  // Log that CORS was applied (helps debug in Railway logs)
-  // console.log(`[CORS] Headers set for ${req.method} ${req.url}`);
+  // Allow all standard methods
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
 
-  // Handle preflight requests immediately
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+  // Dynamically allow whatever headers the client is asking for
+  // This prevents issues where specific browser extensions or headers block the request
+  const requestHeaders = req.headers['access-control-request-headers'];
+  if (requestHeaders) {
+    res.setHeader('Access-Control-Allow-Headers', requestHeaders);
+  } else {
+    // Fallback defaults
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, stripe-signature, Accept, Origin, Cache-Control, Pragma');
   }
+
+  // Cache preflight response for 24 hours to reduce OPTIONS requests
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  // Handle Preflight (OPTIONS) immediately
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   next();
 });
 
@@ -51,6 +62,8 @@ pool.on('error', (err, client) => {
 
 // Health Check
 app.get('/', (req, res) => {
+    // Prevent caching of health check to ensure diagnostics are real-time
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
         message: 'FitStream Backend Ready',

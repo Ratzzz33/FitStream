@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog } from './types';
@@ -61,7 +62,7 @@ const App = () => {
       const urlToCheck = customUrl || currentSettings.backendUrl;
       
       try {
-          // Try to sync
+          // Try to sync with cache buster
           const result = await ApiService.syncUser(userId, currentSettings, urlToCheck);
           
           if (result) {
@@ -84,7 +85,7 @@ const App = () => {
   const runDiagnostics = async () => {
       setIsDiagnosing(true);
       setShowDiagnostics(true);
-      setDiagnosticLogs(["Starting diagnostics v2...", "--------------------------------"]);
+      setDiagnosticLogs(["Starting diagnostics v4 (Manual CORS)...", "--------------------------------"]);
       
       const addLog = (msg: string) => setDiagnosticLogs(prev => [...prev, msg]);
       
@@ -114,20 +115,18 @@ const App = () => {
       addLog(`ℹ️ Base Root: ${baseUrl}`);
       addLog(`ℹ️ API Endpoint: ${apiUrl}`);
 
-      // 2. Network Check (Root PING)
-      addLog(`[2] Pinging Server Root (Health Check)...`);
+      // 2. Network Check (Simple GET - No Preflight)
+      addLog(`[2] Pinging Server (Simple Request)...`);
       const start = Date.now();
       try {
           const controller = new AbortController();
-          // INCREASED TIMEOUT to 30s for Railway Cold Starts
-          const timeoutId = setTimeout(() => controller.abort(), 30000); 
+          const timeoutId = setTimeout(() => controller.abort(), 15000); 
           
-          // Add timestamp to prevent caching
-          // Add explicit headers to test if CORS is stripping them
+          // No custom headers = No Preflight (Simple Request)
           const res = await fetch(`${baseUrl}?t=${Date.now()}`, { 
               method: 'GET', 
               signal: controller.signal,
-              headers: { 'Accept': 'application/json' }
+              mode: 'cors'
           });
           clearTimeout(timeoutId);
           
@@ -135,37 +134,31 @@ const App = () => {
           addLog(`${res.ok ? '✅' : '❌'} Status: ${res.status} ${res.statusText}`);
           addLog(`⏱️ Latency: ${latency}ms`);
           
-          if (latency > 2000) {
-              addLog("⚠️ High latency detected (Cold Start?)");
-          }
+          if (latency > 2000) addLog("⚠️ High latency (Cold Start?)");
           
           const text = await res.text();
-          addLog(`📄 Response snippet: "${text.substring(0, 50)}..."`);
+          addLog(`📄 Response: "${text.substring(0, 50)}..."`);
           
       } catch (e: any) {
-          addLog(`❌ Connection Failed: ${e.name}: ${e.message}`);
-          
-          // --- PROBE FOR CORS ---
-          addLog("🕵️ Probing for reachability (no-cors mode)...");
+          addLog(`❌ Simple Connection Failed: ${e.name}: ${e.message}`);
+          // Probe opaque
           try {
-             // Opaque request. If this doesn't throw, server IS there but blocking CORS.
              await fetch(`${baseUrl}?t=${Date.now()}`, { method: 'GET', mode: 'no-cors' });
-             addLog("⚠️ DIAGNOSIS: Server is ONLINE but returning CORS errors.");
-             addLog("   This confirms the backend is running but headers are rejected.");
-          } catch(probeErr: any) {
-             addLog(`❌ DIAGNOSIS: Server is completely UNREACHABLE (${probeErr.message}).`);
-             addLog("   Check URL or Railway Dashboard.");
+             addLog("⚠️ DIAGNOSIS: Server reachable via no-cors. Likely strict CORS blocking Simple Requests.");
+          } catch(probeErr) {
+             addLog("❌ DIAGNOSIS: Server Unreachable/Down.");
           }
       }
 
-      // 3. API Route Check
-      addLog(`[3] Testing API Route (/user/sync)...`);
+      // 3. API Route Check (Preflighted POST)
+      addLog(`[3] Testing API Route (Preflighted)...`);
       try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 30000); 
 
           const res = await fetch(`${apiUrl}/user/sync`, {
               method: 'POST',
+              // These headers trigger OPTIONS preflight
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } }),
               signal: controller.signal
