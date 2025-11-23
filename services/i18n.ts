@@ -83,6 +83,13 @@ const translations = {
     integrationNote: 'Syncs step data and activity history.',
     color: 'Color',
     lastActivity: 'Last Activity',
+    
+    // Statistics
+    statistics: 'Statistics',
+    week: 'Week',
+    month: 'Month',
+    total: 'Total',
+    average: 'Average',
 
     // Units & Placeholders
     weightPlaceholder: 'e.g. 100',
@@ -301,6 +308,13 @@ const translations = {
     integrationNote: 'Синхронизация шагов и истории активности.',
     color: 'Цвет',
     lastActivity: 'Посл. активность',
+    
+    // Statistics
+    statistics: 'Статистика',
+    week: 'Неделя',
+    month: 'Месяц',
+    total: 'Всего',
+    average: 'Среднее',
 
     // Units & Placeholders
     weightPlaceholder: 'напр. 100',

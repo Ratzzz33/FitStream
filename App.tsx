@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
@@ -19,6 +14,7 @@ import { AvatarSelector } from './components/AvatarSelector';
 import { HealthConnect } from './components/HealthConnect';
 import { ProUpgradeModal } from './components/ProUpgradeModal';
 import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
+import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
 
@@ -34,6 +30,9 @@ const App = () => {
   const [showProModal, setShowProModal] = useState(false);
   const [showRefScanner, setShowRefScanner] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  
+  // Goal Selection
+  const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
   
   // Phone Weight Scan Logic
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -566,7 +565,11 @@ const App = () => {
                 {/* Rings Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     {enabledGoals.map((goal, idx) => (
-                        <div key={goal.type} className={`bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-lg ${enabledGoals.length % 2 !== 0 && idx === enabledGoals.length - 1 ? 'col-span-2' : ''}`}>
+                        <div 
+                            key={goal.type} 
+                            onClick={() => setSelectedGoal(goal)}
+                            className={`bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-lg cursor-pointer hover:scale-[1.02] transition-transform ${enabledGoals.length % 2 !== 0 && idx === enabledGoals.length - 1 ? 'col-span-2' : ''}`}
+                        >
                              <div className="absolute top-3 left-3">
                                  {getIconForType(goal.type)}
                              </div>
@@ -1010,6 +1013,15 @@ const App = () => {
               refreshData();
               fetchMotivation();
           }} />
+      )}
+      
+      {/* Goal Details Modal */}
+      {selectedGoal && (
+          <GoalDetailsModal 
+              goal={selectedGoal}
+              label={getLabelForType(selectedGoal.type)}
+              onClose={() => setSelectedGoal(null)}
+          />
       )}
       
       {/* Phone Model Modal */}
