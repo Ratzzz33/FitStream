@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   AreaChart,
@@ -219,7 +220,7 @@ export const StatsCharts: React.FC<ChartsProps> = ({ exercises, weights, targetW
           {!isPro && (
                <div className="absolute top-2 left-2 z-20">
                    <div className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 border border-yellow-200 dark:border-yellow-700">
-                       <Lock size={10} /> 7 Days Free Limit
+                       <Lock size={10} /> {t('freeLimitReached')}
                    </div>
                </div>
           )}

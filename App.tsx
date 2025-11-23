@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog } from './types';
@@ -491,8 +490,8 @@ const App = () => {
                             <Crown size={20} fill="white" />
                         </div>
                         <div>
-                            <p className="font-bold text-gray-900 dark:text-white">Upgrade to Pro</p>
-                            <p className="text-xs text-gray-500">Remove limits & unlock insights</p>
+                            <p className="font-bold text-gray-900 dark:text-white">{t('upgradeToPro')}</p>
+                            <p className="text-xs text-gray-500">{t('removeLimits')}</p>
                         </div>
                     </div>
                     <ArrowDown className="text-yellow-500 -rotate-90" size={20} />
@@ -591,11 +590,11 @@ const App = () => {
                                     </div>
                                     <div>
                                         <p className="font-bold text-lg">FitStream PRO</p>
-                                        <p className="text-xs text-white/80">Upgrade to unlock all features</p>
+                                        <p className="text-xs text-white/80">{t('unlockAllFeatures')}</p>
                                     </div>
                                 </div>
                                 <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-xs font-bold">
-                                    Upgrade
+                                    {t('upgrade')}
                                 </div>
                             </div>
                         </div>
@@ -605,9 +604,9 @@ const App = () => {
                         <div className="bg-gray-800 p-4 rounded-xl border border-yellow-500/30 flex items-center justify-between">
                              <div className="flex items-center gap-2">
                                  <Crown size={20} className="text-yellow-500" fill="currentColor" />
-                                 <span className="text-white font-bold">Pro Active</span>
+                                 <span className="text-white font-bold">{t('proActive')}</span>
                              </div>
-                             <span className="text-gray-400 text-xs">Manage in Stripe</span>
+                             <span className="text-gray-400 text-xs">{t('manageSubscription')}</span>
                         </div>
                     )}
 

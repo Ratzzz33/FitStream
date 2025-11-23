@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Check, Star, Zap, TrendingUp, Shield, Loader2, Crown } from 'lucide-react';
 import { ApiService } from '../services/api';
 import { StorageService } from '../services/storageService';
+import { t } from '../services/i18n';
 
 interface ProUpgradeModalProps {
   onClose: () => void;
@@ -52,8 +53,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                  <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                      <Crown size={40} className="text-yellow-500 animate-bounce" />
                  </div>
-                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Demo Mode Activated!</h2>
-                 <p className="text-gray-500 dark:text-gray-400">Backend unavailable. You are now Pro for this session.</p>
+                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{t('demoModeActive')}</h2>
+                 <p className="text-gray-500 dark:text-gray-400">{t('demoModeDesc')}</p>
              </div>
         </div>
       );
@@ -78,8 +79,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                  <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/50 shadow-lg">
                      <Star size={40} className="text-white fill-white" />
                  </div>
-                 <h2 className="text-3xl font-black text-white tracking-tight uppercase italic">Go Pro</h2>
-                 <p className="text-white/90 font-medium mt-1">Unlock your full potential</p>
+                 <h2 className="text-3xl font-black text-white tracking-tight uppercase italic">{t('goPro')}</h2>
+                 <p className="text-white/90 font-medium mt-1">{t('unlockPotential')}</p>
              </div>
         </div>
 
@@ -91,8 +92,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                         <Zap size={20} />
                     </div>
                     <div>
-                        <p className="font-bold text-gray-900 dark:text-white">Unlimited AI Workouts</p>
-                        <p className="text-xs text-gray-500">No daily or weekly limits.</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{t('unlimitedWorkouts')}</p>
+                        <p className="text-xs text-gray-500">{t('unlimitedWorkoutsDesc')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -100,8 +101,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                         <TrendingUp size={20} />
                     </div>
                     <div>
-                        <p className="font-bold text-gray-900 dark:text-white">Full History & Analytics</p>
-                        <p className="text-xs text-gray-500">See progress over months.</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{t('fullHistory')}</p>
+                        <p className="text-xs text-gray-500">{t('fullHistoryDesc')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -109,15 +110,15 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                         <Shield size={20} />
                     </div>
                     <div>
-                        <p className="font-bold text-gray-900 dark:text-white">Smart Form Correction</p>
-                        <p className="text-xs text-gray-500">Advanced AI feedback on posture.</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{t('smartCorrection')}</p>
+                        <p className="text-xs text-gray-500">{t('smartCorrectionDesc')}</p>
                     </div>
                 </div>
             </div>
 
             {/* Pricing Card */}
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-center mt-6">
-                <p className="text-gray-500 text-sm">Monthly Subscription</p>
+                <p className="text-gray-500 text-sm">{t('monthlySubscription')}</p>
                 <div className="flex items-baseline justify-center gap-1 mt-1">
                     <span className="text-3xl font-bold text-gray-900 dark:text-white">$4.99</span>
                     <span className="text-gray-500">/mo</span>
@@ -129,11 +130,11 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-orange-500/30 transition transform active:scale-95 flex items-center justify-center gap-2"
             >
-                {loading ? <Loader2 className="animate-spin" /> : 'Start 7-Day Free Trial'}
+                {loading ? <Loader2 className="animate-spin" /> : t('startTrial')}
             </button>
             
             <p className="text-xs text-center text-gray-400">
-                Secured by Stripe. Cancel anytime.
+                {t('securedByStripe')}
             </p>
         </div>
       </div>

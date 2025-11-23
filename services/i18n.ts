@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh';
 
 const translations = {
@@ -79,7 +80,29 @@ const translations = {
     syncNow: 'Sync Now',
     integrationNote: 'Syncs step data and activity history.',
     color: 'Color',
-    lastActivity: 'Last Activity'
+    lastActivity: 'Last Activity',
+    
+    // Pro Features
+    upgradeToPro: "Upgrade to Pro",
+    removeLimits: "Remove limits & unlock insights",
+    unlockAllFeatures: "Upgrade to unlock all features",
+    upgrade: "Upgrade",
+    proActive: "Pro Active",
+    manageSubscription: "Manage in Stripe",
+    demoModeActive: "Demo Mode Activated!",
+    demoModeDesc: "Backend unavailable. You are now Pro for this session.",
+    goPro: "Go Pro",
+    unlockPotential: "Unlock your full potential",
+    unlimitedWorkouts: "Unlimited AI Workouts",
+    unlimitedWorkoutsDesc: "No daily or weekly limits.",
+    fullHistory: "Full History & Analytics",
+    fullHistoryDesc: "See progress over months.",
+    smartCorrection: "Smart Form Correction",
+    smartCorrectionDesc: "Advanced AI feedback on posture.",
+    monthlySubscription: "Monthly Subscription",
+    startTrial: "Start 7-Day Free Trial",
+    securedByStripe: "Secured by Stripe. Cancel anytime.",
+    freeLimitReached: "7 Days Free Limit"
   },
   ru: {
     dashboard: 'Главная',
@@ -159,7 +182,29 @@ const translations = {
     syncNow: 'Обновить',
     integrationNote: 'Синхронизация шагов и истории активности.',
     color: 'Цвет',
-    lastActivity: 'Посл. активность'
+    lastActivity: 'Посл. активность',
+    
+    // Pro Features
+    upgradeToPro: "Перейти на Pro",
+    removeLimits: "Снять лимиты и открыть аналитику",
+    unlockAllFeatures: "Обновитесь для доступа ко всем функциям",
+    upgrade: "Обновить",
+    proActive: "Pro Активен",
+    manageSubscription: "Управление в Stripe",
+    demoModeActive: "Демо-режим активирован!",
+    demoModeDesc: "Бэкенд недоступен. Вы Pro на эту сессию.",
+    goPro: "Стать Pro",
+    unlockPotential: "Раскройте свой потенциал",
+    unlimitedWorkouts: "Безлимитные ИИ тренировки",
+    unlimitedWorkoutsDesc: "Нет дневных или недельных лимитов.",
+    fullHistory: "Полная история и аналитика",
+    fullHistoryDesc: "Следите за прогрессом по месяцам.",
+    smartCorrection: "Умная коррекция техники",
+    smartCorrectionDesc: "Продвинутая ИИ обратная связь.",
+    monthlySubscription: "Ежемесячная подписка",
+    startTrial: "Начать 7 дней бесплатно",
+    securedByStripe: "Защищено Stripe. Отмена в любой момент.",
+    freeLimitReached: "Лимит 7 дней (Бесплатно)"
   },
   es: {
     dashboard: 'Inicio',
@@ -239,7 +284,29 @@ const translations = {
     syncNow: 'Sincronizar',
     integrationNote: 'Sincroniza pasos e historial de actividad.',
     color: 'Color',
-    lastActivity: 'Última actividad'
+    lastActivity: 'Última actividad',
+    
+    // Pro Features
+    upgradeToPro: "Mejorar a Pro",
+    removeLimits: "Eliminar límites y ver análisis",
+    unlockAllFeatures: "Desbloquea todas las funciones",
+    upgrade: "Mejorar",
+    proActive: "Pro Activo",
+    manageSubscription: "Gestionar en Stripe",
+    demoModeActive: "¡Modo Demo Activado!",
+    demoModeDesc: "Backend no disponible. Eres Pro en esta sesión.",
+    goPro: "Hazte Pro",
+    unlockPotential: "Libera tu potencial",
+    unlimitedWorkouts: "Entrenamientos IA Ilimitados",
+    unlimitedWorkoutsDesc: "Sin límites diarios o semanales.",
+    fullHistory: "Historial Completo y Análisis",
+    fullHistoryDesc: "Ver progreso de meses.",
+    smartCorrection: "Corrección Inteligente",
+    smartCorrectionDesc: "Feedback IA avanzado de postura.",
+    monthlySubscription: "Suscripción Mensual",
+    startTrial: "Prueba 7 días gratis",
+    securedByStripe: "Seguro con Stripe. Cancela cuando quieras.",
+    freeLimitReached: "Límite 7 días Gratis"
   },
   fr: {
     dashboard: 'Accueil',
@@ -319,7 +386,29 @@ const translations = {
     syncNow: 'Synchroniser',
     integrationNote: 'Synchronise les pas et l\'historique.',
     color: 'Couleur',
-    lastActivity: 'Dernière activité'
+    lastActivity: 'Dernière activité',
+    
+    // Pro Features
+    upgradeToPro: "Passer Pro",
+    removeLimits: "Supprimer limites & voir stats",
+    unlockAllFeatures: "Débloquez tout",
+    upgrade: "Mettre à niveau",
+    proActive: "Pro Actif",
+    manageSubscription: "Gérer dans Stripe",
+    demoModeActive: "Mode Démo Activé!",
+    demoModeDesc: "Backend indisponible. Vous êtes Pro pour cette session.",
+    goPro: "Devenir Pro",
+    unlockPotential: "Libérez votre potentiel",
+    unlimitedWorkouts: "Entraînements IA Illimités",
+    unlimitedWorkoutsDesc: "Aucune limite quotidienne.",
+    fullHistory: "Historique Complet",
+    fullHistoryDesc: "Voir les progrès sur des mois.",
+    smartCorrection: "Correction Intelligente",
+    smartCorrectionDesc: "Retour IA avancé sur la posture.",
+    monthlySubscription: "Abonnement Mensuel",
+    startTrial: "Essai gratuit 7 jours",
+    securedByStripe: "Sécurisé par Stripe. Annulation facile.",
+    freeLimitReached: "Limite 7 Jours Gratuit"
   },
   de: {
     dashboard: 'Dashboard',
@@ -399,7 +488,29 @@ const translations = {
     syncNow: 'Jetzt synchronisieren',
     integrationNote: 'Synchronisiert Schritte und Aktivitätsverlauf.',
     color: 'Farbe',
-    lastActivity: 'Letzte Aktivität'
+    lastActivity: 'Letzte Aktivität',
+    
+    // Pro Features
+    upgradeToPro: "Upgrade auf Pro",
+    removeLimits: "Limits entfernen & Insights",
+    unlockAllFeatures: "Alle Funktionen freischalten",
+    upgrade: "Upgrade",
+    proActive: "Pro Aktiv",
+    manageSubscription: "In Stripe verwalten",
+    demoModeActive: "Demo-Modus Aktiviert!",
+    demoModeDesc: "Backend nicht verfügbar. Du bist Pro für diese Sitzung.",
+    goPro: "Werde Pro",
+    unlockPotential: "Entfalte dein Potenzial",
+    unlimitedWorkouts: "Unbegrenzte KI-Workouts",
+    unlimitedWorkoutsDesc: "Keine täglichen Limits.",
+    fullHistory: "Voller Verlauf & Analyse",
+    fullHistoryDesc: "Fortschritt über Monate.",
+    smartCorrection: "Smarte Formkorrektur",
+    smartCorrectionDesc: "Erweitertes KI-Feedback.",
+    monthlySubscription: "Monatsabo",
+    startTrial: "7 Tage kostenlos testen",
+    securedByStripe: "Sicher mit Stripe. Jederzeit kündbar.",
+    freeLimitReached: "7 Tage Gratis-Limit"
   },
   zh: {
     dashboard: '主页',
@@ -479,7 +590,29 @@ const translations = {
     syncNow: '立即同步',
     integrationNote: '同步步数和活动历史记录。',
     color: '颜色',
-    lastActivity: '上次活动'
+    lastActivity: '上次活动',
+    
+    // Pro Features
+    upgradeToPro: "升级到 Pro",
+    removeLimits: "解除限制 & 解锁分析",
+    unlockAllFeatures: "升级以解锁所有功能",
+    upgrade: "升级",
+    proActive: "Pro 已激活",
+    manageSubscription: "在 Stripe 管理",
+    demoModeActive: "演示模式已激活！",
+    demoModeDesc: "后台不可用。您在本次会话中为 Pro。",
+    goPro: "成为 Pro",
+    unlockPotential: "释放您的潜力",
+    unlimitedWorkouts: "无限 AI 锻炼",
+    unlimitedWorkoutsDesc: "无每日或每周限制。",
+    fullHistory: "完整历史 & 分析",
+    fullHistoryDesc: "查看数月的进度。",
+    smartCorrection: "智能姿势纠正",
+    smartCorrectionDesc: "高级 AI 姿势反馈。",
+    monthlySubscription: "月度订阅",
+    startTrial: "开始 7 天免费试用",
+    securedByStripe: "由 Stripe 保护。随时取消。",
+    freeLimitReached: "7天免费限制"
   }
 };
 
