@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
@@ -1055,7 +1057,7 @@ const App = () => {
              <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
                  <div className="flex items-center gap-2 text-white">
                      <Settings2 size={16} />
-                     <span className="text-sm font-bold">{settings.phoneModel} ({settings.phoneWeight}kg)</span>
+                     <span className="text-sm font-bold">{settings.phoneModel} ({settings.phoneWeight}{t('unitKg')})</span>
                  </div>
                  <button onClick={closeQuickScan} className="bg-white/20 p-2 rounded-full text-white backdrop-blur">
                      <X size={20} />
@@ -1082,15 +1084,15 @@ const App = () => {
                              <div className="space-y-4 mb-6">
                                  <div className="flex justify-between items-center border-b border-gray-800 pb-2">
                                      <span className="text-gray-400">{t('rawReading')}</span>
-                                     <span className="font-mono text-xl">{quickScanResult.raw} kg</span>
+                                     <span className="font-mono text-xl">{quickScanResult.raw} {t('unitKg')}</span>
                                  </div>
                                  <div className="flex justify-between items-center border-b border-gray-800 pb-2">
                                      <span className="text-gray-400 flex items-center gap-1"><Smartphone size={14}/> {t('phoneDeduction')}</span>
-                                     <span className="font-mono text-xl text-red-400">- {settings.phoneWeight} kg</span>
+                                     <span className="font-mono text-xl text-red-400">- {settings.phoneWeight} {t('unitKg')}</span>
                                  </div>
                                  <div className="flex justify-between items-center pt-2">
                                      <span className="text-white font-bold text-lg">{t('netWeight')}</span>
-                                     <span className="font-mono text-4xl font-bold text-emerald-400">{quickScanResult.net} kg</span>
+                                     <span className="font-mono text-4xl font-bold text-emerald-400">{quickScanResult.net} {t('unitKg')}</span>
                                  </div>
                              </div>
                              

@@ -50,7 +50,7 @@ app.get('/', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
-        message: 'FitStream Backend Ready v2 (Full Sync)',
+        message: 'FitStream Backend Ready v3 (Phone DB)',
         timestamp: new Date().toISOString() 
     });
 });
@@ -92,12 +92,41 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 
 app.use(express.json({ limit: '10mb' }));
 
+// --- PHONE DATABASE SEED ---
+const SEED_PHONES = [
+    { name: "Samsung Galaxy S25 Ultra", weight: 233 },
+    { name: "Samsung Galaxy S25 Plus", weight: 196 },
+    { name: "Samsung Galaxy S25", weight: 168 },
+    { name: "Samsung Galaxy S24 Ultra", weight: 232 },
+    { name: "Samsung Galaxy S24 Plus", weight: 196 },
+    { name: "Samsung Galaxy S24", weight: 167 },
+    { name: "iPhone 17 Pro Max", weight: 225 },
+    { name: "iPhone 17 Pro", weight: 190 },
+    { name: "iPhone 17", weight: 174 },
+    { name: "iPhone 16 Pro Max", weight: 227 },
+    { name: "iPhone 16 Pro", weight: 199 },
+    { name: "iPhone 16 Plus", weight: 199 },
+    { name: "iPhone 16", weight: 170 },
+    { name: "iPhone 15 Pro Max", weight: 221 },
+    { name: "iPhone 15 Pro", weight: 187 },
+    { name: "iPhone 15 Plus", weight: 201 },
+    { name: "iPhone 15", weight: 171 },
+    { name: "iPhone 14 Pro Max", weight: 240 },
+    { name: "iPhone 13 Pro Max", weight: 238 },
+    { name: "Google Pixel 9 Pro XL", weight: 221 },
+    { name: "Google Pixel 9 Pro", weight: 199 },
+    { name: "Google Pixel 9", weight: 198 },
+    { name: "Google Pixel 8 Pro", weight: 213 },
+    { name: "Xiaomi 14 Ultra", weight: 224 },
+    { name: "OnePlus 12", weight: 220 }
+];
+
 // Initialize DB Tables
 const initDb = async () => {
   try {
     const client = await pool.connect();
     try {
-        // Users table for Settings & Profile
+        // Users table
         await client.query(`
           CREATE TABLE IF NOT EXISTS users (
             id VARCHAR(255) PRIMARY KEY,
@@ -109,8 +138,7 @@ const initDb = async () => {
           );
         `);
 
-        // Consolidated Logs table for Exercises, Weight, Nutrition
-        // Category: 'EXERCISE', 'WEIGHT', 'NUTRITION'
+        // Logs table
         await client.query(`
           CREATE TABLE IF NOT EXISTS user_logs (
             id VARCHAR(255) PRIMARY KEY,
@@ -121,11 +149,26 @@ const initDb = async () => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
         `);
-        
-        // Index for faster retrieval by user
         await client.query(`CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);`);
 
-        console.log("✅ Database initialized: 'users' and 'user_logs' tables ready.");
+        // Phones table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS phones (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) UNIQUE NOT NULL,
+                weight INTEGER NOT NULL
+            );
+        `);
+
+        // Seed Phones (ON CONFLICT DO NOTHING to avoid duplicates)
+        for (const phone of SEED_PHONES) {
+            await client.query(`
+                INSERT INTO phones (name, weight) VALUES ($1, $2)
+                ON CONFLICT (name) DO NOTHING
+            `, [phone.name, phone.weight]);
+        }
+
+        console.log("✅ Database initialized: 'users', 'user_logs', and 'phones' tables ready.");
     } finally {
         client.release();
     }
@@ -136,22 +179,35 @@ const initDb = async () => {
 
 // --- API ENDPOINTS ---
 
-// 1. GET FULL DATA (Restore/Sync)
+// GET PHONES DB
+app.get('/api/phones', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query('SELECT name, weight FROM phones ORDER BY name ASC');
+            res.json(result.rows);
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        console.error(e);
+        // Fallback to memory seed if DB fails
+        res.json(SEED_PHONES);
+    }
+});
+
+// 1. GET FULL DATA
 app.get('/api/data/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
         const client = await pool.connect();
         try {
-            // Get User Settings
             const userRes = await client.query('SELECT settings, is_pro FROM users WHERE id = $1', [userId]);
-            
-            // Get All Logs
             const logsRes = await client.query('SELECT * FROM user_logs WHERE user_id = $1', [userId]);
             
             const user = userRes.rows[0] || { settings: null, is_pro: false };
             const logs = logsRes.rows;
 
-            // Group logs
             const exercises = logs.filter(l => l.category === 'EXERCISE').map(l => l.data);
             const weights = logs.filter(l => l.category === 'WEIGHT').map(l => l.data);
             const nutrition = logs.filter(l => l.category === 'NUTRITION').map(l => l.data);
@@ -172,13 +228,12 @@ app.get('/api/data/:userId', async (req, res) => {
     }
 });
 
-// 2. SAVE SETTINGS (Sync Settings only)
+// 2. SAVE SETTINGS
 app.post('/api/user/sync', async (req, res) => {
     const { userId, settings } = req.body;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
-        // Upsert User
         await pool.query(`
             INSERT INTO users (id, settings, last_synced_at) 
             VALUES ($1, $2, CURRENT_TIMESTAMP)
@@ -186,7 +241,6 @@ app.post('/api/user/sync', async (req, res) => {
             SET settings = $2, last_synced_at = CURRENT_TIMESTAMP
         `, [userId, settings]);
         
-        // Return Pro Status for confirmation
         const resPro = await pool.query('SELECT is_pro FROM users WHERE id = $1', [userId]);
         return res.json({ isPro: resPro.rows[0]?.is_pro || false });
     } catch (err) {
@@ -195,23 +249,19 @@ app.post('/api/user/sync', async (req, res) => {
     }
 });
 
-// 3. PUSH LOG (Save single Exercise/Weight/Nutrition item)
+// 3. PUSH LOG
 app.post('/api/data/log', async (req, res) => {
     const { userId, category, data } = req.body; 
-    // data must have an 'id' field
     if (!userId || !category || !data || !data.id) return res.status(400).json({ error: "Invalid payload" });
 
     try {
-        // Ensure user exists first
         await pool.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [userId]);
-
         await pool.query(`
             INSERT INTO user_logs (id, user_id, category, date, data)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE
             SET data = $5
         `, [data.id, userId, category, data.date, data]);
-
         res.json({ success: true });
     } catch (e) {
         console.error("Save Log Error", e);
@@ -219,7 +269,7 @@ app.post('/api/data/log', async (req, res) => {
     }
 });
 
-// 4. BULK SYNC (Push arrays of data - for initial migration or offline sync)
+// 4. BULK SYNC
 app.post('/api/data/bulk', async (req, res) => {
     const { userId, exercises, weights, nutrition } = req.body;
     if (!userId) return res.status(400).json({ error: "Missing userId" });
@@ -227,8 +277,6 @@ app.post('/api/data/bulk', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        
-        // Helper to insert
         const insertHelper = async (items, category) => {
             for (const item of items) {
                 await client.query(`
@@ -238,11 +286,9 @@ app.post('/api/data/bulk', async (req, res) => {
                 `, [item.id, userId, category, item.date, item]);
             }
         };
-
         if (exercises?.length) await insertHelper(exercises, 'EXERCISE');
         if (weights?.length) await insertHelper(weights, 'WEIGHT');
         if (nutrition?.length) await insertHelper(nutrition, 'NUTRITION');
-
         await client.query('COMMIT');
         res.json({ success: true });
     } catch (e) {
@@ -257,10 +303,8 @@ app.post('/api/data/bulk', async (req, res) => {
 // Create Checkout Session
 app.post('/api/create-checkout-session', async (req, res) => {
     if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
-
     const { userId } = req.body;
     const clientUrl = req.get('Referer') ? req.get('Referer').replace(/\/$/, "") : (process.env.CLIENT_URL || 'http://localhost:3000');
-
     try {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],

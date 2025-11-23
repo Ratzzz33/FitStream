@@ -1,6 +1,5 @@
 
 
-
 export type Language = 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh';
 
 const translations = {
@@ -27,8 +26,8 @@ const translations = {
     topAthlete: 'Top Athlete',
     yourName: 'Your Name',
     age: 'Age',
-    targetWeight: 'Target Weight (kg)',
-    currentWeight: 'Current Weight (kg)',
+    targetWeight: 'Target Weight',
+    currentWeight: 'Current Weight',
     manageGoals: 'Manage Goals',
     saveChanges: 'Save Changes',
     dailyTarget: 'Daily Target',
@@ -36,7 +35,7 @@ const translations = {
     dismiss: 'Dismiss',
     finish: 'Finish',
     scanScale: 'Scan Scale Display',
-    enterManually: 'Enter weight (kg)',
+    enterManually: 'Enter weight',
     cameraDenied: 'Camera access denied',
     weightSaved: 'Weight saved!',
     detecting: 'Detecting...',
@@ -67,7 +66,7 @@ const translations = {
     aiTracking: 'AI Powered Tracking',
     fileTooLarge: 'File too large. Please select an image under 2MB.',
     liveAiVision: 'Live AI Vision',
-    scanError: 'Could not detect numbers clearly. Please enter manually.',
+    scanError: 'Could not detect clearly. Please try again.',
     goal: 'Goal',
     theme: 'Theme',
     darkMode: 'Dark Mode',
@@ -84,6 +83,14 @@ const translations = {
     integrationNote: 'Syncs step data and activity history.',
     color: 'Color',
     lastActivity: 'Last Activity',
+
+    // Units & Placeholders
+    weightPlaceholder: 'e.g. 100',
+    unitG: 'g',
+    unitMg: 'mg',
+    unitKg: 'kg',
+    unitKcal: 'kcal',
+    unitMl: 'ml',
 
     // Bio Data & Nutrition
     bioData: 'Bio Data',
@@ -110,7 +117,7 @@ const translations = {
     cup: 'Cup',
     bottle: 'Bottle',
     jug: 'Jug',
-    scanFood: 'Scan Food',
+    scanFood: 'Scan Meal',
     foodSaved: 'Food Logged',
     waterGoal: 'Water Goal',
     calGoal: 'Calorie Goal',
@@ -122,17 +129,34 @@ const translations = {
     aiEst: 'AI Est.',
     usingForScale: 'Using for scale:',
     missingRefObject: 'Missing Reference Object',
-    missingRefObjectDesc: 'Go to Settings to define your reference object (e.g., Keys) for accurate AI sizing.',
+    missingRefObjectDesc: 'You haven\'t saved a reference object in settings yet.',
+    missingRefWarningBody: 'Without a saved reference object (like keys or a card), calorie estimation may be less accurate.',
+    continueAnyway: 'Continue Anyway',
+    setupNow: 'Setup Now',
+    
+    // Menu Scanner
+    analyzeMenu: 'Analyze Menu',
+    menuScanner: 'Menu Scanner',
+    analyzingMenu: 'Reading menu...',
+    menuRecs: 'Menu Recommendations',
+    bestChoice: 'Best Choice',
+    highProtein: 'High Protein',
+    lesserEvil: 'Lesser of Two Evils',
+    selectDish: 'Select Dish',
+    whyThis: 'Why: ',
     
     // Manual Food Entry & Trial
     trialEnded: 'AI Scan Trial Ended',
     manualEntry: 'Manual Entry',
     upgradeToScan: 'Upgrade to continue using AI Scan',
     manualEntryDesc: 'Free users can only manually enter food by searching and specifying portion.',
-    foodName: 'Food Name / Search',
+    foodName: 'Food Name',
+    foodPlaceholder: 'e.g. Banana',
     portionSize: 'Portion Size',
+    weightG: 'Weight',
     addFood: 'Add Food',
     scannerLocked: 'AI Scanner Locked',
+    autoCalc: 'Auto-Calculate',
     
     // Scanner
     scanRefObject: 'Scan Object',
@@ -220,8 +244,8 @@ const translations = {
     topAthlete: 'Топ атлет',
     yourName: 'Ваше имя',
     age: 'Возраст',
-    targetWeight: 'Целевой вес (кг)',
-    currentWeight: 'Текущий вес (кг)',
+    targetWeight: 'Целевой вес',
+    currentWeight: 'Текущий вес',
     manageGoals: 'Управление целями',
     saveChanges: 'Сохранить',
     dailyTarget: 'Ежедневная цель',
@@ -229,7 +253,7 @@ const translations = {
     dismiss: 'Закрыть',
     finish: 'Завершить',
     scanScale: 'Сканировать весы',
-    enterManually: 'Введите вес (кг)',
+    enterManually: 'Введите вес',
     cameraDenied: 'Доступ к камере запрещен',
     weightSaved: 'Вес сохранен!',
     detecting: 'Определение...',
@@ -260,7 +284,7 @@ const translations = {
     aiTracking: 'ИИ Трекер активности',
     fileTooLarge: 'Файл слишком большой. Выберите изображение до 2 МБ.',
     liveAiVision: 'ИИ Зрение (Live)',
-    scanError: 'Не удалось четко распознать цифры. Введите вручную.',
+    scanError: 'Не удалось четко распознать. Попробуйте еще раз.',
     goal: 'Цель',
     theme: 'Тема',
     darkMode: 'Темная тема',
@@ -277,6 +301,14 @@ const translations = {
     integrationNote: 'Синхронизация шагов и истории активности.',
     color: 'Цвет',
     lastActivity: 'Посл. активность',
+
+    // Units & Placeholders
+    weightPlaceholder: 'напр. 100',
+    unitG: 'г',
+    unitMg: 'мг',
+    unitKg: 'кг',
+    unitKcal: 'ккал',
+    unitMl: 'мл',
 
     // Nutrition & Bio
     bioData: 'Биометрические данные',
@@ -303,7 +335,7 @@ const translations = {
     cup: 'Чашка',
     bottle: 'Бутылка',
     jug: 'Кувшин',
-    scanFood: 'Скан еды',
+    scanFood: 'Сканировать блюдо',
     foodSaved: 'Еда записана',
     waterGoal: 'Цель воды',
     calGoal: 'Цель ккал',
@@ -315,17 +347,34 @@ const translations = {
     aiEst: 'ИИ Оценка',
     usingForScale: 'Масштаб по:',
     missingRefObject: 'Нет предмета для масштаба',
-    missingRefObjectDesc: 'Перейдите в настройки, чтобы задать предмет (например, ключи) для точности ИИ.',
+    missingRefObjectDesc: 'В настройках не сохранен предмет для сравнения.',
+    missingRefWarningBody: 'Без сохраненного предмета (ключи, карта) оценка калорий может быть менее точной.',
+    continueAnyway: 'Всё равно продолжить',
+    setupNow: 'Настроить сейчас',
+
+    // Menu Scanner
+    analyzeMenu: 'Анализ меню',
+    menuScanner: 'Сканер Меню',
+    analyzingMenu: 'Читаю меню...',
+    menuRecs: 'Рекомендации блюда из меню',
+    bestChoice: 'Лучший выбор',
+    highProtein: 'Высокий белок',
+    lesserEvil: 'Меньшее из зол',
+    selectDish: 'Выбрать',
+    whyThis: 'Почему: ',
     
     // Manual Food Entry
     trialEnded: 'Пробный период завершен',
     manualEntry: 'Ручной ввод',
     upgradeToScan: 'Обновитесь для ИИ сканирования',
     manualEntryDesc: 'Бесплатно только руками вводить поиском еду и указывать порцию.',
-    foodName: 'Название еды / Поиск',
+    foodName: 'Название еды',
+    foodPlaceholder: 'напр. Банан',
     portionSize: 'Размер порции',
+    weightG: 'Вес',
     addFood: 'Добавить еду',
     scannerLocked: 'ИИ Сканер закрыт',
+    autoCalc: 'Авто-расчет',
     
     // Scanner
     scanRefObject: 'Скан предмета',

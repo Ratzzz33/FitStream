@@ -121,5 +121,21 @@ export const ApiService = {
             console.warn(`Payment service unavailable at ${url}, falling back to demo mode.`);
             return null;
         }
+    },
+
+    // 5. Fetch Phone Database
+    async getPhoneDatabase(customBaseUrl?: string): Promise<{ name: string, weight: number }[]> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithTimeout(`${url}/phones`, {
+                method: 'GET',
+                timeout: 5000
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (e) {
+            console.warn("Failed to fetch phone database, using fallback detection.");
+            return [];
+        }
     }
 };

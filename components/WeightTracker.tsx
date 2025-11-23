@@ -77,7 +77,7 @@ export const WeightTracker: React.FC = () => {
            </h2>
            <div className="flex justify-between items-center mb-2">
                <p className="text-gray-500 dark:text-gray-400 text-sm">{t('registeredDevice')}</p>
-               {settings.phoneModel && <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 px-2 py-1 rounded font-bold">-{settings.phoneWeight}kg</span>}
+               {settings.phoneModel && <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 px-2 py-1 rounded font-bold">-{settings.phoneWeight}{t('unitKg')}</span>}
            </div>
            
            <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg text-purple-600 dark:text-purple-200 font-mono text-sm border border-purple-200 dark:border-purple-500/30">
@@ -132,15 +132,15 @@ export const WeightTracker: React.FC = () => {
                        <div className="flex flex-col items-center mt-2">
                            {settings.phoneModel && (
                                <div className="text-xs text-gray-500 line-through mb-1">
-                                   {lastSaved.raw} kg
+                                   {lastSaved.raw} {t('unitKg')}
                                </div>
                            )}
                            <p className="text-4xl font-mono font-bold text-gray-900 dark:text-white">
-                               {lastSaved.net} <span className="text-lg text-gray-500 font-normal">kg</span>
+                               {lastSaved.net} <span className="text-lg text-gray-500 font-normal">{t('unitKg')}</span>
                            </p>
                            {settings.phoneModel && (
                                <p className="text-[10px] text-gray-400 mt-1">
-                                   {t('phoneDeduction')}: -{settings.phoneWeight}kg
+                                   {t('phoneDeduction')}: -{settings.phoneWeight}{t('unitKg')}
                                </p>
                            )}
                        </div>

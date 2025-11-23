@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import {
   AreaChart,
@@ -80,7 +81,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, t
                                     <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                                     <span className="text-gray-500 dark:text-gray-400 font-medium">{t('weight')}</span>
                                 </div>
-                                <span className="font-mono font-bold text-xl text-gray-900 dark:text-white">{entry.value} <span className="text-sm font-normal text-gray-500">kg</span></span>
+                                <span className="font-mono font-bold text-xl text-gray-900 dark:text-white">{entry.value} <span className="text-sm font-normal text-gray-500">{t('unitKg')}</span></span>
                              </div>
                              {data.lastWeightTime && (
                                  <p className="text-xs text-gray-400 text-right mb-1">
@@ -89,9 +90,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, t
                              )}
                              {targetWeight && (
                                 <div className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg flex justify-between items-center text-xs mt-1">
-                                    <span className="text-gray-500">{t('goal')}: {targetWeight}kg</span>
+                                    <span className="text-gray-500">{t('goal')}: {targetWeight}{t('unitKg')}</span>
                                     <span className={`font-bold ${isGoalMet ? 'text-green-500' : 'text-orange-500'}`}>
-                                        {diffVal > 0 ? '+' : ''}{diff} kg
+                                        {diffVal > 0 ? '+' : ''}{diff} {t('unitKg')}
                                     </span>
                                 </div>
                              )}

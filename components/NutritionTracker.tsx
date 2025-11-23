@@ -1,9 +1,9 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2 } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood } from '../services/geminiService';
+import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
@@ -12,27 +12,38 @@ interface NutritionTrackerProps {
   onRequestPro: () => void;
 }
 
+type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU';
+
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
-    const [analyzing, setAnalyzing] = useState(false);
+    const [mode, setMode] = useState<ScanMode>('IDLE');
+    
+    // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
+    const [menuRecommendations, setMenuRecommendations] = useState<MenuRecommendation[]>([]);
+    
+    // UI Logic
+    const [showRefWarning, setShowRefWarning] = useState(false);
+    
+    // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     
     // Manual Entry State
     const [showManualEntry, setShowManualEntry] = useState(false);
     const [manualName, setManualName] = useState('');
+    const [manualAmount, setManualAmount] = useState(''); // Weight in grams
     const [manualCals, setManualCals] = useState('');
     const [manualProt, setManualProt] = useState('');
     const [manualCarbs, setManualCarbs] = useState('');
     const [manualFat, setManualFat] = useState('');
+    const [isCalculatingManual, setIsCalculatingManual] = useState(false);
 
     const settings = StorageService.getSettings();
     const dailyNeeds = StorageService.calculateDailyNeeds();
     const todayStats = StorageService.getTodayNutrition();
 
-    // Check Trial Status
+    // Check Trial/Pro Status
     const installDate = new Date(settings.installDate).getTime();
     const daysSinceInstall = (Date.now() - installDate) / (1000 * 60 * 60 * 24);
     const isTrialActive = daysSinceInstall < 7;
@@ -52,8 +63,35 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         setNeedsUpdate(prev => prev + 1);
     };
 
-    const startCamera = async () => {
-        setIsCameraOpen(true);
+    // --- Interaction Handlers ---
+
+    const handleScanFoodClick = () => {
+        if (!isScannerUnlocked) {
+            onRequestPro();
+            return;
+        }
+        if (!settings.referenceObject) {
+            setShowRefWarning(true);
+        } else {
+            startCamera('CAMERA_FOOD');
+        }
+    };
+
+    const handleScanMenuClick = () => {
+        if (!isScannerUnlocked) {
+            onRequestPro();
+            return;
+        }
+        startCamera('CAMERA_MENU');
+    };
+
+    const confirmRefWarning = () => {
+        setShowRefWarning(false);
+        startCamera('CAMERA_FOOD');
+    };
+
+    const startCamera = async (targetMode: ScanMode) => {
+        setMode(targetMode);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: 'environment' } 
@@ -64,14 +102,17 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             }
         } catch (e) {
             console.error(e);
-            setIsCameraOpen(false);
+            setMode('IDLE');
+            alert(t('cameraDenied'));
         }
     };
 
     const captureAndAnalyze = async () => {
         if (!videoRef.current || !canvasRef.current) return;
         
-        setAnalyzing(true);
+        const currentMode = mode; // Capture before state change
+        setMode('ANALYZING');
+        
         const context = canvasRef.current.getContext('2d');
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
@@ -82,25 +123,30 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         // Stop stream
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(t => t.stop());
-        setIsCameraOpen(false);
 
         try {
-            const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
-            setScannedFood({
-                id: Date.now().toString(),
-                date: new Date().toISOString().split('T')[0],
-                timestamp: Date.now(),
-                type: 'FOOD',
-                name: result.name,
-                calories: result.calories,
-                protein: result.protein,
-                carbs: result.carbs,
-                fat: result.fat
-            });
+            if (currentMode === 'CAMERA_FOOD') {
+                const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
+                setScannedFood({
+                    id: Date.now().toString(),
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: Date.now(),
+                    type: 'FOOD',
+                    name: result.name,
+                    calories: result.calories,
+                    protein: result.protein,
+                    carbs: result.carbs,
+                    fat: result.fat
+                });
+                setMode('RESULT_FOOD');
+            } else if (currentMode === 'CAMERA_MENU') {
+                const recs = await analyzeMenu(base64);
+                setMenuRecommendations(recs);
+                setMode('RESULT_MENU');
+            }
         } catch (e) {
             alert(t('scanError'));
-        } finally {
-            setAnalyzing(false);
+            setMode('IDLE');
         }
     };
 
@@ -108,7 +154,36 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         if (scannedFood) {
             StorageService.saveNutrition(scannedFood);
             setScannedFood(null);
+            setMode('IDLE');
             setNeedsUpdate(prev => prev + 1);
+        }
+    };
+    
+    const selectMenuRecommendation = (dish: MenuRecommendation) => {
+        setManualName(dish.dishName);
+        setManualCals(dish.calories.toString());
+        setManualProt(dish.protein.toString());
+        // Simple heuristic for others as menu analysis is focused on main macros
+        setManualCarbs('0'); 
+        setManualFat('0');
+        
+        setMode('IDLE');
+        setShowManualEntry(true);
+    };
+
+    const handleAiLookup = async () => {
+        if (!manualName) return;
+        setIsCalculatingManual(true);
+        try {
+            const result = await calculateNutritionFromText(manualName, manualAmount);
+            setManualCals(result.calories.toString());
+            setManualProt(result.protein.toString());
+            setManualCarbs(result.carbs.toString());
+            setManualFat(result.fat.toString());
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsCalculatingManual(false);
         }
     };
 
@@ -123,11 +198,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             calories: parseInt(manualCals) || 0,
             protein: parseInt(manualProt) || 0,
             carbs: parseInt(manualCarbs) || 0,
-            fat: parseInt(manualFat) || 0
+            fat: parseInt(manualFat) || 0,
+            amount: parseInt(manualAmount) || undefined // Store weight in amount field
         };
         StorageService.saveNutrition(log);
         setShowManualEntry(false);
         setManualName('');
+        setManualAmount('');
         setManualCals('');
         setManualProt('');
         setManualCarbs('');
@@ -160,7 +237,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         color="#3b82f6" // Blue for Water
                         label={t('water')}
                     />
-                    <span className="text-xs text-gray-500 mt-2">{todayStats.water}ml / {dailyNeeds.water}ml</span>
+                    <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
                 </div>
             </div>
 
@@ -172,96 +249,144 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <Droplets size={20} className="text-blue-500" />
                             {t('water')}
                         </h3>
-                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{t('waterGoal')}: {dailyNeeds.water}ml</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{t('waterGoal')}: {dailyNeeds.water}{t('unitMl')}</p>
                     </div>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-3">
-                    {/* Glass 150ml */}
-                    <button 
-                        onClick={() => addWater(150, 'Glass')}
-                        className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group"
-                    >
-                        <div className="relative">
-                            <GlassWater size={20} className="text-blue-400" />
-                            <div className="absolute -top-1 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
-                                <Plus size={8} strokeWidth={4} />
-                            </div>
-                        </div>
+                    <button onClick={() => addWater(150, 'Glass')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <GlassWater size={20} className="text-blue-400" />
                         <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('glass')}</span>
-                        <span className="text-[10px] text-gray-400">150ml</span>
                     </button>
-
-                    {/* Cup 200ml */}
-                    <button 
-                        onClick={() => addWater(200, 'Cup')}
-                        className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group"
-                    >
-                        <div className="relative">
-                            <Coffee size={24} className="text-blue-500" />
-                            <div className="absolute -top-1 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
-                                <Plus size={8} strokeWidth={4} />
-                            </div>
-                        </div>
+                    <button onClick={() => addWater(200, 'Cup')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <Coffee size={24} className="text-blue-500" />
                         <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('cup')}</span>
-                        <span className="text-[10px] text-gray-400">200ml</span>
                     </button>
-
-                    {/* Bottle 500ml */}
-                    <button 
-                        onClick={() => addWater(500, 'Bottle')}
-                        className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group"
-                    >
-                        <div className="relative">
-                            <Milk size={24} className="text-blue-600" />
-                            <div className="absolute -top-1 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
-                                <Plus size={8} strokeWidth={4} />
-                            </div>
-                        </div>
+                    <button onClick={() => addWater(500, 'Bottle')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <Milk size={24} className="text-blue-600" />
                         <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('bottle')}</span>
-                        <span className="text-[10px] text-gray-400">500ml</span>
                     </button>
                 </div>
             </div>
 
-            {/* Food Tracker */}
+            {/* Food Tracker Logic Switch */}
             <div className="space-y-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Utensils size={20} className="text-orange-500" />
                     {t('nutritionTracker')}
                 </h3>
 
-                {isCameraOpen ? (
-                    <div className="relative rounded-xl overflow-hidden aspect-video bg-black shadow-inner">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-                        <canvas ref={canvasRef} className="hidden" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <div className="w-48 h-48 border-2 border-white/50 border-dashed rounded-lg mb-4"></div>
-                            <div className="bg-black/60 px-3 py-1 rounded text-white text-xs backdrop-blur">
-                                {t('placeObjectInfo')} <span className="font-bold text-yellow-400">({settings.referenceObject})</span>
+                {/* --- 1. IDLE STATE: Dual Buttons --- */}
+                {mode === 'IDLE' && (
+                    <div className="grid grid-cols-1 gap-4">
+                        <button 
+                            onClick={handleScanFoodClick}
+                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-6 rounded-2xl shadow-lg transition transform active:scale-[0.98] group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col items-start gap-1">
+                                    <h4 className="text-xl font-bold flex items-center gap-2">
+                                        <Camera size={24} /> {t('scanFood')}
+                                    </h4>
+                                    <p className="text-xs text-orange-100 opacity-90">{t('aiNutritionScanDesc')}</p>
+                                </div>
+                                <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
                             </div>
-                        </div>
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-auto">
-                            <button 
-                                onClick={captureAndAnalyze}
-                                className="bg-white text-black p-4 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95"
+                            
+                            {!isScannerUnlocked && (
+                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
+                                    <div className="bg-black/50 px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
+                                        <Lock size={12} /> {t('upgradeToScan')}
+                                    </div>
+                                </div>
+                            )}
+                        </button>
+
+                        <button 
+                            onClick={handleScanMenuClick}
+                            className="relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition transform active:scale-[0.98] group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col items-start gap-1 text-gray-800 dark:text-white">
+                                    <h4 className="text-xl font-bold flex items-center gap-2">
+                                        <Camera size={24} className="text-blue-500" /> {t('analyzeMenu')}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('menuRecs')}</p>
+                                </div>
+                                <ChevronRight className="text-gray-400 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1" />
+                            </div>
+                            
+                            {!isScannerUnlocked && (
+                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+                                    <div className="bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
+                                        <Lock size={12} /> {t('upgradeToScan')}
+                                    </div>
+                                </div>
+                            )}
+                        </button>
+
+                        <div className="flex justify-center pt-2">
+                            <button
+                                onClick={() => setShowManualEntry(true)}
+                                className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition"
                             >
-                                <Camera size={24} />
+                                <PenTool size={14} /> {t('manualEntry')}
                             </button>
                         </div>
                     </div>
-                ) : analyzing ? (
+                )}
+
+                {/* --- 2. CAMERA STATE --- */}
+                {(mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') && (
+                    <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-black shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                        <canvas ref={canvasRef} className="hidden" />
+                        
+                        <div className="absolute top-4 right-4 z-10">
+                            <button onClick={() => {
+                                // Stop tracks
+                                const stream = videoRef.current?.srcObject as MediaStream;
+                                stream?.getTracks().forEach(t => t.stop());
+                                setMode('IDLE');
+                            }} className="bg-black/40 text-white p-2 rounded-full backdrop-blur">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <div className={`w-64 h-64 border-2 border-white/50 border-dashed rounded-lg mb-4 ${mode === 'CAMERA_MENU' ? 'w-3/4 h-3/4' : ''}`}></div>
+                            <div className="bg-black/60 px-3 py-1 rounded text-white text-xs backdrop-blur text-center max-w-[80%]">
+                                {mode === 'CAMERA_FOOD' 
+                                    ? <>{t('placeObjectInfo')} <span className="font-bold text-yellow-400">({settings.referenceObject || 'Hand'})</span></> 
+                                    : t('analyzingMenu')}
+                            </div>
+                        </div>
+                        <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-auto">
+                            <button 
+                                onClick={captureAndAnalyze}
+                                className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95 border-4 border-gray-300/50"
+                            >
+                                <Camera size={32} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- 3. ANALYZING STATE --- */}
+                {mode === 'ANALYZING' && (
                     <div className="h-64 rounded-xl bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-center p-6 animate-pulse">
                         <Loader2 size={40} className="text-orange-500 animate-spin mb-4" />
-                        <p className="text-gray-500 font-medium">{t('analyzingFood')}</p>
-                        <p className="text-xs text-gray-400 mt-2">{t('usingForScale')} "{settings.referenceObject}"</p>
+                        <p className="text-gray-500 font-medium dark:text-gray-300">{t('analyzingFood')}</p>
                     </div>
-                ) : scannedFood ? (
+                )}
+
+                {/* --- 4. RESULT: FOOD --- */}
+                {mode === 'RESULT_FOOD' && scannedFood && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-orange-200 dark:border-orange-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
                         <div className="flex justify-between items-start mb-4">
                              <div>
                                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">{scannedFood.name}</h4>
-                                 <p className="text-orange-500 font-mono font-bold text-lg">{scannedFood.calories} kcal</p>
+                                 <p className="text-orange-500 font-mono font-bold text-lg">{scannedFood.calories} {t('unitKcal')}</p>
                              </div>
                              <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded text-xs font-bold">
                                  {t('aiEst')}
@@ -270,19 +395,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <div className="grid grid-cols-3 gap-2 mb-6">
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
                                 <span className="block text-xs text-gray-500">{t('protShort')}</span>
-                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.protein}g</span>
+                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.protein}{t('unitG')}</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
                                 <span className="block text-xs text-gray-500">{t('carbShort')}</span>
-                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.carbs}g</span>
+                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.carbs}{t('unitG')}</span>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
                                 <span className="block text-xs text-gray-500">{t('fatShort')}</span>
-                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.fat}g</span>
+                                <span className="font-bold text-gray-800 dark:text-white">{scannedFood.fat}{t('unitG')}</span>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={() => setScannedFood(null)} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <button onClick={() => setMode('IDLE')} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
                                 {t('dismiss')}
                             </button>
                             <button onClick={saveFood} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20">
@@ -290,61 +415,88 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             </button>
                         </div>
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                         {isScannerUnlocked ? (
-                            <button 
-                                onClick={startCamera}
-                                className="w-full py-12 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-orange-500 dark:hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-300 group"
-                            >
-                                <div className="p-4 bg-orange-100 dark:bg-orange-900/20 rounded-full group-hover:scale-110 transition">
-                                    <Camera size={32} className="text-orange-500" />
+                )}
+
+                {/* --- 5. RESULT: MENU --- */}
+                {mode === 'RESULT_MENU' && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex justify-between items-center">
+                             <h4 className="font-bold text-gray-900 dark:text-white">{t('menuRecs')}</h4>
+                             <button onClick={() => setMode('IDLE')} className="text-gray-500"><X size={20}/></button>
+                        </div>
+                        
+                        <div className="grid gap-3">
+                            {menuRecommendations.map((dish, idx) => (
+                                <div 
+                                    key={idx} 
+                                    onClick={() => selectMenuRecommendation(dish)}
+                                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer transition shadow-sm"
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h5 className="font-bold text-gray-900 dark:text-white text-lg">{dish.dishName}</h5>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
+                                            dish.category === 'BEST_CHOICE' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                                            dish.category === 'HIGH_PROTEIN' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                                            'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                                        }`}>
+                                            {dish.category === 'BEST_CHOICE' ? t('bestChoice') : 
+                                             dish.category === 'HIGH_PROTEIN' ? t('highProtein') : 
+                                             t('lesserEvil')}
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-4 text-sm font-mono text-gray-600 dark:text-gray-300 mb-2">
+                                        <span>~{dish.calories} {t('unitKcal')}</span>
+                                        <span>~{dish.protein}{t('unitG')} {t('protShort')}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 italic">
+                                        <span className="font-bold">{t('whyThis')}</span>{dish.reasoning}
+                                    </p>
                                 </div>
-                                <span className="font-medium">{t('scanFood')}</span>
-                            </button>
-                         ) : (
-                             // LOCKED SCANNER STATE
-                             <div className="space-y-3">
-                                <button 
-                                    onClick={onRequestPro}
-                                    className="w-full py-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-2 relative overflow-hidden group hover:border-orange-300 dark:hover:border-orange-700 transition"
-                                >
-                                    <div className="absolute top-2 right-2 text-xs bg-black text-white px-2 py-0.5 rounded font-bold">{t('trialEnded')}</div>
-                                    <Lock size={24} className="text-gray-400 mb-1 group-hover:text-orange-500 transition-colors" />
-                                    <span className="font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200">{t('scannerLocked')}</span>
-                                    <span className="text-xs text-orange-500 font-medium">{t('upgradeToScan')}</span>
-                                </button>
-                                
-                                <button
-                                    onClick={() => setShowManualEntry(true)}
-                                    className="w-full py-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 transition"
-                                >
-                                    <PenTool size={18} />
-                                    <span className="font-medium">{t('manualEntry')}</span>
-                                </button>
-                                <p className="text-[10px] text-center text-gray-400 px-4">{t('manualEntryDesc')}</p>
-                             </div>
-                         )}
+                            ))}
+                        </div>
+                        {menuRecommendations.length === 0 && (
+                            <div className="text-center text-gray-500 py-8">{t('scanError')}</div>
+                        )}
                     </div>
                 )}
+
             </div>
 
-            {/* Reference Object Warning if missing */}
-            {!settings.referenceObject && isScannerUnlocked && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg flex items-start gap-3 border border-yellow-200 dark:border-yellow-800">
-                    <AlertCircle size={20} className="text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                    <div>
-                        <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">{t('missingRefObject')}</p>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                            {t('missingRefObjectDesc')}
-                        </p>
+            {/* Reference Object Warning Modal */}
+            {showRefWarning && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95">
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertTriangle size={32} className="text-yellow-600 dark:text-yellow-400" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('missingRefObject')}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                                {t('missingRefWarningBody')}
+                            </p>
+                            
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={confirmRefWarning}
+                                    className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition"
+                                >
+                                    {t('continueAnyway')}
+                                </button>
+                                <button 
+                                    onClick={() => setShowRefWarning(false)}
+                                    className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white py-2"
+                                >
+                                    {t('dismiss')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Manual Entry Modal */}
             {showManualEntry && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
                             <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -357,15 +509,36 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <div className="p-4 space-y-4">
                             <div>
                                 <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('foodName')}</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={manualName}
+                                        onChange={(e) => setManualName(e.target.value)}
+                                        placeholder={t('foodPlaceholder')}
+                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
+                                        autoFocus
+                                    />
+                                    <button 
+                                        onClick={handleAiLookup}
+                                        disabled={!manualName || isCalculatingManual}
+                                        className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2.5 rounded-lg border border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
+                                    >
+                                        {isCalculatingManual ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('weightG')} ({t('unitG')})</label>
                                 <input 
-                                    type="text" 
-                                    value={manualName}
-                                    onChange={(e) => setManualName(e.target.value)}
-                                    placeholder="e.g. Banana"
+                                    type="number" 
+                                    value={manualAmount}
+                                    onChange={(e) => setManualAmount(e.target.value)}
+                                    placeholder={t('weightPlaceholder')}
                                     className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
-                                    autoFocus
                                 />
                             </div>
+
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('calories')}</label>
@@ -378,7 +551,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('protein')} (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('protein')} ({t('unitG')})</label>
                                     <input 
                                         type="number" 
                                         value={manualProt}
@@ -388,7 +561,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('carbs')} (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('carbs')} ({t('unitG')})</label>
                                     <input 
                                         type="number" 
                                         value={manualCarbs}
@@ -398,7 +571,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('fat')} (g)</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('fat')} ({t('unitG')})</label>
                                     <input 
                                         type="number" 
                                         value={manualFat}
