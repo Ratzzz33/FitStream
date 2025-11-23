@@ -129,55 +129,65 @@ export const StorageService = {
   },
 
   // --- INITIALIZATION ---
-  initializeFromBackend: async () => {
+  initializeFromBackend: async (): Promise<boolean> => {
       const userId = StorageService.getUserId();
       const settings = StorageService.getSettings();
       
-      console.log("📥 Syncing with backend DB...");
+      console.log("📥 Background Sync: Checking server...");
       
       const fullData = await ApiService.fetchFullUserData(userId, settings.backendUrl);
       
       if (fullData) {
+          let hasChanges = false;
+
           // Merge Settings
           if (fullData.settings) {
-              // Be careful not to overwrite local sync status or newly changed local settings if backend is stale
-              // For simplicity in this logic: Server Truth wins on boot
               const mergedSettings = { ...settings, ...fullData.settings, isPro: fullData.isPro };
-              // Ensure backendUrl isn't overwritten by old data
+              // Preserve locally active backend URL if different
               mergedSettings.backendUrl = settings.backendUrl;
-              StorageService.saveSettings(mergedSettings, false); // Don't push back immediately
+              
+              // Only trigger update if something actually changed deep down, but for now strict sync:
+              StorageService.saveSettings(mergedSettings, false); 
+              hasChanges = true;
           }
           
-          // Merge Logs (Naive merge: add missing ones)
-          // Ideally we check IDs
+          // Merge Logs
           const localExercises = StorageService.getExercises();
           const localWeights = StorageService.getWeights();
           const localNutrition = StorageService.getNutritionLogs();
           
-          if (fullData.exercises) {
+          if (fullData.exercises && fullData.exercises.length > 0) {
               const newEx = fullData.exercises.filter((r: any) => !localExercises.find(l => l.id === r.id));
-              const mergedEx = [...localExercises, ...newEx].sort((a,b) => a.timestamp - b.timestamp);
-              localStorage.setItem(KEYS.EXERCISES, JSON.stringify(mergedEx));
+              if (newEx.length > 0) {
+                  const mergedEx = [...localExercises, ...newEx].sort((a,b) => a.timestamp - b.timestamp);
+                  localStorage.setItem(KEYS.EXERCISES, JSON.stringify(mergedEx));
+                  hasChanges = true;
+              }
           }
-          if (fullData.weights) {
+          if (fullData.weights && fullData.weights.length > 0) {
                const newW = fullData.weights.filter((r: any) => !localWeights.find(l => l.id === r.id));
-               const mergedW = [...localWeights, ...newW].sort((a,b) => a.timestamp - b.timestamp);
-               localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(mergedW));
+               if (newW.length > 0) {
+                   const mergedW = [...localWeights, ...newW].sort((a,b) => a.timestamp - b.timestamp);
+                   localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(mergedW));
+                   hasChanges = true;
+               }
           }
-          if (fullData.nutrition) {
+          if (fullData.nutrition && fullData.nutrition.length > 0) {
                const newN = fullData.nutrition.filter((r: any) => !localNutrition.find(l => l.id === r.id));
-               const mergedN = [...localNutrition, ...newN].sort((a,b) => a.timestamp - b.timestamp);
-               localStorage.setItem(KEYS.NUTRITION, JSON.stringify(mergedN));
+               if (newN.length > 0) {
+                   const mergedN = [...localNutrition, ...newN].sort((a,b) => a.timestamp - b.timestamp);
+                   localStorage.setItem(KEYS.NUTRITION, JSON.stringify(mergedN));
+                   hasChanges = true;
+               }
           }
           
-          console.log("✅ Sync complete. Data merged.");
-          return true;
+          console.log(`✅ Background Sync complete. Updates found: ${hasChanges}`);
+          return hasChanges;
       } else {
-          // New user or offline? 
-          // If we have local data but server returned null (404), maybe we should push?
+          // New user or offline - Push local data if it exists
           const ex = StorageService.getExercises();
           if (ex.length > 0) {
-              console.log("📤 pushing local data to fresh backend account...");
+              console.log("📤 Pushing local data to fresh backend account...");
               ApiService.pushBulk(userId, {
                   exercises: ex,
                   weights: StorageService.getWeights(),

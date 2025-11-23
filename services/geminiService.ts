@@ -1,6 +1,7 @@
 
 
 
+
 import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
 import { t } from './i18n';
 
@@ -139,8 +140,8 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
 };
 
 // 4. Identify Phone Weight from Model
-export const getPhoneSpecs = async (modelName: string): Promise<{ weight: number }> => {
-    if (!API_KEY) return { weight: 0.2 }; // default 200g
+export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: string, weightGrams: number } | null> => {
+    if (!API_KEY) return null;
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     
     try {
@@ -148,7 +149,16 @@ export const getPhoneSpecs = async (modelName: string): Promise<{ weight: number
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { text: `What is the weight of the smartphone model "${modelName}" in kilograms? Return JSON only.` }
+                    { text: `
+                        I am providing a colloquial or abbreviated smartphone name: "${modelName}".
+                        Please identify the OFFICIAL full marketing name of this device.
+                        Also provide its weight in GRAMS.
+                        
+                        Rules:
+                        1. If the input is something like "s25 ultra", map it to "Samsung Galaxy S25 Ultra".
+                        2. If the phone is recognized, return the official name and weight in grams (integer).
+                        3. If the input is nonsense, random letters, or cannot be mapped to a real existing smartphone, return null.
+                    ` }
                 ]
             },
             config: {
@@ -156,17 +166,24 @@ export const getPhoneSpecs = async (modelName: string): Promise<{ weight: number
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        weight: { type: Type.NUMBER, description: "Weight in kg, e.g., 0.204" }
+                        officialName: { type: Type.STRING, description: "The full official marketing name of the phone." },
+                        weightGrams: { type: Type.NUMBER, description: "Weight of the phone in grams." },
+                        isValid: { type: Type.BOOLEAN, description: "True if a known phone model was found." }
                     }
                 }
             }
         });
         const text = response.text;
-        if (text) return JSON.parse(text);
-        return { weight: 0.2 };
+        if (text) {
+            const data = JSON.parse(text);
+            if (data.isValid && data.officialName && data.weightGrams > 0) {
+                return { officialName: data.officialName, weightGrams: data.weightGrams };
+            }
+        }
+        return null;
     } catch (e) {
         console.error("Error getting phone specs:", e);
-        return { weight: 0.2 };
+        return null;
     }
 };
 

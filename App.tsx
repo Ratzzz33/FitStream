@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
@@ -19,7 +21,6 @@ import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
 
 const App = () => {
-  const [isInitializing, setIsInitializing] = useState(true);
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(StorageService.getSettings());
@@ -37,6 +38,7 @@ const App = () => {
   const [showQuickScan, setShowQuickScan] = useState(false);
   const [phoneModelInput, setPhoneModelInput] = useState("");
   const [isCalculatingPhone, setIsCalculatingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [quickScanVideoRef, setQuickScanVideoRef] = useState<HTMLVideoElement | null>(null);
   const [quickScanResult, setQuickScanResult] = useState<{ raw: number, net: number } | null>(null);
   const [isQuickScanning, setIsQuickScanning] = useState(false);
@@ -68,22 +70,28 @@ const App = () => {
     }
   }, []);
 
-  // Initialization: Fetch full data from DB
+  // Offline-First Initialization
   useEffect(() => {
-      const init = async () => {
-          setIsInitializing(true);
+      // 1. Load Local Data Immediately
+      refreshData();
+      
+      // 2. Start Background Sync
+      const initBackground = async () => {
           try {
-              // Try to pull data from backend and merge with local
-              await StorageService.initializeFromBackend();
-              refreshData();
+              const hasUpdates = await StorageService.initializeFromBackend();
+              // If backend had new data, refresh the UI
+              if (hasUpdates) {
+                  refreshData();
+                  fetchMotivation();
+              }
           } catch(e) {
-              console.error("Initialization error:", e);
+              console.error("Background sync error:", e);
           } finally {
-              setIsInitializing(false);
               checkServerConnection();
           }
       };
-      init();
+      
+      initBackground();
   }, []);
 
   // Function to check connection status (Quick Check)
@@ -389,6 +397,8 @@ const App = () => {
   const handleScanClick = () => {
       if (!settings.phoneModel || !settings.phoneWeight) {
           setShowPhoneModal(true);
+          setPhoneModelInput("");
+          setPhoneError(null);
       } else {
           startQuickScan();
       }
@@ -397,18 +407,26 @@ const App = () => {
   const calculatePhoneWeight = async () => {
       if (!phoneModelInput) return;
       setIsCalculatingPhone(true);
+      setPhoneError(null);
+      
       const result = await getPhoneSpecs(phoneModelInput);
       
-      const newSettings = {
-          ...settings,
-          phoneModel: phoneModelInput,
-          phoneWeight: result.weight
-      };
-      setSettings(newSettings);
-      StorageService.saveSettings(newSettings);
-      setIsCalculatingPhone(false);
-      setShowPhoneModal(false);
-      startQuickScan();
+      if (result && result.officialName && result.weightGrams) {
+          const weightKg = result.weightGrams / 1000;
+          const newSettings = {
+              ...settings,
+              phoneModel: result.officialName,
+              phoneWeight: weightKg
+          };
+          setSettings(newSettings);
+          StorageService.saveSettings(newSettings);
+          setIsCalculatingPhone(false);
+          setShowPhoneModal(false);
+          startQuickScan();
+      } else {
+          setPhoneError(t('scanError') + " (Model not found)");
+          setIsCalculatingPhone(false);
+      }
   };
 
   const startQuickScan = async () => {
@@ -484,17 +502,6 @@ const App = () => {
                   <h1 className="text-3xl font-bold text-red-500 mb-4">{t('apiKeyMissing')}</h1>
                   <p>{t('apiKeyMissingDesc')}</p>
               </div>
-          </div>
-      );
-  }
-
-  // Loading Screen
-  if (isInitializing) {
-      return (
-          <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-gray-900 dark:text-white gap-4">
-              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="font-bold text-lg animate-pulse">{t('syncing')}</p>
-              <p className="text-xs text-gray-500">Retrieving data from cloud...</p>
           </div>
       );
   }
@@ -1025,6 +1032,11 @@ const App = () => {
                           placeholder={t('phonePlaceholder')}
                           className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 outline-none focus:border-blue-500"
                       />
+                      {phoneError && (
+                          <div className="text-red-500 text-xs flex items-center gap-1">
+                              <AlertTriangle size={12} /> {phoneError}
+                          </div>
+                      )}
                       <button 
                           onClick={calculatePhoneWeight}
                           disabled={!phoneModelInput || isCalculatingPhone}
