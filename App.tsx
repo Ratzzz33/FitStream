@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog } from './types';
 import { StorageService } from './services/storageService';
+import { ApiService } from './services/api';
 import { getMotivation } from './services/geminiService';
 import { AchievementRing } from './components/AchievementRings';
 import { WorkoutSession } from './components/WorkoutSession';
@@ -24,12 +26,19 @@ const App = () => {
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  
+  // Diagnostics State
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   
   // Local state for auto-save fields
   const [nameInput, setNameInput] = useState(settings.name);
   const [ageInput, setAgeInput] = useState(settings.age.toString());
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
+  const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
 
   // Saving states
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -44,22 +53,151 @@ const App = () => {
     }
   }, []);
 
-  // Sync with Backend (Check Pro Status)
+  // Function to check connection status (Quick Check)
+  const checkServerConnection = async (customUrl?: string) => {
+      setServerStatus('checking');
+      const userId = StorageService.getUserId();
+      const currentSettings = StorageService.getSettings();
+      const urlToCheck = customUrl || currentSettings.backendUrl;
+      
+      try {
+          // Try to sync
+          const result = await ApiService.syncUser(userId, currentSettings, urlToCheck);
+          
+          if (result) {
+              setServerStatus('online');
+              // Update local status based on server truth
+              if (currentSettings.isPro !== result.isPro) {
+                  currentSettings.isPro = result.isPro;
+                  StorageService.saveSettings(currentSettings);
+                  refreshData();
+              }
+          } else {
+              setServerStatus('offline');
+          }
+      } catch (e) {
+          setServerStatus('offline');
+      }
+  };
+
+  // Detailed Diagnostics Tool
+  const runDiagnostics = async () => {
+      setIsDiagnosing(true);
+      setShowDiagnostics(true);
+      setDiagnosticLogs(["Starting diagnostics v2...", "--------------------------------"]);
+      
+      const addLog = (msg: string) => setDiagnosticLogs(prev => [...prev, msg]);
+      
+      const userId = StorageService.getUserId();
+      let url = backendUrlInput.trim();
+      
+      // 1. URL Format Check
+      addLog(`[1] Checking URL format: ${url}`);
+      if (!url) {
+          addLog("❌ Error: URL is empty.");
+          setIsDiagnosing(false);
+          return;
+      }
+      if (!url.startsWith('http')) {
+          addLog("⚠️ Warning: URL should start with http:// or https://");
+      }
+      
+      // Normalize URL for checks
+      // Remove trailing slash
+      if (url.endsWith('/')) url = url.slice(0, -1);
+      
+      // Base URL (without /api if present, for root check)
+      const baseUrl = url.endsWith('/api') ? url.slice(0, -4) : url;
+      // API URL (ensure /api is present for sync check)
+      const apiUrl = url.endsWith('/api') ? url : `${url}/api`;
+      
+      addLog(`ℹ️ Base Root: ${baseUrl}`);
+      addLog(`ℹ️ API Endpoint: ${apiUrl}`);
+
+      // 2. Network Check (Root PING)
+      addLog(`[2] Pinging Server Root (Health Check)...`);
+      const start = Date.now();
+      try {
+          const controller = new AbortController();
+          // INCREASED TIMEOUT to 30s for Railway Cold Starts
+          const timeoutId = setTimeout(() => controller.abort(), 30000); 
+          
+          // Add timestamp to prevent caching
+          // Add explicit headers to test if CORS is stripping them
+          const res = await fetch(`${baseUrl}?t=${Date.now()}`, { 
+              method: 'GET', 
+              signal: controller.signal,
+              headers: { 'Accept': 'application/json' }
+          });
+          clearTimeout(timeoutId);
+          
+          const latency = Date.now() - start;
+          addLog(`${res.ok ? '✅' : '❌'} Status: ${res.status} ${res.statusText}`);
+          addLog(`⏱️ Latency: ${latency}ms`);
+          
+          if (latency > 2000) {
+              addLog("⚠️ High latency detected (Cold Start?)");
+          }
+          
+          const text = await res.text();
+          addLog(`📄 Response snippet: "${text.substring(0, 50)}..."`);
+          
+      } catch (e: any) {
+          addLog(`❌ Connection Failed: ${e.name}: ${e.message}`);
+          
+          // --- PROBE FOR CORS ---
+          addLog("🕵️ Probing for reachability (no-cors mode)...");
+          try {
+             // Opaque request. If this doesn't throw, server IS there but blocking CORS.
+             await fetch(`${baseUrl}?t=${Date.now()}`, { method: 'GET', mode: 'no-cors' });
+             addLog("⚠️ DIAGNOSIS: Server is ONLINE but returning CORS errors.");
+             addLog("   This confirms the backend is running but headers are rejected.");
+          } catch(probeErr: any) {
+             addLog(`❌ DIAGNOSIS: Server is completely UNREACHABLE (${probeErr.message}).`);
+             addLog("   Check URL or Railway Dashboard.");
+          }
+      }
+
+      // 3. API Route Check
+      addLog(`[3] Testing API Route (/user/sync)...`);
+      try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+          const res = await fetch(`${apiUrl}/user/sync`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } }),
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+              const json = await res.json();
+              addLog(`✅ API Success! Is Pro: ${json.isPro}`);
+              setServerStatus('online');
+          } else {
+              addLog(`❌ API Error: ${res.status}`);
+          }
+      } catch (e: any) {
+          addLog(`❌ API Call Failed: ${e.message}`);
+      }
+      
+      addLog("--------------------------------");
+      addLog("Diagnostics Complete.");
+      setIsDiagnosing(false);
+  };
+
+  // Sync with Backend on Load
   useEffect(() => {
       const sync = async () => {
           // Check if we just returned from Stripe
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('pro_status') === 'success') {
-              // Clear params
               window.history.replaceState({}, document.title, window.location.pathname);
               alert("Welcome to Pro! Your subscription is active.");
           }
-
-          // Sync with backend
-          const changed = await StorageService.syncWithBackend();
-          if (changed) {
-              refreshData();
-          }
+          checkServerConnection();
       };
       sync();
   }, []);
@@ -104,6 +242,7 @@ const App = () => {
         setAgeInput(s.age.toString());
         setTargetWeightInput(s.targetWeight.toString());
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
+        setBackendUrlInput(s.backendUrl || '');
     }
   };
 
@@ -117,22 +256,29 @@ const App = () => {
      fetchMotivation();
   }, [fetchMotivation]);
 
-  // Debounce logic for Settings (Name, Age, Target Weight)
+  // Debounce logic for Settings (Name, Age, Target Weight, Backend URL)
   useEffect(() => {
       const timer = setTimeout(() => {
           if (nameInput !== settings.name || 
               parseInt(ageInput) !== settings.age || 
-              parseFloat(targetWeightInput) !== settings.targetWeight) {
+              parseFloat(targetWeightInput) !== settings.targetWeight ||
+              backendUrlInput !== (settings.backendUrl || '')) {
               
               setIsSavingSettings(true);
               const newSettings = { 
                   ...settings, 
                   name: nameInput,
                   age: parseInt(ageInput) || 0,
-                  targetWeight: parseFloat(targetWeightInput) || 0
+                  targetWeight: parseFloat(targetWeightInput) || 0,
+                  backendUrl: backendUrlInput
               };
               StorageService.saveSettings(newSettings);
               setSettings(newSettings);
+              
+              // Trigger a sync check if URL changed
+              if (backendUrlInput !== settings.backendUrl) {
+                  checkServerConnection(backendUrlInput);
+              }
               
               // Fake delay for visual feedback
               setTimeout(() => setIsSavingSettings(false), 800);
@@ -140,7 +286,7 @@ const App = () => {
       }, 1500); // 1.5s debounce
 
       return () => clearTimeout(timer);
-  }, [nameInput, ageInput, targetWeightInput, settings]);
+  }, [nameInput, ageInput, targetWeightInput, backendUrlInput, settings]);
 
   // Debounce logic for Current Weight (Logs to history)
   useEffect(() => {
@@ -471,6 +617,66 @@ const App = () => {
                              <span className="text-gray-400 text-xs">Manage in Stripe</span>
                         </div>
                     )}
+
+                    {/* Backend Configuration UI */}
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                         <div className="flex justify-between items-start mb-3">
+                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                                <Server size={16} className="text-indigo-500" />
+                                Backend Configuration
+                             </h4>
+                             {/* Server Status Indicator */}
+                             <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold transition-all ${
+                                 serverStatus === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 border-green-200 dark:border-green-800' :
+                                 serverStatus === 'offline' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800' :
+                                 'bg-gray-100 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'
+                             }`}>
+                                 {serverStatus === 'checking' && <Loader2 size={10} className="animate-spin" />}
+                                 {serverStatus === 'online' && <Wifi size={10} />}
+                                 {serverStatus === 'offline' && <WifiOff size={10} />}
+                                 
+                                 <span>{serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Checking'}</span>
+                             </div>
+                         </div>
+                         <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Railway App URL</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Globe size={16} className="text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    value={backendUrlInput}
+                                    onChange={(e) => setBackendUrlInput(e.target.value)}
+                                    placeholder="https://your-app.up.railway.app"
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none transition font-mono"
+                                />
+                                <button 
+                                    onClick={runDiagnostics}
+                                    disabled={isDiagnosing}
+                                    className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg text-xs font-bold whitespace-nowrap text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition flex items-center gap-2"
+                                >
+                                    {isDiagnosing ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
+                                    Test
+                                </button>
+                            </div>
+                         </label>
+                         
+                         {/* Diagnostic Console */}
+                         {showDiagnostics && (
+                             <div className="mt-3 bg-black rounded-lg p-3 font-mono text-[10px] text-green-400 overflow-hidden relative">
+                                 <div className="absolute top-2 right-2">
+                                     <button onClick={() => setShowDiagnostics(false)} className="text-gray-500 hover:text-white"><XCircle size={14}/></button>
+                                 </div>
+                                 <div className="space-y-1 max-h-40 overflow-y-auto">
+                                     {diagnosticLogs.map((log, i) => (
+                                         <div key={i} className={log.includes('❌') || log.includes('Error') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
+                                             {log}
+                                         </div>
+                                     ))}
+                                     {isDiagnosing && <div className="animate-pulse">_</div>}
+                                 </div>
+                             </div>
+                         )}
+                    </div>
 
                     <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
                         <div className="flex items-center gap-3">

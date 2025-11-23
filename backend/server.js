@@ -1,22 +1,64 @@
+
 const express = require('express');
-const cors = require('cors');
 const { Pool } = require('pg');
-// Safe initialization for Stripe to prevent crashes if key is missing in dev
+// Safe initialization for Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 const app = express();
 
-// Use the provided NeonDB URL default if not in env
+// --- 1. CRITICAL: CORS MIDDLEWARE (MUST BE FIRST) ---
+app.use((req, res, next) => {
+  // Allow all origins
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  // Allow all standard methods
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  // Allow headers usually sent by browsers and clients (Expanded list to prevent blocking)
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, stripe-signature, X-Requested-With, Accept, Origin, Cache-Control, Pragma");
+  
+  // Log that CORS was applied (helps debug in Railway logs)
+  // console.log(`[CORS] Headers set for ${req.method} ${req.url}`);
+
+  // Handle preflight requests immediately
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// --- 2. LOGGING ---
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// --- 3. DATABASE SETUP ---
 const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_eqchV27HUSrT@ep-fancy-sun-a414ssfe-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 const pool = new Pool({
   connectionString,
+  max: 4, // Reduce max connections for free tier stability
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
-// Middleware - Allow all origins for easier dev/preview
-app.use(cors({ origin: '*' }));
+// CRITICAL: Prevent crash on idle client error
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client (DB Connection Lost)', err);
+  // Do not exit process; let the pool reconnect
+});
 
-// Webhook needs raw body
+// --- 4. ROUTES ---
+
+// Health Check
+app.get('/', (req, res) => {
+    res.status(200).json({ 
+        status: 'online', 
+        message: 'FitStream Backend Ready',
+        timestamp: new Date().toISOString() 
+    });
+});
+
+// Stripe Webhook (MUST be before express.json() because it needs raw body)
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(500).send("Stripe not configured");
   
@@ -30,7 +72,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle the event
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const userId = session.client_reference_id;
@@ -38,7 +79,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 
     if (userId) {
         try {
-            // Ensure table exists or fail gracefully
             await pool.query(
                 `UPDATE users SET is_pro = TRUE, stripe_customer_id = $1 WHERE id = $2`,
                 [customerId, userId]
@@ -53,44 +93,61 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   res.json({received: true});
 });
 
+// --- GLOBAL BODY PARSERS ---
 app.use(express.json());
 
-// --- API Routes ---
+// Initialize DB Table
+const initDb = async () => {
+  try {
+    const client = await pool.connect();
+    try {
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id VARCHAR(255) PRIMARY KEY,
+            is_pro BOOLEAN DEFAULT FALSE,
+            stripe_customer_id VARCHAR(255),
+            settings JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        console.log("✅ Database initialized: 'users' table ready.");
+    } finally {
+        client.release();
+    }
+  } catch (err) {
+    console.error("❌ Error initializing database:", err.message);
+  }
+};
 
-// 1. Initialize/Sync User
+// Sync User
 app.post('/api/user/sync', async (req, res) => {
     const { userId, settings } = req.body;
-    
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
-        // Check if user exists
         const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
         
         if (userResult.rows.length === 0) {
-            // Create new user
-            await pool.query(
-                'INSERT INTO users (id, settings) VALUES ($1, $2)',
-                [userId, settings]
-            );
+            await pool.query('INSERT INTO users (id, settings) VALUES ($1, $2)', [userId, settings]);
             return res.json({ isPro: false });
         } else {
-            // Return existing status
             const user = userResult.rows[0];
+            await pool.query('UPDATE users SET settings = $1, last_synced_at = CURRENT_TIMESTAMP WHERE id = $2', [settings, userId]);
             return res.json({ isPro: user.is_pro });
         }
     } catch (err) {
         console.error("Sync Error:", err.message);
-        res.status(500).json({ error: 'Database error' });
+        // Fallback response so frontend doesn't crash
+        res.status(200).json({ isPro: false, error: 'DB_UNAVAILABLE' });
     }
 });
 
-// 2. Create Checkout Session
+// Create Checkout Session
 app.post('/api/create-checkout-session', async (req, res) => {
     if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
 
     const { userId } = req.body;
-    // Use Referer header or default fallback for redirect URL
     const clientUrl = req.get('Referer') ? req.get('Referer').replace(/\/$/, "") : (process.env.CLIENT_URL || 'http://localhost:3000');
 
     try {
@@ -103,12 +160,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
                         product_data: {
                             name: 'FitStream PRO',
                             description: 'Unlimited AI workouts, history & smart analytics',
-                            images: ['https://cdn-icons-png.flaticon.com/512/3112/3112946.png'], // Placeholder
                         },
-                        unit_amount: 499, // $4.99
-                        recurring: {
-                            interval: 'month',
-                        },
+                        unit_amount: 499, 
+                        recurring: { interval: 'month' },
                     },
                     quantity: 1,
                 },
@@ -118,7 +172,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
             success_url: `${clientUrl}?session_id={CHECKOUT_SESSION_ID}&pro_status=success`,
             cancel_url: `${clientUrl}?canceled=true`,
         });
-
         res.json({ url: session.url });
     } catch (e) {
         console.error(e);
@@ -128,5 +181,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  initDb();
 });

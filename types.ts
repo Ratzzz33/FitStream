@@ -1,3 +1,4 @@
+
 export interface ExerciseLog {
   id: string;
   date: string;
@@ -43,7 +44,8 @@ export interface UserSettings {
   lastActiveDate: string;
   theme: 'light' | 'dark';
   connectedPlatforms: ConnectedPlatforms;
-  isPro: boolean; // New field for monetization
+  isPro: boolean;
+  backendUrl?: string; // New field for dynamic backend configuration
 }
 
 export interface Friend {

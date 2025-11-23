@@ -1,3 +1,4 @@
+
 import { ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType } from '../types';
 import { ApiService } from './api';
 
@@ -105,7 +106,8 @@ const DEFAULT_SETTINGS: UserSettings = {
       appleHealth: false,
       lastSync: null
   },
-  isPro: false
+  isPro: false,
+  backendUrl: 'https://fitstream-production.up.railway.app'
 };
 
 export const StorageService = {
@@ -123,7 +125,7 @@ export const StorageService = {
       const userId = StorageService.getUserId();
       const settings = StorageService.getSettings();
       
-      const result = await ApiService.syncUser(userId, settings);
+      const result = await ApiService.syncUser(userId, settings, settings.backendUrl);
       
       if (result) {
           // Update local status based on server truth
@@ -156,8 +158,6 @@ export const StorageService = {
     localStorage.setItem(KEYS.EXERCISES, JSON.stringify(exercises));
     StorageService.updateGoalProgress(log.exerciseName, log.reps);
     StorageService.updateStreak();
-    
-    // Future: Push to backend here
   },
 
   // --- Weights ---
@@ -184,7 +184,6 @@ export const StorageService = {
     }
     weights.sort((a, b) => a.timestamp - b.timestamp);
     localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(weights));
-    // Future: Push to backend here
   },
 
   // --- Settings ---
@@ -201,6 +200,11 @@ export const StorageService = {
     });
     if (!settings.avatar) settings.avatar = DEFAULT_SETTINGS.avatar;
     if (settings.isPro === undefined) settings.isPro = false;
+    
+    // Auto-update to production URL if empty or undefined
+    if (!settings.backendUrl) {
+        settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
+    }
     
     return settings;
   },

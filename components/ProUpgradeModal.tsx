@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Check, Star, Zap, TrendingUp, Shield, Loader2, Crown } from 'lucide-react';
 import { ApiService } from '../services/api';
@@ -16,11 +17,12 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
       setLoading(true);
       
       try {
-          // 1. Get current User ID
+          // 1. Get current User ID and Settings for URL
           const userId = StorageService.getUserId();
+          const settings = StorageService.getSettings();
           
-          // 2. Call backend to get Stripe URL
-          const url = await ApiService.createCheckoutSession(userId);
+          // 2. Call backend to get Stripe URL (passing backendUrl if set)
+          const url = await ApiService.createCheckoutSession(userId, settings.backendUrl);
           
           if (url) {
               // 3. Redirect to Stripe

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Activity, Smartphone, Check, RefreshCw, AlertCircle, Bell } from 'lucide-react';
+import { Activity, Check, RefreshCw, Bell } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { UserSettings } from '../types';
 import { t } from '../services/i18n';
@@ -8,6 +9,21 @@ interface HealthConnectProps {
   settings: UserSettings;
   onUpdate: () => void;
 }
+
+const GoogleFitLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.65 6.35C16.85 5.55 15.55 5.55 14.75 6.35L12.5 8.6L15.4 11.5L17.65 9.25C18.45 8.45 18.45 7.15 17.65 6.35Z" fill="#EA4335"/>
+    <path d="M11.5 8.6L8.6 11.5L11.5 14.4L14.4 11.5L11.5 8.6Z" fill="#FBBC04"/>
+    <path d="M6.35 11.5C5.55 12.3 5.55 13.6 6.35 14.4L8.6 16.65L11.5 13.75L9.25 11.5C8.45 10.7 7.15 10.7 6.35 11.5Z" fill="#4285F4"/>
+    <path d="M12.5 14.4L14.75 16.65C15.55 17.45 16.85 17.45 17.65 16.65C18.45 15.85 18.45 14.55 17.65 13.75L15.4 11.5L12.5 14.4Z" fill="#34A853"/>
+  </svg>
+);
+
+const AppleHealthLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 20.35L10.55 19.03C5.4 14.36 2 11.28 2 7.5C2 4.42 4.42 2 7.5 2C9.24 2 10.91 2.81 12 4.09C13.09 2.81 14.76 2 16.5 2C19.58 2 22 4.42 22 7.5C22 11.28 18.6 14.36 13.45 19.04L12 20.35Z" fill="#FF2D55"/>
+  </svg>
+);
 
 export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate }) => {
   const [connecting, setConnecting] = useState<'google' | 'apple' | null>(null);
@@ -115,8 +131,8 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
             {/* Google Fit */}
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                        <span className="text-lg">🇬</span>
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-100 dark:border-gray-700 flex items-center justify-center shadow-sm">
+                        <GoogleFitLogo />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">Google Fit</p>
@@ -132,8 +148,8 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
                     disabled={connecting !== null}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
                         platforms.googleFit 
-                        ? 'bg-red-50 text-red-500 border border-red-200' 
-                        : 'bg-blue-600 text-white hover:bg-blue-500'
+                        ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100' 
+                        : 'bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-500/20'
                     }`}
                 >
                     {connecting === 'google' 
@@ -145,8 +161,8 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
             {/* Apple Health */}
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-black">
-                        <AlertCircle size={20} fill="black" className="text-white" />
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-100 dark:border-gray-700 flex items-center justify-center shadow-sm">
+                        <AppleHealthLogo />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">Apple Health</p>
@@ -162,8 +178,8 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
                      disabled={connecting !== null}
                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
                         platforms.appleHealth 
-                        ? 'bg-red-50 text-red-500 border border-red-200' 
-                        : 'bg-black text-white hover:bg-gray-800'
+                        ? 'bg-red-50 text-red-500 border border-red-200 hover:bg-red-100' 
+                        : 'bg-black text-white hover:bg-gray-800 shadow-md shadow-black/20'
                     }`}
                 >
                     {connecting === 'apple' 
