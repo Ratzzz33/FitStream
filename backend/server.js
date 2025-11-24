@@ -4,7 +4,6 @@ const { Pool } = require('pg');
 const cors = require('cors');
 
 // --- 0. SAFETY NETS (CRASH HANDLERS) ---
-// Catch silent crashes to log them before exit
 process.on('uncaughtException', (err) => {
   console.error('❌ CRITICAL: Uncaught Exception:', err);
 });
@@ -13,13 +12,9 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ CRITICAL: Unhandled Rejection:', reason);
 });
 
+// Log shutdown signals for debugging Railway restarts
 process.on('SIGTERM', () => {
-  console.log('⚠️ Received SIGTERM. Railway is stopping the container (Healthcheck failed or Redeploy).');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('⚠️ Received SIGINT. Shutting down...');
+  console.log('⚠️ Received SIGTERM. Railway is checking out or restarting container.');
   process.exit(0);
 });
 
@@ -28,18 +23,31 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 
 const app = express();
 
-// --- 1. CRITICAL CORS SETUP ---
-// Allow ALL origins. This fixes 'Access-Control-Allow-Origin' errors.
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// --- 1. MIDDLEWARE ---
+app.use(cors()); // Allow all origins (simplest for troubleshooting)
+app.use(express.json({ limit: '10mb' }));
 
-// --- 2. LOGGING ---
+// Request Logging (exclude /health to keep logs clean)
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.url} from ${req.ip}`);
+  if (req.url !== '/health' && req.url !== '/') {
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  }
   next();
+});
+
+// --- 2. HEALTH CHECKS (CRITICAL FOR RAILWAY) ---
+// Lightweight endpoint that responds IMMEDIATELY, no DB check required
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// Root endpoint with slightly more info
+app.get('/', (req, res) => {
+    res.status(200).json({ 
+        status: 'online', 
+        service: 'FitStream Backend',
+        timestamp: new Date().toISOString() 
+    });
 });
 
 // --- 3. DATABASE SETUP ---
@@ -57,24 +65,7 @@ pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client (DB Connection Lost)', err);
 });
 
-// --- 4. ROUTES ---
-
-// Health Check - CRITICAL for Railway
-app.get('/', (req, res) => {
-    res.status(200).json({ 
-        status: 'online', 
-        message: 'FitStream Node.js Backend is RUNNING!',
-        timestamp: new Date().toISOString() 
-    });
-});
-
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
-
-app.use(express.json({ limit: '10mb' }));
-
-// Stripe Webhook
+// --- 4. STRIPE WEBHOOK ---
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(500).send("Stripe not configured");
   
@@ -110,7 +101,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 });
 
 
-// --- PHONE DATABASE SEED ---
+// --- 5. PHONE DATABASE SEED ---
 const SEED_PHONES = [
     { name: "Samsung Galaxy S25 Ultra", weight: 233 },
     { name: "Samsung Galaxy S25 Plus", weight: 196 },
@@ -178,7 +169,7 @@ const initDb = async () => {
   }
 };
 
-// --- API ENDPOINTS ---
+// --- 6. API ENDPOINTS ---
 
 app.get('/api/phones', async (req, res) => {
     try {
@@ -313,12 +304,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
+// --- 7. STARTUP ---
 const PORT = process.env.PORT || 8080;
-// CRITICAL: Bind to 0.0.0.0 for Railway to map ports correctly
 const HOST = '0.0.0.0'; 
 
 app.listen(PORT, HOST, () => {
   console.log(`🚀 FitStream Backend running on http://${HOST}:${PORT}`);
-  // Run DB init slightly delayed to ensure server is listening first
+  // Initialize DB asynchronously
   setTimeout(initDb, 100);
 });

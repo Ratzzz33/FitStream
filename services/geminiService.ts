@@ -1,6 +1,4 @@
 
-
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
@@ -21,12 +19,14 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
-          { text: "Read the number on this scale. Return JSON with 'weight' (number) and 'confidence' (HIGH/LOW). If invalid, return weight 0." }
-        ]
-      },
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+            { text: "Read the number on this scale. Return JSON with 'weight' (number) and 'confidence' (HIGH/LOW). If invalid, return weight 0." }
+          ]
+        }
+      ],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -68,12 +68,14 @@ export const analyzeFood = async (
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
-                    { text: `Identify food. ${refContext} Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
-                ]
-            },
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        { text: `Identify food. ${refContext} Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
+                    ]
+                }
+            ],
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -109,11 +111,13 @@ export const calculateNutritionFromText = async (
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { text: `Calculate nutrition for "${foodName}" (${amount || 'standard serving'}). Return JSON: calories, protein, carbs, fat.` }
-                ]
-            },
+            contents: [
+                {
+                    parts: [
+                        { text: `Calculate nutrition for "${foodName}" (${amount || 'standard serving'}). Return JSON: calories, protein, carbs, fat.` }
+                    ]
+                }
+            ],
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -146,12 +150,14 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
-                    { text: `Identify the main reference object (e.g. credit card, coin, lighter). Return JSON: {name, dimensions} in ${lang}.` }
-                ]
-            },
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        { text: `Identify the main reference object (e.g. credit card, coin, lighter). Return JSON: {name, dimensions} in ${lang}.` }
+                    ]
+                }
+            ],
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -189,11 +195,13 @@ export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { text: `Find phone model "${modelName}". Use DB if matches: ${dbContext}. Else estimate. Return JSON: {officialName, weightGrams, isValid, source}.` }
-                ]
-            },
+            contents: [
+                {
+                    parts: [
+                        { text: `Find phone model "${modelName}". Use DB if matches: ${dbContext}. Else estimate. Return JSON: {officialName, weightGrams, isValid, source}.` }
+                    ]
+                }
+            ],
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -235,12 +243,14 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
-                    { text: `Analyze menu. Recommend 3 dishes: BEST_CHOICE, HIGH_PROTEIN, LESSER_OF_EVILS. JSON Array. Language: ${lang}.` }
-                ]
-            },
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        { text: `Analyze menu. Recommend 3 dishes: BEST_CHOICE, HIGH_PROTEIN, LESSER_OF_EVILS. JSON Array. Language: ${lang}.` }
+                    ]
+                }
+            ],
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -276,7 +286,11 @@ export const getMotivation = async (streak: number, repsToday: number): Promise<
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Motivational quote for fitness. Streak: ${streak} days. Reps today: ${repsToday}. Language: ${lang}. Keep it short.`,
+            contents: [
+                {
+                    parts: [{ text: `Motivational quote for fitness. Streak: ${streak} days. Reps today: ${repsToday}. Language: ${lang}. Keep it short.` }]
+                }
+            ]
         });
         return response.text || t('defaultMotivation');
     } catch (e) {
