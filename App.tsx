@@ -98,12 +98,16 @@ const App = () => {
                       client_id: googleClientIdInput,
                       callback: handleGoogleLogin
                   });
-                  // NOTE: "width" must be pixels (number) or strictly valid string. '100%' sometimes fails in GSI.
-                  // Using undefined (auto) or specific pixel width is safer.
-                  (window as any).google.accounts.id.renderButton(
-                      document.getElementById("googleSignInBtn"),
-                      { theme: "outline", size: "large", width: 280 }
-                  );
+                  // Render Google Button
+                  const btnParent = document.getElementById("googleSignInBtn");
+                  if (btnParent) {
+                      // Removed width: "100%" to fix GSI_LOGGER error.
+                      // Default sizing works best for responsiveness in the container.
+                      (window as any).google.accounts.id.renderButton(
+                          btnParent,
+                          { theme: "outline", size: "large" }
+                      );
+                  }
               }
           } catch(e) {
               console.error("Google Auth Init Error", e);
@@ -764,8 +768,8 @@ const App = () => {
             {/* History Section (Collapsible) */}
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
                 <button 
-                   onClick={() => setShowHistory(!showHistory)}
-                   className="flex items-center justify-between w-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4 px-2"
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="flex items-center justify-between w-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4 px-2"
                 >
                     <span className="font-bold text-sm uppercase tracking-wider">{t('detailedHistory')}</span>
                     {showHistory ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -774,7 +778,7 @@ const App = () => {
                 {showHistory && (
                     <div className="animate-in slide-in-from-top-4 fade-in duration-300">
                         <StatsCharts 
-                            exercises={StorageService.getExercises()} 
+                            exercises={StorageService.getExercises()}
                             weights={StorageService.getWeights()}
                             targetWeight={settings.targetWeight}
                             isPro={settings.isPro}
@@ -786,21 +790,27 @@ const App = () => {
         )}
 
         {activeTab === AppTab.WEIGHT && <WeightTracker />}
+        
         {activeTab === AppTab.NUTRITION && <NutritionTracker onRequestPro={() => setShowProModal(true)} />}
 
         {activeTab === AppTab.SOCIAL && (
-           <div className="px-4 space-y-4 pb-24">
-               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('leaderboard')}</h2>
-               <div className="bg-white dark:bg-gray-800/50 p-4 rounded-xl flex items-center justify-between border border-blue-500/30 shadow-md mb-6">
+            <div className="px-4 space-y-4 pb-24">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('leaderboard')}</h2>
+                
+                <div className="bg-white dark:bg-gray-800/50 p-4 rounded-xl flex items-center justify-between border border-blue-500/30 shadow-md mb-6">
                     <div className="flex items-center gap-4">
                         <span className="text-blue-500 font-mono font-bold">YOU</span>
                         <div className="relative">
                             {settings.isPro && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
-                                     <Crown size={16} className="text-yellow-400 fill-yellow-400 drop-shadow-sm" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
+                                    <Crown size={16} className="text-yellow-400 fill-yellow-400 drop-shadow-sm" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
                                 </div>
                             )}
-                            <img src={settings.avatar} alt="You" className={`w-12 h-12 rounded-full border-2 ${settings.isPro ? 'border-yellow-400' : 'border-blue-500'}`} />
+                            <img 
+                                src={settings.avatar} 
+                                alt="You" 
+                                className={`w-12 h-12 rounded-full border-2 ${settings.isPro ? 'border-yellow-400' : 'border-blue-500'}`} 
+                            />
                         </div>
                         <div>
                             <p className="font-bold text-gray-900 dark:text-white">{settings.name}</p>
@@ -808,39 +818,39 @@ const App = () => {
                         </div>
                     </div>
                     <div className="text-right">
-                       <p className="text-xl font-bold text-gray-900 dark:text-white">--</p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-white">-</p>
                     </div>
-               </div>
-               
-               {StorageService.getFriends().map((friend, idx) => (
-                   <div key={friend.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm">
-                       <div className="flex items-center gap-4">
-                           <span className="text-gray-500 font-mono font-bold">#{idx + 1}</span>
-                           <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
-                           <div>
-                               <p className="font-bold text-gray-900 dark:text-white">{friend.name}</p>
-                               <p className="text-xs text-gray-500 dark:text-gray-400">{t('topAthlete')}</p>
-                           </div>
-                       </div>
-                       <div className="text-right">
-                           <p className="text-xl font-bold text-blue-500">{friend.score}</p>
-                           <p className="text-[10px] text-gray-500 uppercase">{t('points')}</p>
-                       </div>
-                   </div>
-               ))}
-           </div>
+                </div>
+
+                {StorageService.getFriends().map((friend, idx) => (
+                    <div key={friend.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <span className="text-gray-500 font-mono font-bold">#{idx + 1}</span>
+                            <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            <div>
+                                <p className="font-bold text-gray-900 dark:text-white">{friend.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{t('topAthlete')}</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xl font-bold text-blue-500">{friend.score}</p>
+                            <p className="text-[10px] text-gray-500 uppercase">{t('points')}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
         )}
 
         {activeTab === AppTab.SETTINGS && (
             <div className="px-4 space-y-6 pb-24">
                 
-                {/* Avatar Selection */}
+                {/* Avatar & Name */}
                 <div className="flex flex-col items-center py-6">
                     <div className="relative group cursor-pointer" onClick={() => setShowAvatarSelector(true)}>
                         {settings.isPro && (
-                             <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
-                                  <Crown size={32} className="text-yellow-400 fill-yellow-400 drop-shadow-md" style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.3))' }} />
-                             </div>
+                            <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
+                                <Crown size={32} className="text-yellow-400 fill-yellow-400 drop-shadow-md" style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.3))' }} />
+                            </div>
                         )}
                         <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${settings.isPro ? 'border-yellow-400' : 'border-white dark:border-gray-800'} group-hover:border-blue-500 transition shadow-xl`}>
                             <img src={settings.avatar} alt="Avatar" className="w-full h-full object-cover" />
@@ -854,11 +864,13 @@ const App = () => {
                     </button>
                 </div>
 
+                {/* Pro Banner */}
                 <div className="space-y-4">
-                    
-                    {/* Subscription Banner in Settings */}
                     {!settings.isPro && (
-                        <div onClick={() => setShowProModal(true)} className="bg-gradient-to-r from-yellow-500 to-orange-600 p-4 rounded-xl text-white shadow-lg cursor-pointer transform transition hover:scale-[1.02]">
+                        <div 
+                            onClick={() => setShowProModal(true)}
+                            className="bg-gradient-to-r from-yellow-500 to-orange-600 p-4 rounded-xl text-white shadow-lg cursor-pointer transform transition hover:scale-[1.02]"
+                        >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-white/20 p-2 rounded-full">
@@ -875,528 +887,464 @@ const App = () => {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* Account Section */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                            <Settings2 size={16} className="text-red-500"/> Google Account
+                        </h4>
+                    </div>
                     
-                    {/* GOOGLE ACCOUNT SETTINGS */}
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                        <div className="flex justify-between items-center mb-3">
-                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                                <Settings2 size={16} className="text-red-500" />
-                                Google Account
-                             </h4>
-                        </div>
-                        
-                        {!settings.email ? (
-                            <div className="space-y-2">
-                                <div id="googleSignInBtn" className="w-full flex justify-center"></div>
-                                <div className="mt-2 text-[10px] text-gray-400 text-center px-4">
-                                    If button doesn't appear or shows error, ensure 
-                                    <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded mx-1">{window.location.origin}</code> 
-                                    is added to <strong>Authorized JavaScript origins</strong> in Google Cloud Console.
+                    {!settings.email ? (
+                        <div className="space-y-2">
+                            <div id="googleSignInBtn" className="w-full flex justify-center"></div>
+                            
+                            {/* Fallback Client ID Input for Devs */}
+                            {!googleClientIdInput && (
+                                <div className="mt-2 text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 p-2 rounded border border-yellow-200 dark:border-yellow-700">
+                                    <span>For testing, enter Client ID below:</span>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Your Google Client ID" 
+                                        value={googleClientIdInput}
+                                        onChange={(e) => setGoogleClientIdInput(e.target.value)}
+                                        className="w-full mt-1 p-1 bg-white dark:bg-gray-800 border rounded"
+                                    />
                                 </div>
-                                {!googleClientIdInput && (
-                                    <div className="mt-2 text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 p-2 rounded border border-yellow-200 dark:border-yellow-700">
-                                        <span>For testing, enter Client ID below:</span>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Your Google Client ID" 
-                                            value={googleClientIdInput}
-                                            onChange={(e) => setGoogleClientIdInput(e.target.value)}
-                                            className="w-full mt-1 p-1 bg-white dark:bg-gray-800 border rounded"
-                                        />
+                            )}
+                            {/* ORIGIN HINT */}
+                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                <p className="font-bold mb-1">Getting "Origin not allowed"?</p>
+                                <p>Add this URL to <strong>Authorized JavaScript origins</strong> in Google Cloud Console:</p>
+                                <code className="block bg-white dark:bg-black/30 p-2 mt-1 rounded select-all font-mono break-all">
+                                    {window.location.origin}
+                                </code>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                                {settings.avatar ? (
+                                    <img src={settings.avatar} className="w-8 h-8 rounded-full" />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                        {settings.name[0]}
                                     </div>
                                 )}
-                            </div>
-                        ) : (
-                            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-3">
-                                    {settings.avatar ? (
-                                        <img src={settings.avatar} className="w-8 h-8 rounded-full" />
-                                    ) : (
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                            {settings.name[0]}
-                                        </div>
-                                    )}
-                                    <div className="overflow-hidden">
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{settings.name}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{settings.email}</p>
-                                    </div>
+                                <div className="overflow-hidden">
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{settings.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{settings.email}</p>
                                 </div>
-                                <button onClick={handleGoogleLogout} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-full transition">
-                                    <LogOut size={16} />
+                            </div>
+                            <button onClick={handleGoogleLogout} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-full transition">
+                                <LogOut size={16} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Coach Settings */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                            <Volume2 size={16} className="text-blue-500" /> AI Coach
+                        </h4>
+                    </div>
+                    <label className="block">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">{t('coachVoice')}</span>
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-1 mt-1">
+                            <button 
+                                onClick={() => updateCoachVoice('Fenrir')}
+                                className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Fenrir' ? 'bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                            >
+                                <Mic size={12} /> {t('voiceMale')}
+                            </button>
+                            <button 
+                                onClick={() => updateCoachVoice('Kore')}
+                                className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Kore' ? 'bg-white dark:bg-gray-800 shadow-sm text-purple-600 dark:text-purple-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                            >
+                                <Mic size={12} /> {t('voiceFemale')}
+                            </button>
+                        </div>
+                    </label>
+                </div>
+
+                {/* Bio Data */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                            <Users size={16} className="text-purple-500" /> {t('bioData')}
+                        </h4>
+                        <SaveIndicator saving={isSavingSettings} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('yourName')}</span>
+                            <input type="text" value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none" />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('age')}</span>
+                            <input type="number" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none" />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('height')}</span>
+                            <input type="number" value={heightInput} onChange={(e) => setHeightInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none" />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('gender')}</span>
+                            <select value={settings.gender} onChange={(e) => updateGender(e.target.value as Gender)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none">
+                                <option value="MALE">{t('male')}</option>
+                                <option value="FEMALE">{t('female')}</option>
+                                <option value="OTHER">{t('other')}</option>
+                            </select>
+                        </label>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-4 mt-4">
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
+                            <select value={settings.activityLevel} onChange={(e) => updateActivity(e.target.value as ActivityLevel)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none">
+                                <option value="SEDENTARY">{t('sedentary')}</option>
+                                <option value="LIGHT">{t('light')}</option>
+                                <option value="MODERATE">{t('moderate')}</option>
+                                <option value="VERY_ACTIVE">{t('very_active')}</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Nutrition & Weight */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <h4 className="text-gray-900 dark:text-white font-bold mb-4 flex items-center gap-2">
+                        <Ruler size={16} className="text-green-500" /> {t('nutrition')} & {t('weight')}
+                    </h4>
+                    
+                    <div className="mb-4">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">{t('referenceObject')}</span>
+                        <div className="bg-gray-50 dark:bg-gray-950 p-3 rounded-lg mt-1 border border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                        {settings.referenceObject || t('notSet')}
+                                    </p>
+                                    {settings.referenceDimensions && <p className="text-xs text-gray-500">{settings.referenceDimensions}</p>}
+                                </div>
+                                <button 
+                                    onClick={() => setShowRefScanner(true)}
+                                    className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-green-200 dark:hover:bg-green-900/50 transition"
+                                >
+                                    <Camera size={14} /> {settings.referenceObject ? t('update') : t('set')}
                                 </button>
                             </div>
-                        )}
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{t('referenceDesc')}</p>
                     </div>
 
-                    {/* AI Coach Settings */}
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                        <div className="flex justify-between items-center mb-3">
-                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                                <Volume2 size={16} className="text-blue-500" />
-                                AI Coach
-                             </h4>
-                        </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <label className="block">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('coachVoice')}</span>
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-1 mt-1">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('currentWeight')}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <input type="number" value={currentWeightInput} onChange={(e) => setCurrentWeightInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none" />
                                 <button 
-                                    onClick={() => updateCoachVoice('Fenrir')}
-                                    className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Fenrir' ? 'bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                    onClick={handleScanClick}
+                                    className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800 transition shadow-sm border border-emerald-200 dark:border-emerald-800"
                                 >
-                                    <Mic size={12} /> {t('voiceMale')}
-                                </button>
-                                <button 
-                                    onClick={() => updateCoachVoice('Kore')}
-                                    className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Kore' ? 'bg-white dark:bg-gray-800 shadow-sm text-purple-600 dark:text-purple-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                                >
-                                    <Mic size={12} /> {t('voiceFemale')}
+                                    <Camera size={20} />
                                 </button>
                             </div>
                         </label>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('targetWeight')}</span>
+                            <input type="number" value={targetWeightInput} onChange={(e) => setTargetWeightInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-purple-500 outline-none" />
+                        </label>
                     </div>
+                </div>
 
-                    {/* Bio Data Section */}
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                                <Users size={16} className="text-purple-500" />
-                                {t('bioData')}
-                             </h4>
-                             <SaveIndicator saving={isSavingSettings} />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('yourName')}</span>
-                                <input 
-                                    type="text" 
-                                    value={nameInput}
-                                    onChange={(e) => setNameInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('age')}</span>
-                                <input 
-                                    type="number" 
-                                    value={ageInput}
-                                    onChange={(e) => setAgeInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('height')}</span>
-                                <input 
-                                    type="number" 
-                                    value={heightInput}
-                                    onChange={(e) => setHeightInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('gender')}</span>
-                                <select 
-                                    value={settings.gender}
-                                    onChange={(e) => updateGender(e.target.value as Gender)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                                >
-                                    <option value="MALE">{t('male')}</option>
-                                    <option value="FEMALE">{t('female')}</option>
-                                    <option value="OTHER">{t('other')}</option>
-                                </select>
-                            </label>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 gap-4 mt-4">
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
-                                <select 
-                                    value={settings.activityLevel}
-                                    onChange={(e) => updateActivity(e.target.value as ActivityLevel)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                                >
-                                    <option value="SEDENTARY">{t('sedentary')}</option>
-                                    <option value="LIGHT">{t('light')}</option>
-                                    <option value="MODERATE">{t('moderate')}</option>
-                                    <option value="VERY_ACTIVE">{t('very_active')}</option>
-                                </select>
-                            </label>
-                        </div>
+                {/* Theme */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400" /> : <Sun size={20} className="text-orange-500" />}
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{t('theme')}</span>
                     </div>
+                    <button 
+                        onClick={toggleTheme}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition ${settings.theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}
+                    >
+                        {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
+                    </button>
+                </div>
 
-                    {/* Weight & Reference Object */}
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                        <h4 className="text-gray-900 dark:text-white font-bold mb-4 flex items-center gap-2">
-                             <Ruler size={16} className="text-green-500" />
-                             {t('nutrition')} & {t('weight')}
+                {/* Health Connect */}
+                <HealthConnect settings={settings} onUpdate={refreshData} />
+
+                {/* Backend Settings */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                            <Server size={16} className="text-indigo-500" /> Backend
                         </h4>
-                        
-                        <div className="mb-4">
-                             <span className="text-gray-500 dark:text-gray-400 text-xs">{t('referenceObject')}</span>
-                             <div className="bg-gray-50 dark:bg-gray-950 p-3 rounded-lg mt-1 border border-gray-200 dark:border-gray-700">
-                                 <div className="flex justify-between items-center">
-                                     <div>
-                                         <p className="text-sm font-bold text-gray-900 dark:text-white">{settings.referenceObject || t('notSet')}</p>
-                                         {settings.referenceDimensions && (
-                                             <p className="text-xs text-gray-500">{settings.referenceDimensions}</p>
-                                         )}
-                                     </div>
-                                     <button 
-                                         onClick={() => setShowRefScanner(true)}
-                                         className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-green-200 dark:hover:bg-green-900/50 transition"
-                                     >
-                                         <Camera size={14}/> {settings.referenceObject ? t('update') : t('set')}
-                                     </button>
-                                 </div>
-                             </div>
-                             <p className="text-[10px] text-gray-400 mt-1">{t('referenceDesc')}</p>
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold transition-all ${
+                            serverStatus === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 border-green-200 dark:border-green-800' :
+                            serverStatus === 'offline' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800' :
+                            'bg-gray-100 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'
+                        }`}>
+                            {serverStatus === 'checking' && <Loader2 size={10} className="animate-spin" />}
+                            {serverStatus === 'online' && <Wifi size={10} />}
+                            {serverStatus === 'offline' && <WifiOff size={10} />}
+                            <span>{serverStatus === 'online' ? t('online') : serverStatus === 'offline' ? t('offline') : t('checking')}</span>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('currentWeight')}</span>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <input 
-                                        type="number" 
-                                        value={currentWeightInput}
-                                        onChange={(e) => setCurrentWeightInput(e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none"
-                                    />
-                                    <button 
-                                        onClick={handleScanClick}
-                                        className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800 transition shadow-sm border border-emerald-200 dark:border-emerald-800"
-                                    >
-                                        <Camera size={20} />
-                                    </button>
-                                </div>
-                            </label>
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('targetWeight')}</span>
-                                <input 
-                                    type="number" 
-                                    value={targetWeightInput}
-                                    onChange={(e) => setTargetWeightInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-purple-500 outline-none"
-                                />
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400"/> : <Sun size={20} className="text-orange-500"/>}
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">{t('theme')}</span>
-                        </div>
-                        <button 
-                            onClick={toggleTheme}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${settings.theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}
-                        >
-                            {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
-                        </button>
-                    </div>
-
-                    {/* Health Integrations */}
-                    <HealthConnect settings={settings} onUpdate={refreshData} />
-                    
-                    {/* Backend Configuration UI */}
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                         <div className="flex justify-between items-start mb-3">
-                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                                <Server size={16} className="text-indigo-500" />
-                                Backend
-                             </h4>
-                             <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold transition-all ${
-                                 serverStatus === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 border-green-200 dark:border-green-800' :
-                                 serverStatus === 'offline' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800' :
-                                 'bg-gray-100 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'
-                             }`}>
-                                 {serverStatus === 'checking' && <Loader2 size={10} className="animate-spin" />}
-                                 {serverStatus === 'online' && <Wifi size={10} />}
-                                 {serverStatus === 'offline' && <WifiOff size={10} />}
-                                 
-                                 <span>{serverStatus === 'online' ? t('online') : serverStatus === 'offline' ? t('offline') : t('checking')}</span>
-                             </div>
-                         </div>
-                         
-                         <label className="block">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">{t('url')}</span>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Globe size={16} className="text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    value={backendUrlInput}
-                                    onChange={(e) => setBackendUrlInput(e.target.value)}
-                                    placeholder="https://your-app.up.railway.app"
-                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none transition font-mono"
-                                />
-                                <button 
-                                    onClick={runDiagnostics}
-                                    disabled={isDiagnosing}
-                                    className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg text-xs font-bold whitespace-nowrap text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition flex items-center gap-2"
-                                >
-                                    {isDiagnosing ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
-                                    {t('test')}
-                                </button>
-                            </div>
-                         </label>
-
-                         {/* Stripe Helper */}
-                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                             <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider block mb-1">Stripe Webhook URL (for Dashboard)</span>
-                             <div className="flex items-center gap-2">
-                                 <code className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-[10px] text-gray-600 dark:text-gray-400 font-mono overflow-x-auto whitespace-nowrap">
-                                     {backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '.../api/webhook'}
-                                 </code>
-                                 <button 
-                                     onClick={() => {
-                                         const url = backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '';
-                                         if (url) navigator.clipboard.writeText(url);
-                                     }}
-                                     className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700"
-                                     title="Copy to clipboard"
-                                 >
-                                     <Copy size={14} />
-                                 </button>
-                             </div>
-                         </div>
-                         
-                         {/* Diagnostic Console */}
-                         {showDiagnostics && (
-                             <div className="mt-3 bg-black rounded-lg p-3 font-mono text-[10px] text-green-400 overflow-hidden relative">
-                                 <div className="absolute top-2 right-2">
-                                     <button onClick={() => setShowDiagnostics(false)} className="text-gray-500 hover:text-white"><XCircle size={14}/></button>
-                                 </div>
-                                 <div className="space-y-1 max-h-40 overflow-y-auto">
-                                     {diagnosticLogs.map((log, i) => (
-                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : log.includes('⚠️') || log.includes('DIAGNOSIS') ? "text-yellow-400" : ""}>
-                                             {log}
-                                         </div>
-                                     ))}
-                                     {isDiagnosing && <div className="animate-pulse">_</div>}
-                                 </div>
-                             </div>
-                         )}
                     </div>
                     
-                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 mt-2 shadow-sm">
-                        <h4 className="text-gray-900 dark:text-white font-bold mb-2">{t('deviceSensor')}</h4>
-                        <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                             <span>{t('stepCounter')} (Beta)</span>
-                             <span className={sessionSteps > 0 ? "text-green-500" : "text-gray-400 dark:text-gray-600"}>
-                                 {sessionSteps > 0 ? t('active') : t('ready')}
-                             </span>
+                    <label className="block">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">{t('url')}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Globe size={16} className="text-gray-400" />
+                            <input 
+                                type="text" 
+                                value={backendUrlInput} 
+                                onChange={(e) => setBackendUrlInput(e.target.value)}
+                                placeholder="https://your-app.up.railway.app"
+                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none transition font-mono"
+                            />
+                            <button 
+                                onClick={runDiagnostics}
+                                disabled={isDiagnosing}
+                                className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg text-xs font-bold whitespace-nowrap text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition flex items-center gap-2"
+                            >
+                                {isDiagnosing ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
+                                {t('test')}
+                            </button>
+                        </div>
+                    </label>
+
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider block mb-1">Stripe Webhook URL (for Dashboard)</span>
+                        <div className="flex items-center gap-2">
+                            <code className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-[10px] text-gray-600 dark:text-gray-400 font-mono overflow-x-auto whitespace-nowrap">
+                                {backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '.../api/webhook'}
+                            </code>
+                            <button 
+                                onClick={() => {
+                                    const url = backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '';
+                                    if (url) navigator.clipboard.writeText(url);
+                                }}
+                                className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700"
+                                title="Copy to clipboard"
+                            >
+                                <Copy size={14} />
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                {/* Diagnostics Log Panel */}
+                {showDiagnostics && (
+                    <div className="mt-3 bg-black rounded-lg p-3 font-mono text-[10px] text-green-400 overflow-hidden relative">
+                        <div className="absolute top-2 right-2">
+                            <button onClick={() => setShowDiagnostics(false)} className="text-gray-500 hover:text-white">
+                                <XCircle size={14} />
+                            </button>
+                        </div>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {diagnosticLogs.map((log, i) => (
+                                <div key={i} className={
+                                    log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : 
+                                    log.includes('⚠️') || log.includes('DIAGNOSIS') ? "text-yellow-400" : ""
+                                }>
+                                    {log}
+                                </div>
+                            ))}
+                            {isDiagnosing && <div className="animate-pulse">_</div>}
+                        </div>
+                    </div>
+                )}
             </div>
         )}
       </main>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur border-t border-gray-200 dark:border-slate-900 px-2 py-3 flex justify-between items-end z-40 transition-colors duration-300">
-        <button 
-            onClick={() => setActiveTab(AppTab.DASHBOARD)}
-            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.DASHBOARD ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
-        >
-            <LayoutDashboard size={20} />
-            <span className="text-[10px] font-medium">{t('dashboard')}</span>
+        <button onClick={() => setActiveTab(AppTab.DASHBOARD)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.DASHBOARD ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+          <LayoutDashboard size={20} />
+          <span className="text-[10px] font-medium">{t('dashboard')}</span>
         </button>
-        <button 
-            onClick={() => setActiveTab(AppTab.NUTRITION)}
-            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
-        >
-            <Utensils size={20} />
-            <span className="text-[10px] font-medium">{t('nutrition')}</span>
+        <button onClick={() => setActiveTab(AppTab.NUTRITION)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
+          <Utensils size={20} />
+          <span className="text-[10px] font-medium">{t('nutrition')}</span>
         </button>
-        <button 
-            onClick={() => setIsWorkoutActive(true)}
-            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
-        >
+        
+        {/* Main Workout Button */}
+        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
             <div className="bg-blue-600 text-white p-3 rounded-full -mt-8 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 hover:bg-blue-500 transition border-4 border-white dark:border-slate-950">
                 <Dumbbell size={24} />
             </div>
             <span className="text-[10px] font-medium">{t('workout')}</span>
         </button>
-        <button 
-            onClick={() => setActiveTab(AppTab.SOCIAL)}
-            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SOCIAL ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
-        >
-            <Users size={20} />
-            <span className="text-[10px] font-medium">{t('social')}</span>
+
+        <button onClick={() => setActiveTab(AppTab.SOCIAL)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SOCIAL ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+          <Users size={20} />
+          <span className="text-[10px] font-medium">{t('social')}</span>
         </button>
-        <button 
-            onClick={() => setActiveTab(AppTab.SETTINGS)}
-            className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
-        >
-            <Settings size={20} />
-            <span className="text-[10px] font-medium">{t('settings')}</span>
+        <button onClick={() => setActiveTab(AppTab.SETTINGS)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+          <Settings size={20} />
+          <span className="text-[10px] font-medium">{t('settings')}</span>
         </button>
       </nav>
 
-      {/* Full Screen Workout Overlay */}
       {isWorkoutActive && (
-          <WorkoutSession onFinish={() => {
-              setIsWorkoutActive(false);
-              refreshData();
-              fetchMotivation();
-          }} />
+        <WorkoutSession onFinish={() => {
+            setIsWorkoutActive(false);
+            refreshData();
+            fetchMotivation();
+        }} />
       )}
-      
-      {/* Goal Details Modal */}
+
       {selectedGoal && (
           <GoalDetailsModal 
-              goal={selectedGoal}
-              label={getLabelForType(selectedGoal.type)}
-              onClose={() => setSelectedGoal(null)}
+            goal={selectedGoal} 
+            label={getLabelForType(selectedGoal.type)}
+            onClose={() => setSelectedGoal(null)} 
           />
       )}
-      
-      {/* Phone Model Modal */}
+
+      {/* Phone Weight Modal */}
       {showPhoneModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in duration-200">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-                      <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                          <Smartphone size={18} className="text-blue-500"/>
-                          {t('phoneModelPrompt')}
-                      </h3>
-                      <button onClick={() => setShowPhoneModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                          <X size={20} />
-                      </button>
-                  </div>
-                  <div className="p-6 space-y-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('phoneModelDesc')}</p>
-                      <input 
-                          type="text"
-                          value={phoneModelInput}
-                          onChange={(e) => setPhoneModelInput(e.target.value)}
-                          placeholder={t('phonePlaceholder')}
-                          className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 outline-none focus:border-blue-500"
-                      />
-                      {phoneError && (
-                          <div className="text-red-500 text-xs flex items-center gap-1">
-                              <AlertTriangle size={12} /> {phoneError}
-                          </div>
-                      )}
-                      <button 
-                          onClick={calculatePhoneWeight}
-                          disabled={!phoneModelInput || isCalculatingPhone}
-                          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
-                      >
-                          {isCalculatingPhone ? <Loader2 className="animate-spin" /> : t('calcPhoneWeight')}
-                      </button>
-                  </div>
-              </div>
-          </div>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in duration-200">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Smartphone size={18} className="text-blue-500"/> {t('phoneModelPrompt')}
+                    </h3>
+                    <button onClick={() => setShowPhoneModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('phoneModelDesc')}</p>
+                    <input 
+                        type="text" 
+                        value={phoneModelInput}
+                        onChange={(e) => setPhoneModelInput(e.target.value)}
+                        placeholder={t('phonePlaceholder')}
+                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 outline-none focus:border-blue-500"
+                    />
+                    {phoneError && (
+                        <div className="text-red-500 text-xs flex items-center gap-1">
+                            <AlertTriangle size={12} /> {phoneError}
+                        </div>
+                    )}
+                    <button 
+                        onClick={calculatePhoneWeight}
+                        disabled={!phoneModelInput || isCalculatingPhone}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                    >
+                        {isCalculatingPhone ? <Loader2 className="animate-spin" /> : t('calcPhoneWeight')}
+                    </button>
+                </div>
+            </div>
+        </div>
       )}
 
-      {/* Quick Weight Scan Overlay */}
+      {/* Quick Scan Overlay */}
       {showQuickScan && (
           <div className="fixed inset-0 bg-black z-[70] flex flex-col items-center justify-center">
-             <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
-                 <div className="flex items-center gap-2 text-white">
-                     <Settings2 size={16} />
-                     <span className="text-sm font-bold">{settings.phoneModel} ({settings.phoneWeight}{t('unitKg')})</span>
-                 </div>
-                 <button onClick={closeQuickScan} className="bg-white/20 p-2 rounded-full text-white backdrop-blur">
-                     <X size={20} />
-                 </button>
-             </div>
-             
-             <div className="relative w-full h-full bg-black">
-                 {/* Video container handled by DOM element logic, but we need a canvas for capture */}
-                 <div className="w-full h-full flex items-center justify-center" ref={(el) => {
-                     if (el && quickScanVideoRef) {
-                         el.innerHTML = '';
-                         quickScanVideoRef.className = "w-full h-full object-cover";
-                         el.appendChild(quickScanVideoRef);
-                     }
-                 }}></div>
-                 <canvas ref={quickScanCanvasRef} className="hidden" />
-
-                 {/* Results Overlay */}
-                 {quickScanResult ? (
-                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200">
-                         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
-                             <h3 className="text-xl font-bold text-center mb-6 text-white">{t('confirmWeight')}</h3>
-                             
-                             <div className="space-y-4 mb-6">
-                                 <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                     <span className="text-gray-400">{t('rawReading')}</span>
-                                     <span className="font-mono text-xl">{quickScanResult.raw} {t('unitKg')}</span>
-                                 </div>
-                                 <div className="flex justify-between items-center border-b border-gray-800 pb-2">
-                                     <span className="text-gray-400 flex items-center gap-1"><Smartphone size={14}/> {t('phoneDeduction')}</span>
-                                     <span className="font-mono text-xl text-red-400">- {settings.phoneWeight} {t('unitKg')}</span>
-                                 </div>
-                                 <div className="flex justify-between items-center pt-2">
-                                     <span className="text-white font-bold text-lg">{t('netWeight')}</span>
-                                     <span className="font-mono text-4xl font-bold text-emerald-400">{quickScanResult.net} {t('unitKg')}</span>
-                                 </div>
-                             </div>
-                             
-                             <div className="flex gap-3">
-                                 <button onClick={startQuickScan} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-white">
-                                     {t('retake')}
-                                 </button>
-                                 <button onClick={confirmQuickScan} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-white">
-                                     {t('useThis')}
-                                 </button>
-                             </div>
-                         </div>
-                     </div>
-                 ) : (
-                     <>
-                        {/* Guide Box */}
+              <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+                  <div className="flex items-center gap-2 text-white">
+                      <Settings2 size={16} />
+                      <span className="text-sm font-bold">{settings.phoneModel} ({settings.phoneWeight}{t('unitKg')})</span>
+                  </div>
+                  <button onClick={closeQuickScan} className="bg-white/20 p-2 rounded-full text-white backdrop-blur">
+                      <X size={20} />
+                  </button>
+              </div>
+              
+              <div className="relative w-full h-full bg-black">
+                  <div className="w-full h-full flex items-center justify-center" ref={(el) => {
+                      if (el && quickScanVideoRef) {
+                          el.innerHTML = ''; // Clear previous
+                          quickScanVideoRef.className = "w-full h-full object-cover";
+                          el.appendChild(quickScanVideoRef);
+                      }
+                  }}></div>
+                  <canvas ref={quickScanCanvasRef} className="hidden" />
+                  
+                  {/* HUD */}
+                  {quickScanResult ? (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200">
+                          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
+                              <h3 className="text-xl font-bold text-center mb-6 text-white">{t('confirmWeight')}</h3>
+                              
+                              <div className="space-y-4 mb-6">
+                                  <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                      <span className="text-gray-400">{t('rawReading')}</span>
+                                      <span className="font-mono text-xl">{quickScanResult.raw} {t('unitKg')}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                      <span className="text-gray-400 flex items-center gap-1"><Smartphone size={14}/> {t('phoneDeduction')}</span>
+                                      <span className="font-mono text-xl text-red-400">- {settings.phoneWeight} {t('unitKg')}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2">
+                                      <span className="text-white font-bold text-lg">{t('netWeight')}</span>
+                                      <span className="font-mono text-4xl font-bold text-emerald-400">{quickScanResult.net} {t('unitKg')}</span>
+                                  </div>
+                              </div>
+                              
+                              <div className="flex gap-3">
+                                  <button onClick={startQuickScan} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-white">
+                                      {t('retake')}
+                                  </button>
+                                  <button onClick={confirmQuickScan} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-white">
+                                      {t('useThis')}
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  ) : (
+                      <>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="w-64 h-32 border-2 border-emerald-500/50 border-dashed rounded-lg flex items-center justify-center">
-                                <span className="bg-black/40 text-white text-xs px-2 py-1 rounded backdrop-blur">
-                                    {t('scanScale')}
-                                </span>
+                                <span className="bg-black/40 text-white text-xs px-2 py-1 rounded backdrop-blur">{t('scanScale')}</span>
                             </div>
                         </div>
-
-                        {/* Capture Trigger */}
                         <div className="absolute bottom-10 left-0 right-0 flex justify-center pointer-events-auto">
                             <button 
                                 onClick={captureQuickScan}
                                 disabled={isQuickScanning}
                                 className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95"
                             >
-                                {isQuickScanning ? <Loader2 className="animate-spin" /> : <Camera size={28} />}
+                                {isQuickScanning ? <Loader2 className="animate-spin"/> : <Camera size={28} />}
                             </button>
                         </div>
-                     </>
-                 )}
-             </div>
+                      </>
+                  )}
+              </div>
           </div>
       )}
 
-      {/* Reference Object Scanner */}
       {showRefScanner && (
           <ReferenceObjectScanner 
-             onClose={() => setShowRefScanner(false)}
-             onSave={updateReferenceObject}
+            onClose={() => setShowRefScanner(false)}
+            onSave={updateReferenceObject}
           />
       )}
 
-      {/* Pro Upgrade Modal */}
       {showProModal && (
           <ProUpgradeModal 
-             onClose={() => setShowProModal(false)}
-             onUpgradeMock={handleMockUpgrade}
+            onClose={() => setShowProModal(false)}
+            onUpgradeMock={handleMockUpgrade}
           />
       )}
 
-      {/* Goal Settings Modal */}
       {showGoalSettings && (
           <GoalSettings 
-            onClose={() => setShowGoalSettings(false)} 
-            onUpdate={refreshData} 
+            onClose={() => setShowGoalSettings(false)}
+            onUpdate={refreshData}
           />
       )}
 
-      {/* Avatar Selector Modal */}
       {showAvatarSelector && (
           <AvatarSelector 
             currentAvatar={settings.avatar}

@@ -1,29 +1,21 @@
 
 const express = require('express');
 const { Pool } = require('pg');
+const cors = require('cors'); // Import cors package
 // Safe initialization for Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 const app = express();
 
-// --- 1. ROBUST MANUAL CORS MIDDLEWARE ---
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  const requestHeaders = req.headers['access-control-request-headers'];
-  if (requestHeaders) {
-    res.setHeader('Access-Control-Allow-Headers', requestHeaders);
-  } else {
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, stripe-signature, Accept, Origin, Cache-Control, Pragma');
-  }
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('CORS Preflight handled');
-    return res.sendStatus(200);
-  }
-  next();
-});
+// --- 1. ROBUST CORS MIDDLEWARE ---
+// Allow all origins for simplicity in this setup, or configure specifically if needed.
+// Using the 'cors' package handles OPTIONS preflight requests automatically and correctly.
+app.use(cors({
+  origin: true, // Reflects the request origin, effectively allowing all
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'stripe-signature', 'Accept', 'Origin', 'Cache-Control', 'Pragma']
+}));
 
 // --- 2. LOGGING ---
 app.use((req, res, next) => {
@@ -52,7 +44,7 @@ app.get('/', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
-        message: 'FitStream Backend Ready v4 (CORS Fix)',
+        message: 'FitStream Backend Ready v5 (CORS Fixed)',
         timestamp: new Date().toISOString() 
     });
 });
