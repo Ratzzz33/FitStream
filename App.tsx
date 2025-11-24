@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -38,12 +39,12 @@ const App = () => {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(StorageService.getSettings());
   const [motivation, setMotivation] = useState("");
-  const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const [showGoalSettings, setShowGoalSettings] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showRefScanner, setShowRefScanner] = useState(false);
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   
   // Goal Selection
   const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
@@ -75,15 +76,9 @@ const App = () => {
   
   // Background Step Counter
   const sessionSteps = useStepCounter();
-
-  useEffect(() => {
-    // Check both Env Var AND Local Storage Setting
-    if (!process.env.API_KEY && !settings.apiKey) {
-        setApiKeyMissing(true);
-    } else {
-        setApiKeyMissing(false);
-    }
-  }, [settings.apiKey]);
+  
+  // Derived state for goals
+  const enabledGoals = settings.goals.filter(g => g.isEnabled);
 
   // Initialize Google Auth when in Settings tab
   useEffect(() => {
@@ -97,8 +92,6 @@ const App = () => {
                   // Render Google Button
                   const btnParent = document.getElementById("googleSignInBtn");
                   if (btnParent) {
-                      // Removed width: "100%" to fix GSI_LOGGER error.
-                      // Default sizing works best for responsiveness in the container.
                       (window as any).google.accounts.id.renderButton(
                           btnParent,
                           { theme: "outline", size: "large" }
@@ -149,41 +142,26 @@ const App = () => {
       // 2. Start Background Sync
       const initBackground = async () => {
           try {
-              const hasUpdates = await StorageService.initializeFromBackend();
-              // If backend had new data, refresh the UI
-              if (hasUpdates) {
-                  refreshData();
-                  fetchMotivation();
+              // Check server health first
+              const isHealthy = await ApiService.checkHealth(settings.backendUrl);
+              setServerOnline(isHealthy);
+              
+              if (isHealthy) {
+                  const hasUpdates = await StorageService.initializeFromBackend();
+                  // If backend had new data, refresh the UI
+                  if (hasUpdates) {
+                      refreshData();
+                      fetchMotivation();
+                  }
               }
           } catch(e) {
               console.error("Background sync error:", e);
-          } finally {
-              checkServerConnection();
+              setServerOnline(false);
           }
       };
       
       initBackground();
   }, []);
-
-  // Function to check connection status (Silent Check for Pro Status)
-  const checkServerConnection = async () => {
-      const userId = StorageService.getUserId();
-      const currentSettings = StorageService.getSettings();
-      
-      try {
-          const result = await ApiService.syncUser(userId, currentSettings, currentSettings.backendUrl);
-          
-          if (result) {
-              if (currentSettings.isPro !== result.isPro) {
-                  currentSettings.isPro = result.isPro;
-                  StorageService.saveSettings(currentSettings, false); // No push needed, we just pulled
-                  refreshData();
-              }
-          }
-      } catch (e) {
-          // Silent failure is fine here, it's just a background check
-      }
-  };
 
   // Sync with Backend on Load
   useEffect(() => {
@@ -208,10 +186,6 @@ const App = () => {
   }, [settings.theme]);
 
   const fetchMotivation = useCallback(async () => {
-    if (!process.env.API_KEY && !settings.apiKey) {
-        setMotivation(t('defaultMotivation'));
-        return;
-    }
     try {
         const s = StorageService.getSettings();
         const exercises = StorageService.getExercises();
@@ -225,7 +199,7 @@ const App = () => {
     } catch (e) {
         setMotivation(t('defaultMotivation'));
     }
-  }, [settings.apiKey]);
+  }, []);
 
   const refreshData = () => {
     const s = StorageService.getSettings();
@@ -482,26 +456,6 @@ const App = () => {
       return <div className="flex items-center gap-1 text-xs text-green-500 opacity-0 transition duration-1000"><Check size={12}/> {t('saved')}</div>; 
   };
 
-  const enabledGoals = settings.goals.filter(g => g.isEnabled);
-
-  if (apiKeyMissing) {
-      return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-6 text-center">
-              <div className="max-w-md w-full">
-                  <h1 className="text-3xl font-bold text-red-500 mb-4">{t('apiKeyMissing')}</h1>
-                  <p className="mb-6 text-gray-600 dark:text-gray-300">{t('apiKeyMissingDesc')}</p>
-                  
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                      <h3 className="font-bold mb-4 flex items-center justify-center gap-2"><AlertTriangle size={20} className="text-red-500"/> API Key Required</h3>
-                      <p className="text-sm text-gray-500 mb-4">
-                          This application requires a Gemini API Key to function. Please ensure the <code>API_KEY</code> environment variable is set in your deployment configuration.
-                      </p>
-                  </div>
-              </div>
-          </div>
-      );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
       {/* Header */}
@@ -728,6 +682,23 @@ const App = () => {
                     <button onClick={() => setShowAvatarSelector(true)} className="mt-3 text-sm text-blue-500 font-bold">
                         {t('changeAvatar')}
                     </button>
+                </div>
+
+                {/* Server Status */}
+                <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                         {serverOnline === true && <Wifi size={16} className="text-green-500" />}
+                         {serverOnline === false && <WifiOff size={16} className="text-red-500" />}
+                         {serverOnline === null && <Loader2 size={16} className="text-gray-400 animate-spin" />}
+                         <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Backend Status</span>
+                     </div>
+                     <span className={`text-xs font-bold px-2 py-1 rounded ${
+                         serverOnline === true ? 'bg-green-100 text-green-700' : 
+                         serverOnline === false ? 'bg-red-100 text-red-700' : 
+                         'bg-gray-100 text-gray-500'
+                     }`}>
+                         {serverOnline === true ? t('online') : serverOnline === false ? t('offline') : t('checking')}
+                     </span>
                 </div>
 
                 {/* Pro Banner */}

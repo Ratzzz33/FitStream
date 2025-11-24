@@ -1,14 +1,13 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
 
-// Helper to get API Key (Env or Local Storage)
+// Helper to get API Key (Env Only)
 const getApiKey = () => {
-    if (process.env.API_KEY) return process.env.API_KEY;
-    const settings = StorageService.getSettings();
-    return settings.apiKey || '';
+    return process.env.API_KEY || '';
 };
 
 // Helper to sanitize base64 (remove data:image/... prefix if present)

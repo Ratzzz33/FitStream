@@ -15,8 +15,8 @@ const getEffectiveUrl = (customUrl?: string) => {
 };
 
 const fetchWithTimeout = async (resource: string, options: any = {}) => {
-  // Railway free tier takes time to wake up (Cold Start), increased to 15s
-  const { timeout = 15000 } = options; 
+  // Railway free tier takes time to wake up (Cold Start), increased to 20s
+  const { timeout = 20000 } = options; 
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   
@@ -33,12 +33,31 @@ const fetchWithTimeout = async (resource: string, options: any = {}) => {
   }
 }
 
+// Automatic Retry Logic for Cold Starts
+const fetchWithRetry = async (resource: string, options: any = {}, retries = 3, backoff = 1000): Promise<Response> => {
+    try {
+        const response = await fetchWithTimeout(resource, options);
+        // If 5xx error (Server Error), retry
+        if (response.status >= 500 && response.status < 600) {
+             throw new Error(`Server Error: ${response.status}`);
+        }
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            console.log(`Retrying request... Attempts left: ${retries}`);
+            await new Promise(resolve => setTimeout(resolve, backoff));
+            return fetchWithRetry(resource, options, retries - 1, backoff * 2);
+        }
+        throw error;
+    }
+};
+
 export const ApiService = {
     // 1. Sync Settings (Legacy + Pro check)
     async syncUser(userId: string, settings: any, customBaseUrl?: string): Promise<{ isPro: boolean } | null> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
-            const response = await fetchWithTimeout(`${url}/user/sync`, {
+            const response = await fetchWithRetry(`${url}/user/sync`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, settings }),
@@ -56,9 +75,9 @@ export const ApiService = {
     async fetchFullUserData(userId: string, customBaseUrl?: string): Promise<any | null> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
-            const response = await fetchWithTimeout(`${url}/data/${userId}`, {
+            const response = await fetchWithRetry(`${url}/data/${userId}`, {
                 method: 'GET',
-                timeout: 20000 // longer timeout for big data
+                timeout: 25000 // longer timeout for big data + cold start
             });
             if (!response.ok) {
                 if(response.status === 404) return null; // New user
@@ -75,12 +94,12 @@ export const ApiService = {
     async pushLog(userId: string, category: 'EXERCISE' | 'WEIGHT' | 'NUTRITION', data: any, customBaseUrl?: string): Promise<boolean> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
-            const response = await fetchWithTimeout(`${url}/data/log`, {
+            const response = await fetchWithRetry(`${url}/data/log`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, category, data }),
-                timeout: 5000 // fast timeout, background sync
-            });
+                timeout: 8000
+            }, 2); // Less retries for background logs
             return response.ok;
         } catch (e) {
             return false; // Queued locally if failed (logic handled in service)
@@ -91,7 +110,7 @@ export const ApiService = {
     async pushBulk(userId: string, payload: any, customBaseUrl?: string): Promise<boolean> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
-            const response = await fetchWithTimeout(`${url}/data/bulk`, {
+            const response = await fetchWithRetry(`${url}/data/bulk`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, ...payload }),
@@ -106,7 +125,7 @@ export const ApiService = {
     async createCheckoutSession(userId: string, customBaseUrl?: string): Promise<string | null> {
         const url = getEffectiveUrl(customBaseUrl);
         try {
-            const response = await fetchWithTimeout(`${url}/create-checkout-session`, {
+            const response = await fetchWithRetry(`${url}/create-checkout-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId }),
@@ -136,6 +155,17 @@ export const ApiService = {
         } catch (e) {
             console.warn("Failed to fetch phone database, using fallback detection.");
             return [];
+        }
+    },
+
+    // 6. Check Health
+    async checkHealth(customBaseUrl?: string): Promise<boolean> {
+        const url = getEffectiveUrl(customBaseUrl).replace('/api', ''); // Health is usually at root
+        try {
+            const response = await fetchWithTimeout(`${url}/health`, { method: 'GET', timeout: 3000 });
+            return response.ok;
+        } catch (e) {
+            return false;
         }
     }
 };

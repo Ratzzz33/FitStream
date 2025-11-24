@@ -1,4 +1,5 @@
 
+
 export interface ExerciseLog {
   id: string;
   date: string;
@@ -71,7 +72,6 @@ export interface UserSettings {
   connectedPlatforms: ConnectedPlatforms;
   isPro: boolean;
   backendUrl?: string;
-  apiKey?: string; // Added for manual API Key configuration
   coachVoice: string; // 'Fenrir' | 'Kore' etc.
 }
 

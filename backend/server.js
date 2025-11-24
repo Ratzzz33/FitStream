@@ -1,4 +1,5 @@
 
+require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -12,40 +13,30 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ CRITICAL: Unhandled Rejection:', reason);
 });
 
-// Log shutdown signals
-process.on('SIGTERM', () => {
-  console.log('⚠️ Received SIGTERM. Graceful shutdown initiated.');
-  process.exit(0);
-});
-
-// Safe initialization for Stripe
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
-
 const app = express();
 
-// --- 1. MIDDLEWARE ---
-app.use(cors()); // Allow all origins
-app.use(express.json({ limit: '10mb' }));
-
-// Request Logging (Exclude health checks to reduce log noise)
-app.use((req, res, next) => {
-  if (req.url === '/health' || req.url === '/') {
-      return next();
-  }
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
-
-// --- 2. HEALTH CHECKS (CRITICAL FOR RAILWAY) ---
-// Handle both GET and HEAD for health checks
+// --- 1. HEALTH CHECKS (CRITICAL PRIORITY) ---
+// Must be defined BEFORE any middleware (cors, json, logging) to ensure instant response.
+// Railway and other platforms ping this to know if the app is alive.
 const healthHandler = (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: Date.now() });
 };
 
-app.get('/health', healthHandler);
-app.head('/health', healthHandler);
 app.get('/', healthHandler);
+app.get('/health', healthHandler);
 app.head('/', healthHandler);
+app.head('/health', healthHandler);
+
+// --- 2. MIDDLEWARE ---
+app.use(cors()); // Allow all origins
+app.use(express.json({ limit: '10mb' }));
+
+// Request Logging (Exclude health checks)
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/health') return next();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 // --- 3. DATABASE SETUP ---
 const connectionString = process.env.DATABASE_URL;
@@ -55,14 +46,27 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  ssl: connectionString && connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
+  // Fix for self-signed certs in managed DBs (Railway, Heroku, etc.)
+  ssl: connectionString && !connectionString.includes('localhost') 
+       ? { rejectUnauthorized: false } 
+       : false
 });
 
 pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client (DB Connection Lost)', err);
+  console.error('❌ Unexpected error on idle client (DB Connection Lost)', err);
 });
 
 // --- 4. STRIPE WEBHOOK ---
+// Safe initialization for Stripe
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+    try {
+        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    } catch (e) {
+        console.warn("⚠️ Stripe failed to initialize:", e.message);
+    }
+}
+
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) return res.status(500).send("Stripe not configured");
   
@@ -116,53 +120,52 @@ const initDb = async () => {
       console.warn("⚠️ No DATABASE_URL provided. Database features will fail.");
       return;
   }
+  let client;
   try {
-    const client = await pool.connect();
-    try {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS users (
-            id VARCHAR(255) PRIMARY KEY,
-            is_pro BOOLEAN DEFAULT FALSE,
-            stripe_customer_id VARCHAR(255),
-            settings JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
+    client = await pool.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        is_pro BOOLEAN DEFAULT FALSE,
+        stripe_customer_id VARCHAR(255),
+        settings JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS user_logs (
-            id VARCHAR(255) PRIMARY KEY,
-            user_id VARCHAR(255) REFERENCES users(id),
-            category VARCHAR(50) NOT NULL,
-            date VARCHAR(20) NOT NULL,
-            data JSONB NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-        
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);`);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_logs (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) REFERENCES users(id),
+        category VARCHAR(50) NOT NULL,
+        date VARCHAR(20) NOT NULL,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_user_logs_user_id ON user_logs(user_id);`);
 
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS phones (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE NOT NULL,
-                weight INTEGER NOT NULL
-            );
-        `);
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS phones (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) UNIQUE NOT NULL,
+            weight INTEGER NOT NULL
+        );
+    `);
 
-        for (const phone of SEED_PHONES) {
-            await client.query(`
-                INSERT INTO phones (name, weight) VALUES ($1, $2)
-                ON CONFLICT (name) DO NOTHING
-            `, [phone.name, phone.weight]);
-        }
-        console.log("✅ Database initialized successfully.");
-    } finally {
-        client.release();
+    for (const phone of SEED_PHONES) {
+        await client.query(`
+            INSERT INTO phones (name, weight) VALUES ($1, $2)
+            ON CONFLICT (name) DO NOTHING
+        `, [phone.name, phone.weight]);
     }
+    console.log("✅ Database initialized successfully.");
   } catch (err) {
     console.error("❌ Error initializing database:", err.message);
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -205,7 +208,7 @@ app.get('/api/data/:userId', async (req, res) => {
             client.release();
         }
     } catch (e) {
-        console.error(e);
+        console.error("Fetch Data Error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
@@ -227,6 +230,7 @@ app.post('/api/user/sync', async (req, res) => {
         return res.json({ isPro: resPro.rows[0]?.is_pro || false });
     } catch (err) {
         console.error("Sync Settings Error:", err.message);
+        // Return 200 with error flag so frontend doesn't crash, but knows backend is flaky
         res.status(200).json({ isPro: false, error: 'DB_UNAVAILABLE' });
     }
 });
@@ -234,7 +238,9 @@ app.post('/api/user/sync', async (req, res) => {
 app.post('/api/data/log', async (req, res) => {
     const { userId, category, data } = req.body; 
     try {
+        // Ensure user exists first
         await pool.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [userId]);
+        
         await pool.query(`
             INSERT INTO user_logs (id, user_id, category, date, data)
             VALUES ($1, $2, $3, $4, $5)
@@ -243,15 +249,22 @@ app.post('/api/data/log', async (req, res) => {
         `, [data.id, userId, category, data.date, data]);
         res.json({ success: true });
     } catch (e) {
+        console.error("Log Data Error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
 app.post('/api/data/bulk', async (req, res) => {
     const { userId, exercises, weights, nutrition } = req.body;
-    const client = await pool.connect();
+    
+    let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
+        
+        // Ensure user exists
+        await client.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [userId]);
+
         const insertHelper = async (items, category) => {
             for (const item of items) {
                 await client.query(`
@@ -264,13 +277,15 @@ app.post('/api/data/bulk', async (req, res) => {
         if (exercises?.length) await insertHelper(exercises, 'EXERCISE');
         if (weights?.length) await insertHelper(weights, 'WEIGHT');
         if (nutrition?.length) await insertHelper(nutrition, 'NUTRITION');
+        
         await client.query('COMMIT');
         res.json({ success: true });
     } catch (e) {
-        await client.query('ROLLBACK');
+        if (client) await client.query('ROLLBACK');
+        console.error("Bulk Push Error:", e.message);
         res.status(500).json({ error: e.message });
     } finally {
-        client.release();
+        if (client) client.release();
     }
 });
 
@@ -297,11 +312,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
         });
         res.json({ url: session.url });
     } catch (e) {
+        console.error("Stripe Session Error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
-// --- 7. STARTUP ---
+// --- 7. STARTUP & SHUTDOWN ---
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0'; 
 
@@ -312,7 +328,18 @@ const server = app.listen(PORT, HOST, () => {
   initDb();
 });
 
-// IMPORTANT: Enhance timeout settings for Railway/AWS Load Balancers
-// This prevents 502 Bad Gateway errors and SIGTERM loops
+// Enhance timeout settings for Load Balancers (Railway/AWS)
 server.keepAliveTimeout = 120 * 1000;
 server.headersTimeout = 120 * 1000;
+
+// Graceful Shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️ Received SIGTERM. Closing HTTP server...');
+  server.close(() => {
+    console.log('HTTP server closed. Closing DB pool...');
+    pool.end(() => {
+        console.log('DB pool closed. Exiting.');
+        process.exit(0);
+    });
+  });
+});

@@ -98,16 +98,16 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
         osc.connect(gain);
         gain.connect(ctx.destination);
 
-        // "Ding" sound effect
+        // "Ding" sound effect - faster decay for rapid reps
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
         osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1); // Slide up to A6 (sharp ding)
 
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15); // Snappy 150ms decay
 
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
+        osc.stop(ctx.currentTime + 0.15);
     } catch (e) {
         console.error("Error playing rep sound:", e);
     }
@@ -149,27 +149,30 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
       const voice = settings.coachVoice || 'Fenrir';
       
       const systemInstruction = `
-You are a disciplined fitness coach. Your PRIMARY job is to count repetitions audibly and accurately.
+You are an AI fitness coach powered by computer vision. Your task is to track repetitions via the \`updateWorkoutStats\` tool.
 
-**CRITICAL INSTRUCTION FOR AUDIO:**
-1. **PRIORITY 1: COUNTING.** You MUST say the number clearly immediately when a rep is completed.
-2. **FAST EXERCISES:** For Jumping Jacks, Burpees, or fast reps, DO NOT speak anything else except the number. Silence between counts is better than chatter.
-3. **SHORT FEEDBACK:** Only if form is dangerously bad, give a 1-2 word correction (e.g., "Lower", "Back straight") BETWEEN counts.
-4. **NO MOTIVATIONAL SPEECHES:** Do NOT provide long motivational sentences during the exercise. Prioritize the count. Save praise for when the user stops or finishes a set.
-5. **Language:** Respond in ${lang}.
+**AUDIO & INTERACTION RULES:**
+1. **FAST PACED EXERCISES (Jumping Jacks, Burpees, High Knees):**
+   - **SILENCE IS GOLDEN.** Do NOT count out loud. The app generates a sound effect for every rep you log.
+   - **NO MOTIVATION.** Do not say "Good job" or "Keep going" during the set.
+   - **ONLY SPEAK** if the user stops unexpectedly or has dangerous form.
 
-**Supported Exercises & Counting Rules:**
-1. **Push-ups**: Count 1 rep when the user lowers their chest near the floor and returns to a high plank position.
-2. **Squats**: Count 1 rep when hips descend below knee level and user returns to standing.
-3. **Sit-ups**: Count 1 rep when the torso rises from the floor to a vertical position and returns down.
-4. **Jumping Jacks**: Count 1 rep when hands touch above the head (legs wide) and return to sides (legs closed).
-5. **Lunges**: Count 1 rep per leg when the back knee lowers close to the ground and user returns to standing.
-6. **Burpees**: Count 1 rep when the user goes from standing -> plank/floor -> standing -> jump.
-7. **Steps**: If the user is just walking or running in place, count every 2 steps as 1 unit.
-8. **Dips**: Count 1 rep when elbows bend to ~90 degrees (lowering phase) and arms extend fully (upward phase).
-9. **Pull-ups**: Count 1 rep when the chin passes the bar (upward phase) and arms extend fully (downward phase).
+2. **STRENGTH EXERCISES (Push-ups, Squats, Pull-ups):**
+   - You MAY count out loud ("One", "Two") to help pace the user.
+   - Keep any form corrections under 3 words (e.g., "Chin up", "Lower").
 
-Call \`updateWorkoutStats\` immediately when a rep is completed.
+3. **PRIORITY:**
+   - Latency is critical. Call \`updateWorkoutStats\` the INSTANT a rep completes.
+   - Do not buffer reps. 1 rep = 1 tool call immediately.
+
+**Exercise Definitions:**
+- **Push-ups**: Chest lowers to floor level.
+- **Squats**: Hips descend parallel to knees.
+- **Jumping Jacks**: Hands meet above head.
+- **Lunges**: Back knee hovers off ground.
+- **Sit-ups**: Torso comes fully upright.
+
+**Language:** Respond in ${lang}.
 `;
 
       const sessionPromise = ai.live.connect({

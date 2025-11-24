@@ -1,4 +1,5 @@
 
+
 import { ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel } from '../types';
 import { ApiService } from './api';
 
@@ -119,7 +120,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   isPro: false,
   backendUrl: 'https://fitstream-production.up.railway.app',
-  apiKey: '', 
   coachVoice: 'Fenrir' // Default to Male voice
 };
 
@@ -151,8 +151,6 @@ export const StorageService = {
               const mergedSettings = { ...settings, ...fullData.settings, isPro: fullData.isPro };
               // Preserve locally active backend URL if different
               mergedSettings.backendUrl = settings.backendUrl;
-              // Preserve local API Key
-              mergedSettings.apiKey = settings.apiKey;
               
               // Only trigger update if something actually changed deep down, but for now strict sync:
               StorageService.saveSettings(mergedSettings, false); 
@@ -346,7 +344,6 @@ export const StorageService = {
     if (!settings.installDate) settings.installDate = new Date().toISOString();
     if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
     if (!settings.coachVoice) settings.coachVoice = DEFAULT_SETTINGS.coachVoice;
-    if (!settings.apiKey) settings.apiKey = ''; // Ensure apiKey field exists
     
     return settings;
   },
