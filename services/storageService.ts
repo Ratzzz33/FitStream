@@ -118,7 +118,8 @@ const DEFAULT_SETTINGS: UserSettings = {
       lastSync: null
   },
   isPro: false,
-  backendUrl: 'https://fitstream-production.up.railway.app'
+  backendUrl: 'https://fitstream-production.up.railway.app',
+  coachVoice: 'Fenrir' // Default to Male voice
 };
 
 export const StorageService = {
@@ -341,6 +342,7 @@ export const StorageService = {
     if (settings.phoneWeight === undefined) settings.phoneWeight = 0;
     if (!settings.installDate) settings.installDate = new Date().toISOString();
     if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
+    if (!settings.coachVoice) settings.coachVoice = DEFAULT_SETTINGS.coachVoice;
     
     return settings;
   },

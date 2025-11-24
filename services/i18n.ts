@@ -85,6 +85,9 @@ const translations = {
     integrationNote: 'Syncs step data and activity history.',
     color: 'Color',
     lastActivity: 'Last Activity',
+    coachVoice: 'Coach Voice',
+    voiceMale: 'Male',
+    voiceFemale: 'Female',
     
     // Statistics
     statistics: 'Statistics',
@@ -312,6 +315,9 @@ const translations = {
     integrationNote: 'Синхронизация шагов и истории активности.',
     color: 'Цвет',
     lastActivity: 'Посл. активность',
+    coachVoice: 'Голос тренера',
+    voiceMale: 'Мужской',
+    voiceFemale: 'Женский',
     
     // Statistics
     statistics: 'Статистика',

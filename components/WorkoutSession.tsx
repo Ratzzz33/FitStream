@@ -143,14 +143,23 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
           await outputAudioContextRef.current.resume();
       }
 
+      const settings = StorageService.getSettings();
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const lang = navigator.language;
+      const voice = settings.coachVoice || 'Fenrir';
       
       const systemInstruction = `
-You are an energetic fitness coach. Your primary job is to accurately count repetitions for specific exercises using video input.
+You are a disciplined fitness coach. Your PRIMARY job is to count repetitions audibly and accurately.
+
+**CRITICAL INSTRUCTION FOR AUDIO:**
+1. **PRIORITY 1: COUNTING.** You MUST say the number clearly immediately when a rep is completed.
+2. **FAST EXERCISES:** For Jumping Jacks, Burpees, or fast reps, DO NOT speak anything else except the number. Silence between counts is better than chatter.
+3. **SHORT FEEDBACK:** Only if form is dangerously bad, give a 1-2 word correction (e.g., "Lower", "Back straight") BETWEEN counts.
+4. **NO MOTIVATIONAL SPEECHES:** Do NOT provide long motivational sentences during the exercise. Prioritize the count. Save praise for when the user stops or finishes a set.
+5. **Language:** Respond in ${lang}.
 
 **Supported Exercises & Counting Rules:**
-1. **Push-ups**: Count 1 rep when the user lowers their chest near the floor and returns to a high plank position. Do not count partial dips.
+1. **Push-ups**: Count 1 rep when the user lowers their chest near the floor and returns to a high plank position.
 2. **Squats**: Count 1 rep when hips descend below knee level and user returns to standing.
 3. **Sit-ups**: Count 1 rep when the torso rises from the floor to a vertical position and returns down.
 4. **Jumping Jacks**: Count 1 rep when hands touch above the head (legs wide) and return to sides (legs closed).
@@ -160,12 +169,7 @@ You are an energetic fitness coach. Your primary job is to accurately count repe
 8. **Dips**: Count 1 rep when elbows bend to ~90 degrees (lowering phase) and arms extend fully (upward phase).
 9. **Pull-ups**: Count 1 rep when the chin passes the bar (upward phase) and arms extend fully (downward phase).
 
-**General Rules:**
-- **Ignore** small movements, fidgeting, or setup time.
-- Only update the count when a **full** repetition is completed with good form.
-- If the exercise is unclear, wait for a distinct movement pattern before counting.
-- Provide brief, encouraging form correction in ${lang} language.
-- Call \`updateWorkoutStats\` **immediately** when a rep is completed.
+Call \`updateWorkoutStats\` immediately when a rep is completed.
 `;
 
       const sessionPromise = ai.live.connect({
@@ -174,6 +178,9 @@ You are an energetic fitness coach. Your primary job is to accurately count repe
           tools: [{ functionDeclarations: [updateStatsTool] }],
           systemInstruction: systemInstruction,
           responseModalities: [Modality.AUDIO], 
+          speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } }
+          }
         },
         callbacks: {
           onopen: () => {

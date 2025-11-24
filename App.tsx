@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -121,102 +120,118 @@ const App = () => {
       }
   };
 
-  // Detailed Diagnostics Tool
+  // Detailed Diagnostics Tool v6
   const runDiagnostics = async () => {
       setIsDiagnosing(true);
       setShowDiagnostics(true);
-      setDiagnosticLogs(["Starting diagnostics v5 (Deep Log)...", "--------------------------------"]);
+      setDiagnosticLogs(["Starting diagnostics v6 (Ultra Verbose)...", "--------------------------------"]);
       
       const addLog = (msg: string) => setDiagnosticLogs(prev => [...prev, msg]);
+      
+      // 0. Environment
+      addLog(`[0] Environment:`);
+      addLog(`   Origin: ${window.location.origin}`);
+      addLog(`   Online: ${navigator.onLine ? '✅ Yes' : '❌ No'}`);
       
       const userId = StorageService.getUserId();
       let url = backendUrlInput.trim();
       
-      // 1. URL Format Check
-      addLog(`[1] Checking URL format: ${url}`);
-      
-      // Mixed Content Check
-      if (window.location.protocol === 'https:' && url.startsWith('http:')) {
-           addLog("⚠️ CRITICAL: Mixed Content Warning!");
-           addLog("   App is on HTTPS but Backend is HTTP.");
-           addLog("   Browsers BLOCK this request automatically.");
-      }
-
       if (!url) {
           addLog("❌ Error: URL is empty.");
           setIsDiagnosing(false);
           return;
       }
-      if (!url.startsWith('http')) {
-          addLog("⚠️ Warning: URL should start with http:// or https://");
+
+      // 1. URL Analysis
+      addLog(`[1] Target URL: ${url}`);
+      try {
+          const parsed = new URL(url);
+          addLog(`   Protocol: ${parsed.protocol}`);
+          addLog(`   Hostname: ${parsed.hostname}`);
+          if (parsed.protocol === 'http:' && window.location.protocol === 'https:') {
+               addLog("⚠️ BLOCKER: Mixed Content (HTTP API on HTTPS Site)");
+               addLog("   Browser will BLOCK this request.");
+          }
+      } catch(e) {
+          addLog("❌ Invalid URL format");
+          setIsDiagnosing(false);
+          return;
       }
-      if (url.endsWith('/')) url = url.slice(0, -1);
       
+      if (url.endsWith('/')) url = url.slice(0, -1);
       const baseUrl = url.endsWith('/api') ? url.slice(0, -4) : url;
       const apiUrl = url.endsWith('/api') ? url : `${url}/api`;
-      
-      addLog(`ℹ️ Base Root: ${baseUrl}`);
-      addLog(`ℹ️ API Endpoint: ${apiUrl}`);
 
-      // 2. Network Check
-      addLog(`[2] Pinging Server (GET /)...`);
-      const start = Date.now();
+      addLog(`   Base: ${baseUrl}`);
+      addLog(`   API:  ${apiUrl}`);
+
+      // 2. Reachability Probe (NO-CORS)
+      // This helps distinguish between "Server Down/SSL Error" and "CORS Error"
+      addLog(`[2] Reachability Probe (mode: no-cors)...`);
       try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); 
-          
-          const res = await fetch(`${baseUrl}?t=${Date.now()}`, { 
+          const start = Date.now();
+          // We assume a GET to root exists
+          const res = await fetch(`${baseUrl}/?t=${Date.now()}`, { 
               method: 'GET', 
-              signal: controller.signal,
-              mode: 'cors'
+              mode: 'no-cors' // IMPORTANT: This allows us to talk to the server even if CORS headers are missing
           });
-          clearTimeout(timeoutId);
-          
           const latency = Date.now() - start;
-          addLog(`${res.ok ? '✅' : '❌'} Status: ${res.status} ${res.statusText}`);
-          addLog(`   Headers: ${res.headers.get('content-type')}`);
-          addLog(`⏱️ Latency: ${latency}ms`);
-          
+          addLog(`✅ Server Reachable (${latency}ms)`);
+          addLog(`   Response Type: ${res.type}`); // Should be 'opaque'
+          addLog(`   Result: Network path is clear. Server exists.`);
       } catch (e: any) {
-          addLog(`❌ Connection Failed:`);
-          addLog(`   Name: ${e.name}`);
-          addLog(`   Message: ${e.message}`);
-          if (e.cause) addLog(`   Cause: ${JSON.stringify(e.cause)}`);
-          if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
-              addLog("   Likely CORS or Network Reachability issue.");
+           addLog(`❌ Reachability Failed:`);
+           addLog(`   ${e.toString()}`);
+           addLog(`   Conclusion: DNS, SSL, or Server Down.`);
+           addLog(`   Verify the URL and that the server is running.`);
+           setIsDiagnosing(false);
+           return; // No point continuing if we can't even touch the server
+      }
+
+      // 3. CORS Check (Standard Fetch)
+      addLog(`[3] CORS Check (GET /)...`);
+      try {
+          const res = await fetch(`${baseUrl}/?t=${Date.now()}`, { 
+              method: 'GET'
+              // mode: cors is default
+          });
+          addLog(`${res.ok ? '✅' : '⚠️'} Status: ${res.status}`);
+          if (res.ok) {
+              addLog(`   CORS headers are CORRECT.`);
+          } else {
+              addLog(`   Server responded but with error status.`);
+          }
+      } catch (e: any) {
+          addLog(`❌ CORS/Fetch Error:`);
+          addLog(`   ${e.name}: ${e.message}`);
+          if (e.message === 'Failed to fetch') {
+               addLog(`   -> CRITICAL: Server reachable (see [2]), but browser blocked response.`);
+               addLog(`   -> CAUSE: Missing 'Access-Control-Allow-Origin' header on server.`);
           }
       }
 
-      // 3. API Route Check
-      addLog(`[3] Testing API Route (POST /user/sync)...`);
+      // 4. API Logic Check
+      addLog(`[4] API Endpoint (POST /user/sync)...`);
       try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); 
-
           const res = await fetch(`${apiUrl}/user/sync`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } }),
-              signal: controller.signal
+              body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } })
           });
-          clearTimeout(timeoutId);
 
           if (res.ok) {
               const json = await res.json();
               addLog(`✅ API Success! Is Pro: ${json.isPro}`);
               setServerStatus('online');
           } else {
-              addLog(`❌ API Error: ${res.status} ${res.statusText}`);
+              addLog(`❌ API Status: ${res.status}`);
               try {
                   const text = await res.text();
-                  addLog(`   Body: ${text.substring(0, 100)}...`);
+                  addLog(`   Body: ${text.substring(0, 100)}`);
               } catch (err) {}
           }
       } catch (e: any) {
-          addLog(`❌ API Call Failed:`);
-          addLog(`   Name: ${e.name}`);
-          addLog(`   Message: ${e.message}`);
-          if (e.cause) addLog(`   Cause: ${JSON.stringify(e.cause)}`);
+          addLog(`❌ API Failed: ${e.message}`);
       }
       
       addLog("--------------------------------");
@@ -321,6 +336,12 @@ const App = () => {
 
   const updateGender = (g: Gender) => {
       const newSettings = { ...settings, gender: g };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+  };
+  
+  const updateCoachVoice = (v: string) => {
+      const newSettings = { ...settings, coachVoice: v };
       setSettings(newSettings);
       StorageService.saveSettings(newSettings);
   };
@@ -830,19 +851,38 @@ const App = () => {
                             </label>
                         </div>
                         
-                        <label className="block mt-4">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
-                            <select 
-                                value={settings.activityLevel}
-                                onChange={(e) => updateActivity(e.target.value as ActivityLevel)}
-                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
-                            >
-                                <option value="SEDENTARY">{t('sedentary')}</option>
-                                <option value="LIGHT">{t('light')}</option>
-                                <option value="MODERATE">{t('moderate')}</option>
-                                <option value="VERY_ACTIVE">{t('very_active')}</option>
-                            </select>
-                        </label>
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
+                                <select 
+                                    value={settings.activityLevel}
+                                    onChange={(e) => updateActivity(e.target.value as ActivityLevel)}
+                                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-blue-500 outline-none"
+                                >
+                                    <option value="SEDENTARY">{t('sedentary')}</option>
+                                    <option value="LIGHT">{t('light')}</option>
+                                    <option value="MODERATE">{t('moderate')}</option>
+                                    <option value="VERY_ACTIVE">{t('very_active')}</option>
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('coachVoice')}</span>
+                                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-1 mt-1">
+                                    <button 
+                                        onClick={() => updateCoachVoice('Fenrir')}
+                                        className={`flex-1 text-xs py-1.5 rounded transition ${settings.coachVoice === 'Fenrir' ? 'bg-white dark:bg-gray-800 shadow text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500'}`}
+                                    >
+                                        {t('voiceMale')}
+                                    </button>
+                                    <button 
+                                        onClick={() => updateCoachVoice('Kore')}
+                                        className={`flex-1 text-xs py-1.5 rounded transition ${settings.coachVoice === 'Kore' ? 'bg-white dark:bg-gray-800 shadow text-purple-600 dark:text-purple-400 font-bold' : 'text-gray-500'}`}
+                                    >
+                                        {t('voiceFemale')}
+                                    </button>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     {/* Weight & Reference Object */}
@@ -968,7 +1008,7 @@ const App = () => {
                                  </div>
                                  <div className="space-y-1 max-h-40 overflow-y-auto">
                                      {diagnosticLogs.map((log, i) => (
-                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
+                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
                                              {log}
                                          </div>
                                      ))}

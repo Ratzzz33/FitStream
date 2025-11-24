@@ -69,6 +69,7 @@ export interface UserSettings {
   connectedPlatforms: ConnectedPlatforms;
   isPro: boolean;
   backendUrl?: string;
+  coachVoice: string; // 'Fenrir' | 'Kore' etc.
 }
 
 export interface Friend {
