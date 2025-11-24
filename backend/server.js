@@ -154,6 +154,15 @@ const initDb = async () => {
             weight INTEGER NOT NULL
         );
     `);
+    
+    // Global Assets Table for Custom Icons
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS global_assets (
+            key VARCHAR(255) PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
 
     for (const phone of SEED_PHONES) {
         await client.query(`
@@ -170,6 +179,47 @@ const initDb = async () => {
 };
 
 // --- 6. API ENDPOINTS ---
+
+// Custom Icons Endpoints
+app.get('/api/assets/icons', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query('SELECT key, value FROM global_assets WHERE key LIKE \'ICON_%\'');
+            const icons = {};
+            result.rows.forEach(row => {
+                const type = row.key.replace('ICON_', '');
+                icons[type] = row.value;
+            });
+            res.json(icons);
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        console.error("Fetch Icons Error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/assets/icons', async (req, res) => {
+    const { type, image } = req.body; // type = 'STEPS', image = base64
+    if (!type || !image) return res.status(400).json({ error: 'Missing type or image' });
+    
+    try {
+        const key = `ICON_${type}`;
+        await pool.query(`
+            INSERT INTO global_assets (key, value, updated_at)
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE
+            SET value = $2, updated_at = CURRENT_TIMESTAMP
+        `, [key, image]);
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Upload Icon Error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 
 app.get('/api/phones', async (req, res) => {
     try {

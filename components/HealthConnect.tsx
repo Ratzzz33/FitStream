@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { Activity, Check, RefreshCw, Bell } from 'lucide-react';
+import { Activity, Check, RefreshCw, Bell, Heart } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { UserSettings } from '../types';
 import { t } from '../services/i18n';
@@ -12,18 +11,11 @@ interface HealthConnectProps {
 }
 
 const GoogleFitLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M17.65 6.35C16.85 5.55 15.55 5.55 14.75 6.35L12.5 8.6L15.4 11.5L17.65 9.25C18.45 8.45 18.45 7.15 17.65 6.35Z" fill="#EA4335"/>
-    <path d="M11.5 8.6L8.6 11.5L11.5 14.4L14.4 11.5L11.5 8.6Z" fill="#FBBC04"/>
-    <path d="M6.35 11.5C5.55 12.3 5.55 13.6 6.35 14.4L8.6 16.65L11.5 13.75L9.25 11.5C8.45 10.7 7.15 10.7 6.35 11.5Z" fill="#4285F4"/>
-    <path d="M12.5 14.4L14.75 16.65C15.55 17.45 16.85 17.45 17.65 16.65C18.45 15.85 18.45 14.55 17.65 13.75L15.4 11.5L12.5 14.4Z" fill="#34A853"/>
-  </svg>
+  <Activity className="text-blue-500" size={24} />
 );
 
 const AppleHealthLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 20.35L10.55 19.03C5.4 14.36 2 11.28 2 7.5C2 4.42 4.42 2 7.5 2C9.24 2 10.91 2.81 12 4.09C13.09 2.81 14.76 2 16.5 2C19.58 2 22 4.42 22 7.5C22 11.28 18.6 14.36 13.45 19.04L12 20.35Z" fill="#FF2D55"/>
-  </svg>
+  <Heart className="text-red-500" size={24} fill="currentColor" />
 );
 
 export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate }) => {
@@ -110,7 +102,7 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
                 <Bell size={16} className="text-orange-500 mt-0.5 shrink-0" />
                 <div className="flex-1">
                     <p className="text-xs font-bold text-orange-800 dark:text-orange-200">{t('syncRequired')}</p>
-                    <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 leading-relaxed">
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 leading-relaxed">
                         {t('backgroundSyncNote')}
                     </p>
                 </div>

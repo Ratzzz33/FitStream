@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
@@ -46,6 +45,9 @@ const App = () => {
   const [showRefScanner, setShowRefScanner] = useState(false);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   
+  // Custom Icons State
+  const [customIcons, setCustomIcons] = useState<Record<string, string>>({});
+  
   // Goal Selection
   const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
   
@@ -79,6 +81,15 @@ const App = () => {
   
   // Derived state for goals
   const enabledGoals = settings.goals.filter(g => g.isEnabled);
+
+  // Fetch Custom Icons on Load
+  useEffect(() => {
+      const loadIcons = async () => {
+          const icons = await ApiService.getCustomIcons(settings.backendUrl);
+          setCustomIcons(icons);
+      };
+      loadIcons();
+  }, [settings.backendUrl]);
 
   // Initialize Google Auth when in Settings tab
   useEffect(() => {
@@ -330,6 +341,12 @@ const App = () => {
   };
 
   const getIconForType = (type: GoalType) => {
+      // Check for Custom Icon first
+      if (customIcons[type]) {
+          return <img src={customIcons[type]} alt={type} className="w-4 h-4 object-contain" />;
+      }
+
+      // Default Fallback
       switch(type) {
           case 'STEPS': return <Footprints size={16} className="text-emerald-500"/>;
           case 'SQUATS': return <ArrowDown size={16} className="text-purple-500"/>;
@@ -684,23 +701,6 @@ const App = () => {
                     </button>
                 </div>
 
-                {/* Server Status */}
-                <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                         {serverOnline === true && <Wifi size={16} className="text-green-500" />}
-                         {serverOnline === false && <WifiOff size={16} className="text-red-500" />}
-                         {serverOnline === null && <Loader2 size={16} className="text-gray-400 animate-spin" />}
-                         <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Backend Status</span>
-                     </div>
-                     <span className={`text-xs font-bold px-2 py-1 rounded ${
-                         serverOnline === true ? 'bg-green-100 text-green-700' : 
-                         serverOnline === false ? 'bg-red-100 text-red-700' : 
-                         'bg-gray-100 text-gray-500'
-                     }`}>
-                         {serverOnline === true ? t('online') : serverOnline === false ? t('offline') : t('checking')}
-                     </span>
-                </div>
-
                 {/* Pro Banner */}
                 <div className="space-y-4">
                     {!settings.isPro && (
@@ -737,20 +737,6 @@ const App = () => {
                     {!settings.email ? (
                         <div className="space-y-2">
                             <div id="googleSignInBtn" className="w-full flex justify-center"></div>
-                            
-                            {/* Fallback Client ID Input for Devs */}
-                            {!googleClientIdInput && (
-                                <div className="mt-2 text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 p-2 rounded border border-yellow-200 dark:border-yellow-700">
-                                    <span>For testing, enter Client ID below:</span>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Your Google Client ID" 
-                                        value={googleClientIdInput}
-                                        onChange={(e) => setGoogleClientIdInput(e.target.value)}
-                                        className="w-full mt-1 p-1 bg-white dark:bg-gray-800 border rounded"
-                                    />
-                                </div>
-                            )}
                         </div>
                     ) : (
                         <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">

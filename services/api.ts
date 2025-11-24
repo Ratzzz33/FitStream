@@ -167,5 +167,36 @@ export const ApiService = {
         } catch (e) {
             return false;
         }
+    },
+
+    // 7. Custom Icons
+    async getCustomIcons(customBaseUrl?: string): Promise<Record<string, string>> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithTimeout(`${url}/assets/icons`, {
+                method: 'GET',
+                timeout: 5000
+            });
+            if (!response.ok) return {};
+            return await response.json();
+        } catch (e) {
+            return {};
+        }
+    },
+
+    async uploadCustomIcon(type: string, base64Image: string, customBaseUrl?: string): Promise<boolean> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithRetry(`${url}/assets/icons`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, image: base64Image }),
+                timeout: 15000
+            });
+            return response.ok;
+        } catch (e) {
+            console.error("Failed to upload icon", e);
+            return false;
+        }
     }
 };
