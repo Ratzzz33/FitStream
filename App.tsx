@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2 } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -168,6 +168,7 @@ const App = () => {
       // 2. Reachability Probe (NO-CORS)
       // This helps distinguish between "Server Down/SSL Error" and "CORS Error"
       addLog(`[2] Reachability Probe (mode: no-cors)...`);
+      let reachabilitySuccess = false;
       try {
           const start = Date.now();
           // We assume a GET to root exists
@@ -179,6 +180,7 @@ const App = () => {
           addLog(`✅ Server Reachable (${latency}ms)`);
           addLog(`   Response Type: ${res.type}`); // Should be 'opaque'
           addLog(`   Result: Network path is clear. Server exists.`);
+          reachabilitySuccess = true;
       } catch (e: any) {
            addLog(`❌ Reachability Failed:`);
            addLog(`   ${e.toString()}`);
@@ -207,6 +209,10 @@ const App = () => {
           if (e.message === 'Failed to fetch') {
                addLog(`   -> CRITICAL: Server reachable (see [2]), but browser blocked response.`);
                addLog(`   -> CAUSE: Missing 'Access-Control-Allow-Origin' header on server.`);
+               if (reachabilitySuccess) {
+                   addLog(`   💡 DIAGNOSIS: Server is ONLINE but refusing connections.`);
+                   addLog(`   💡 ACTION: Redeploy backend with CORS enabled for *.`);
+               }
           }
       }
 
@@ -799,6 +805,33 @@ const App = () => {
                         </div>
                     )}
 
+                    {/* AI Coach Settings (NEW POSITION) */}
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex justify-between items-center mb-3">
+                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                                <Volume2 size={16} className="text-blue-500" />
+                                AI Coach
+                             </h4>
+                        </div>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('coachVoice')}</span>
+                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-1 mt-1">
+                                <button 
+                                    onClick={() => updateCoachVoice('Fenrir')}
+                                    className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Fenrir' ? 'bg-white dark:bg-gray-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                >
+                                    <Mic size={12} /> {t('voiceMale')}
+                                </button>
+                                <button 
+                                    onClick={() => updateCoachVoice('Kore')}
+                                    className={`flex-1 text-xs py-2 rounded-md transition flex items-center justify-center gap-2 ${settings.coachVoice === 'Kore' ? 'bg-white dark:bg-gray-800 shadow-sm text-purple-600 dark:text-purple-400 font-bold ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                >
+                                    <Mic size={12} /> {t('voiceFemale')}
+                                </button>
+                            </div>
+                        </label>
+                    </div>
+
                     {/* Bio Data Section */}
                     <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
@@ -851,7 +884,7 @@ const App = () => {
                             </label>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="grid grid-cols-1 gap-4 mt-4">
                             <label className="block">
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">{t('activityLevel')}</span>
                                 <select 
@@ -864,23 +897,6 @@ const App = () => {
                                     <option value="MODERATE">{t('moderate')}</option>
                                     <option value="VERY_ACTIVE">{t('very_active')}</option>
                                 </select>
-                            </label>
-                            <label className="block">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs">{t('coachVoice')}</span>
-                                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-1 mt-1">
-                                    <button 
-                                        onClick={() => updateCoachVoice('Fenrir')}
-                                        className={`flex-1 text-xs py-1.5 rounded transition ${settings.coachVoice === 'Fenrir' ? 'bg-white dark:bg-gray-800 shadow text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500'}`}
-                                    >
-                                        {t('voiceMale')}
-                                    </button>
-                                    <button 
-                                        onClick={() => updateCoachVoice('Kore')}
-                                        className={`flex-1 text-xs py-1.5 rounded transition ${settings.coachVoice === 'Kore' ? 'bg-white dark:bg-gray-800 shadow text-purple-600 dark:text-purple-400 font-bold' : 'text-gray-500'}`}
-                                    >
-                                        {t('voiceFemale')}
-                                    </button>
-                                </div>
                             </label>
                         </div>
                     </div>
@@ -1008,7 +1024,7 @@ const App = () => {
                                  </div>
                                  <div className="space-y-1 max-h-40 overflow-y-auto">
                                      {diagnosticLogs.map((log, i) => (
-                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
+                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : log.includes('⚠️') || log.includes('DIAGNOSIS') ? "text-yellow-400" : ""}>
                                              {log}
                                          </div>
                                      ))}
