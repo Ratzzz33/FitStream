@@ -17,8 +17,10 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, stripe-signature, Accept, Origin, Cache-Control, Pragma');
   }
   res.setHeader('Access-Control-Max-Age', '86400');
+  
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    console.log('CORS Preflight handled');
+    return res.sendStatus(200);
   }
   next();
 });
@@ -50,7 +52,7 @@ app.get('/', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
-        message: 'FitStream Backend Ready v3 (Phone DB)',
+        message: 'FitStream Backend Ready v4 (CORS Fix)',
         timestamp: new Date().toISOString() 
     });
 });

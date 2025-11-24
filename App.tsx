@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -99,9 +98,11 @@ const App = () => {
                       client_id: googleClientIdInput,
                       callback: handleGoogleLogin
                   });
+                  // NOTE: "width" must be pixels (number) or strictly valid string. '100%' sometimes fails in GSI.
+                  // Using undefined (auto) or specific pixel width is safer.
                   (window as any).google.accounts.id.renderButton(
                       document.getElementById("googleSignInBtn"),
-                      { theme: "outline", size: "large", width: "100%" }
+                      { theme: "outline", size: "large", width: 280 }
                   );
               }
           } catch(e) {
@@ -887,6 +888,11 @@ const App = () => {
                         {!settings.email ? (
                             <div className="space-y-2">
                                 <div id="googleSignInBtn" className="w-full flex justify-center"></div>
+                                <div className="mt-2 text-[10px] text-gray-400 text-center px-4">
+                                    If button doesn't appear or shows error, ensure 
+                                    <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded mx-1">{window.location.origin}</code> 
+                                    is added to <strong>Authorized JavaScript origins</strong> in Google Cloud Console.
+                                </div>
                                 {!googleClientIdInput && (
                                     <div className="mt-2 text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 p-2 rounded border border-yellow-200 dark:border-yellow-700">
                                         <span>For testing, enter Client ID below:</span>
