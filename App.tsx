@@ -1,5 +1,7 @@
+
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2 } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -17,6 +19,20 @@ import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
+
+// Helper to decode Google JWT
+function parseJwt (token: string) {
+    try {
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch(e) {
+        return null;
+    }
+}
 
 const App = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
@@ -57,6 +73,9 @@ const App = () => {
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
   const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
+  
+  // Google Client ID with fallback to the provided ID
+  const [googleClientIdInput, setGoogleClientIdInput] = useState(process.env.GOOGLE_CLIENT_ID || '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com');
 
   // Saving states
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -70,6 +89,56 @@ const App = () => {
         setApiKeyMissing(true);
     }
   }, []);
+
+  // Initialize Google Auth when in Settings tab
+  useEffect(() => {
+      if (activeTab === AppTab.SETTINGS && !settings.email && (window as any).google) {
+          try {
+              if (googleClientIdInput) {
+                  (window as any).google.accounts.id.initialize({
+                      client_id: googleClientIdInput,
+                      callback: handleGoogleLogin
+                  });
+                  (window as any).google.accounts.id.renderButton(
+                      document.getElementById("googleSignInBtn"),
+                      { theme: "outline", size: "large", width: "100%" }
+                  );
+              }
+          } catch(e) {
+              console.error("Google Auth Init Error", e);
+          }
+      }
+  }, [activeTab, settings.email, googleClientIdInput]);
+
+  const handleGoogleLogin = (response: any) => {
+      const payload = parseJwt(response.credential);
+      if (payload) {
+          const newSettings = { 
+              ...settings, 
+              email: payload.email,
+              name: payload.name,
+              avatar: payload.picture,
+              googleId: payload.sub
+          };
+          setSettings(newSettings);
+          StorageService.saveSettings(newSettings);
+          setNameInput(payload.name); // Update local input
+          alert(`Welcome, ${payload.name}!`);
+      }
+  };
+
+  const handleGoogleLogout = () => {
+      const newSettings = { ...settings, email: undefined, googleId: undefined };
+      setSettings(newSettings);
+      StorageService.saveSettings(newSettings);
+      
+      // Re-initialize button after logout
+      setTimeout(() => {
+        if((window as any).google) {
+            (window as any).google.accounts.id.disableAutoSelect();
+        }
+      }, 500);
+  };
 
   // Offline-First Initialization
   useEffect(() => {
@@ -132,6 +201,7 @@ const App = () => {
       addLog(`[0] Environment:`);
       addLog(`   Origin: ${window.location.origin}`);
       addLog(`   Online: ${navigator.onLine ? '✅ Yes' : '❌ No'}`);
+      addLog(`   Google Client ID: ${googleClientIdInput ? '✅ Set' : '❌ Missing'}`);
       
       const userId = StorageService.getUserId();
       let url = backendUrlInput.trim();
@@ -804,8 +874,55 @@ const App = () => {
                             </div>
                         </div>
                     )}
+                    
+                    {/* GOOGLE ACCOUNT SETTINGS */}
+                    <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                        <div className="flex justify-between items-center mb-3">
+                             <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                                <Settings2 size={16} className="text-red-500" />
+                                Google Account
+                             </h4>
+                        </div>
+                        
+                        {!settings.email ? (
+                            <div className="space-y-2">
+                                <div id="googleSignInBtn" className="w-full flex justify-center"></div>
+                                {!googleClientIdInput && (
+                                    <div className="mt-2 text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 p-2 rounded border border-yellow-200 dark:border-yellow-700">
+                                        <span>For testing, enter Client ID below:</span>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Your Google Client ID" 
+                                            value={googleClientIdInput}
+                                            onChange={(e) => setGoogleClientIdInput(e.target.value)}
+                                            className="w-full mt-1 p-1 bg-white dark:bg-gray-800 border rounded"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-3">
+                                    {settings.avatar ? (
+                                        <img src={settings.avatar} className="w-8 h-8 rounded-full" />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                            {settings.name[0]}
+                                        </div>
+                                    )}
+                                    <div className="overflow-hidden">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{settings.name}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{settings.email}</p>
+                                    </div>
+                                </div>
+                                <button onClick={handleGoogleLogout} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-full transition">
+                                    <LogOut size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
-                    {/* AI Coach Settings (NEW POSITION) */}
+                    {/* AI Coach Settings */}
                     <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                         <div className="flex justify-between items-center mb-3">
                              <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
@@ -994,6 +1111,7 @@ const App = () => {
                                  <span>{serverStatus === 'online' ? t('online') : serverStatus === 'offline' ? t('offline') : t('checking')}</span>
                              </div>
                          </div>
+                         
                          <label className="block">
                             <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">{t('url')}</span>
                             <div className="flex items-center gap-2 mt-1">
@@ -1015,6 +1133,26 @@ const App = () => {
                                 </button>
                             </div>
                          </label>
+
+                         {/* Stripe Helper */}
+                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                             <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider block mb-1">Stripe Webhook URL (for Dashboard)</span>
+                             <div className="flex items-center gap-2">
+                                 <code className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-[10px] text-gray-600 dark:text-gray-400 font-mono overflow-x-auto whitespace-nowrap">
+                                     {backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '.../api/webhook'}
+                                 </code>
+                                 <button 
+                                     onClick={() => {
+                                         const url = backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '';
+                                         if (url) navigator.clipboard.writeText(url);
+                                     }}
+                                     className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700"
+                                     title="Copy to clipboard"
+                                 >
+                                     <Copy size={14} />
+                                 </button>
+                             </div>
+                         </div>
                          
                          {/* Diagnostic Console */}
                          {showDiagnostics && (

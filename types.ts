@@ -51,6 +51,8 @@ export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'VERY_ACTIVE';
 
 export interface UserSettings {
   name: string;
+  email?: string; // Added for Google Auth
+  googleId?: string; // Added for Google Auth
   avatar: string;
   age: number;
   height: number; // in cm
