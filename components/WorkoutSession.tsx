@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
 import { Camera, X, Play, Square, Mic, MicOff, AlertCircle } from 'lucide-react';
@@ -16,7 +17,7 @@ const updateStatsTool: FunctionDeclaration = {
     type: Type.OBJECT,
     properties: {
       count: { type: Type.NUMBER, description: "The total number of completed repetitions so far." },
-      exercise: { type: Type.STRING, description: "Name of the exercise being performed. Choose from: 'Steps', 'Push-ups', 'Squats', 'Sit-ups', 'Jumping Jacks', 'Lunges', 'Burpees' or 'Other'." },
+      exercise: { type: Type.STRING, description: "Name of the exercise being performed. Choose from: 'Steps', 'Push-ups', 'Squats', 'Sit-ups', 'Jumping Jacks', 'Lunges', 'Burpees', 'Dips', 'Pull-ups' or 'Other'." },
       feedback: { type: Type.STRING, description: "Short feedback on form." }
     },
     required: ['count', 'exercise']
@@ -156,6 +157,8 @@ You are an energetic fitness coach. Your primary job is to accurately count repe
 5. **Lunges**: Count 1 rep per leg when the back knee lowers close to the ground and user returns to standing.
 6. **Burpees**: Count 1 rep when the user goes from standing -> plank/floor -> standing -> jump.
 7. **Steps**: If the user is just walking or running in place, count every 2 steps as 1 unit.
+8. **Dips**: Count 1 rep when elbows bend to ~90 degrees (lowering phase) and arms extend fully (upward phase).
+9. **Pull-ups**: Count 1 rep when the chin passes the bar (upward phase) and arms extend fully (downward phase).
 
 **General Rules:**
 - **Ignore** small movements, fidgeting, or setup time.

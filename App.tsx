@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Lock, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -124,7 +125,7 @@ const App = () => {
   const runDiagnostics = async () => {
       setIsDiagnosing(true);
       setShowDiagnostics(true);
-      setDiagnosticLogs(["Starting diagnostics v4 (Manual CORS)...", "--------------------------------"]);
+      setDiagnosticLogs(["Starting diagnostics v5 (Deep Log)...", "--------------------------------"]);
       
       const addLog = (msg: string) => setDiagnosticLogs(prev => [...prev, msg]);
       
@@ -133,6 +134,14 @@ const App = () => {
       
       // 1. URL Format Check
       addLog(`[1] Checking URL format: ${url}`);
+      
+      // Mixed Content Check
+      if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+           addLog("⚠️ CRITICAL: Mixed Content Warning!");
+           addLog("   App is on HTTPS but Backend is HTTP.");
+           addLog("   Browsers BLOCK this request automatically.");
+      }
+
       if (!url) {
           addLog("❌ Error: URL is empty.");
           setIsDiagnosing(false);
@@ -150,7 +159,7 @@ const App = () => {
       addLog(`ℹ️ API Endpoint: ${apiUrl}`);
 
       // 2. Network Check
-      addLog(`[2] Pinging Server...`);
+      addLog(`[2] Pinging Server (GET /)...`);
       const start = Date.now();
       try {
           const controller = new AbortController();
@@ -165,14 +174,21 @@ const App = () => {
           
           const latency = Date.now() - start;
           addLog(`${res.ok ? '✅' : '❌'} Status: ${res.status} ${res.statusText}`);
+          addLog(`   Headers: ${res.headers.get('content-type')}`);
           addLog(`⏱️ Latency: ${latency}ms`);
           
       } catch (e: any) {
-          addLog(`❌ Simple Connection Failed: ${e.message}`);
+          addLog(`❌ Connection Failed:`);
+          addLog(`   Name: ${e.name}`);
+          addLog(`   Message: ${e.message}`);
+          if (e.cause) addLog(`   Cause: ${JSON.stringify(e.cause)}`);
+          if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
+              addLog("   Likely CORS or Network Reachability issue.");
+          }
       }
 
       // 3. API Route Check
-      addLog(`[3] Testing API Route...`);
+      addLog(`[3] Testing API Route (POST /user/sync)...`);
       try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000); 
@@ -190,10 +206,17 @@ const App = () => {
               addLog(`✅ API Success! Is Pro: ${json.isPro}`);
               setServerStatus('online');
           } else {
-              addLog(`❌ API Error: ${res.status}`);
+              addLog(`❌ API Error: ${res.status} ${res.statusText}`);
+              try {
+                  const text = await res.text();
+                  addLog(`   Body: ${text.substring(0, 100)}...`);
+              } catch (err) {}
           }
       } catch (e: any) {
-          addLog(`❌ API Call Failed: ${e.message}`);
+          addLog(`❌ API Call Failed:`);
+          addLog(`   Name: ${e.name}`);
+          addLog(`   Message: ${e.message}`);
+          if (e.cause) addLog(`   Cause: ${JSON.stringify(e.cause)}`);
       }
       
       addLog("--------------------------------");
@@ -377,6 +400,8 @@ const App = () => {
           case 'SQUATS': return <ArrowDown size={16} className="text-purple-500"/>;
           case 'PUSHUPS': return <Activity size={16} className="text-blue-500"/>;
           case 'SITUPS': return <Move size={16} className="text-orange-500"/>;
+          case 'DIPS': return <ArrowDown size={16} className="text-cyan-500"/>;
+          case 'PULLUPS': return <ArrowUp size={16} className="text-violet-500"/>;
           default: return <Dumbbell size={16} className="text-gray-400"/>;
       }
   };
@@ -390,6 +415,8 @@ const App = () => {
         case 'JUMPING_JACKS': return t('jumpingJacks');
         case 'LUNGES': return t('lunges');
         case 'BURPEES': return t('burpees');
+        case 'DIPS': return t('dips');
+        case 'PULLUPS': return t('pullups');
         default: return (type as string).replace('_', ' ');
     }
   };
@@ -941,7 +968,7 @@ const App = () => {
                                  </div>
                                  <div className="space-y-1 max-h-40 overflow-y-auto">
                                      {diagnosticLogs.map((log, i) => (
-                                         <div key={i} className={log.includes('❌') || log.includes('Error') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
+                                         <div key={i} className={log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') ? "text-red-400" : log.includes('⚠️') ? "text-yellow-400" : ""}>
                                              {log}
                                          </div>
                                      ))}

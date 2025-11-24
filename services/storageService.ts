@@ -78,7 +78,9 @@ const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
     SITUPS: { color: '#fb923c' },
     JUMPING_JACKS: { color: '#f43f5e' },
     LUNGES: { color: '#8b5cf6' },
-    BURPEES: { color: '#ea580c' }
+    BURPEES: { color: '#ea580c' },
+    DIPS: { color: '#06b6d4' },
+    PULLUPS: { color: '#7c3aed' }
 };
 
 const DEFAULT_GOALS: DailyGoal[] = [
@@ -89,6 +91,8 @@ const DEFAULT_GOALS: DailyGoal[] = [
   { type: 'JUMPING_JACKS', target: 100, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.JUMPING_JACKS.color },
   { type: 'LUNGES', target: 40, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.LUNGES.color },
   { type: 'BURPEES', target: 20, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.BURPEES.color },
+  { type: 'DIPS', target: 30, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.DIPS.color },
+  { type: 'PULLUPS', target: 20, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.PULLUPS.color },
 ];
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -314,6 +318,15 @@ export const StorageService = {
     
     // Migrations
     if (!settings.goals || settings.goals.length === 0) settings.goals = DEFAULT_GOALS;
+    
+    // Check for new goals that might be missing in existing user settings
+    const currentGoalTypes = new Set(settings.goals.map((g: DailyGoal) => g.type));
+    DEFAULT_GOALS.forEach(defGoal => {
+        if (!currentGoalTypes.has(defGoal.type)) {
+            settings.goals.push(defGoal);
+        }
+    });
+
     settings.goals.forEach((g: DailyGoal) => {
         if (!g.color) g.color = GOAL_DEFAULTS[g.type]?.color || '#94a3b8';
     });

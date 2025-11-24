@@ -29,7 +29,7 @@ export interface NutritionLog {
     amount?: number; // volume in ml for water
 }
 
-export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES';
+export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES' | 'DIPS' | 'PULLUPS';
 
 export interface DailyGoal {
   type: GoalType;

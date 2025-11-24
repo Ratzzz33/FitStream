@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UserSettings, GoalType, DailyGoal } from '../types';
 import { StorageService } from '../services/storageService';
@@ -18,12 +19,14 @@ const getLabelForType = (type: GoalType): string => {
         case 'JUMPING_JACKS': return t('jumpingJacks');
         case 'LUNGES': return t('lunges');
         case 'BURPEES': return t('burpees');
+        case 'DIPS': return t('dips');
+        case 'PULLUPS': return t('pullups');
         default: return type;
     }
 };
 
 const AVAILABLE_TYPES: GoalType[] = [
-  'STEPS', 'PUSHUPS', 'SQUATS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'BURPEES'
+  'STEPS', 'PUSHUPS', 'SQUATS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'BURPEES', 'DIPS', 'PULLUPS'
 ];
 
 export const GoalSettings: React.FC<GoalSettingsProps> = ({ onClose, onUpdate }) => {
