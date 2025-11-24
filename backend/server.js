@@ -8,17 +8,17 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 
 const app = express();
 
-// --- 1. SIMPLIFIED CORS ---
-// We use the simplest possible configuration to allow ALL origins.
-// This fixes the 'Access-Control-Allow-Origin' error by letting the library handle it.
-app.use(cors());
-
-// Also explicitly handle OPTIONS pre-flight for all routes just in case
-app.options('*', cors());
+// --- 1. CRITICAL CORS SETUP ---
+// Allow ALL origins. This fixes 'Access-Control-Allow-Origin' errors.
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // --- 2. LOGGING ---
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[REQUEST] ${req.method} ${req.url} from ${req.ip}`);
   next();
 });
 
@@ -30,7 +30,6 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  // Enable SSL for production DBs (like Neon/Railway) usually
   ssl: connectionString && connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
 });
 
@@ -42,10 +41,9 @@ pool.on('error', (err, client) => {
 
 // Health Check
 app.get('/', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(200).json({ 
         status: 'online', 
-        message: 'FitStream Backend Ready (CORS permissive)',
+        message: 'FitStream Node.js Backend is RUNNING!',
         timestamp: new Date().toISOString() 
     });
 });
@@ -292,6 +290,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 FitStream Backend running on port ${PORT}`);
   initDb();
 });
