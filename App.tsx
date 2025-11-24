@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail, Key } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -72,6 +72,7 @@ const App = () => {
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
   const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
+  const [apiKeyInput, setApiKeyInput] = useState(settings.apiKey || '');
   
   // Google Client ID with fallback to the provided ID
   const [googleClientIdInput, setGoogleClientIdInput] = useState(process.env.GOOGLE_CLIENT_ID || '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com');
@@ -84,10 +85,13 @@ const App = () => {
   const sessionSteps = useStepCounter();
 
   useEffect(() => {
-    if (!process.env.API_KEY) {
+    // Check both Env Var AND Local Storage Setting
+    if (!process.env.API_KEY && !settings.apiKey) {
         setApiKeyMissing(true);
+    } else {
+        setApiKeyMissing(false);
     }
-  }, []);
+  }, [settings.apiKey]);
 
   // Initialize Google Auth when in Settings tab
   useEffect(() => {
@@ -343,7 +347,7 @@ const App = () => {
   }, [settings.theme]);
 
   const fetchMotivation = useCallback(async () => {
-    if (!process.env.API_KEY) {
+    if (!process.env.API_KEY && !settings.apiKey) {
         setMotivation(t('defaultMotivation'));
         return;
     }
@@ -360,7 +364,7 @@ const App = () => {
     } catch (e) {
         setMotivation(t('defaultMotivation'));
     }
-  }, []);
+  }, [settings.apiKey]);
 
   const refreshData = () => {
     const s = StorageService.getSettings();
@@ -372,6 +376,7 @@ const App = () => {
         setTargetWeightInput(s.targetWeight.toString());
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
         setBackendUrlInput(s.backendUrl || '');
+        setApiKeyInput(s.apiKey || '');
     }
   };
 
@@ -391,7 +396,8 @@ const App = () => {
               parseInt(ageInput) !== settings.age || 
               parseInt(heightInput) !== settings.height ||
               parseFloat(targetWeightInput) !== settings.targetWeight ||
-              backendUrlInput !== (settings.backendUrl || '')) {
+              backendUrlInput !== (settings.backendUrl || '') ||
+              apiKeyInput !== (settings.apiKey || '')) {
               
               setIsSavingSettings(true);
               const newSettings = { 
@@ -400,7 +406,8 @@ const App = () => {
                   age: parseInt(ageInput) || 0,
                   height: parseInt(heightInput) || 170,
                   targetWeight: parseFloat(targetWeightInput) || 0,
-                  backendUrl: backendUrlInput
+                  backendUrl: backendUrlInput,
+                  apiKey: apiKeyInput
               };
               StorageService.saveSettings(newSettings);
               setSettings(newSettings);
@@ -413,7 +420,7 @@ const App = () => {
       }, 1500);
 
       return () => clearTimeout(timer);
-  }, [nameInput, ageInput, heightInput, targetWeightInput, backendUrlInput, settings]);
+  }, [nameInput, ageInput, heightInput, targetWeightInput, backendUrlInput, apiKeyInput, settings]);
 
   const updateGender = (g: Gender) => {
       const newSettings = { ...settings, gender: g };
@@ -628,9 +635,33 @@ const App = () => {
   if (apiKeyMissing) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-6 text-center">
-              <div>
+              <div className="max-w-md w-full">
                   <h1 className="text-3xl font-bold text-red-500 mb-4">{t('apiKeyMissing')}</h1>
-                  <p>{t('apiKeyMissingDesc')}</p>
+                  <p className="mb-6 text-gray-600 dark:text-gray-300">{t('apiKeyMissingDesc')}</p>
+                  
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                      <h3 className="font-bold mb-4 flex items-center justify-center gap-2"><Key size={20} className="text-blue-500"/> Configure API Key</h3>
+                      <input 
+                        type="text" 
+                        value={apiKeyInput}
+                        onChange={(e) => setApiKeyInput(e.target.value)}
+                        placeholder="Paste your Gemini API Key here"
+                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm mb-4 font-mono"
+                      />
+                      <button 
+                        onClick={() => {
+                            const newSettings = { ...settings, apiKey: apiKeyInput };
+                            setSettings(newSettings);
+                            StorageService.saveSettings(newSettings);
+                            window.location.reload();
+                        }}
+                        disabled={!apiKeyInput}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                      >
+                          Save & Continue
+                      </button>
+                      <p className="text-xs text-gray-400 mt-4">The key is saved locally in your browser.</p>
+                  </div>
               </div>
           </div>
       );
@@ -914,14 +945,6 @@ const App = () => {
                                     />
                                 </div>
                             )}
-                            {/* ORIGIN HINT */}
-                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
-                                <p className="font-bold mb-1">Getting "Origin not allowed"?</p>
-                                <p>Add this URL to <strong>Authorized JavaScript origins</strong> in Google Cloud Console:</p>
-                                <code className="block bg-white dark:bg-black/30 p-2 mt-1 rounded select-all font-mono break-all">
-                                    {window.location.origin}
-                                </code>
-                            </div>
                         </div>
                     ) : (
                         <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -943,6 +966,28 @@ const App = () => {
                             </button>
                         </div>
                     )}
+                </div>
+                
+                {/* API Key Configuration */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                            <Key size={16} className="text-amber-500"/> API Configuration
+                        </h4>
+                    </div>
+                    <label className="block">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Gemini API Key</span>
+                        <input 
+                            type="password" 
+                            value={apiKeyInput}
+                            onChange={(e) => setApiKeyInput(e.target.value)}
+                            placeholder={process.env.API_KEY ? "Using Env Var (Hidden)" : "Paste key here"}
+                            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm font-mono focus:border-amber-500 outline-none"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                            {process.env.API_KEY ? "✅ Loaded from Environment" : "Required for AI features if Env Var is missing."}
+                        </p>
+                    </label>
                 </div>
 
                 {/* Coach Settings */}

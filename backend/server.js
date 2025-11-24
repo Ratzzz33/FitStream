@@ -12,9 +12,9 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ CRITICAL: Unhandled Rejection:', reason);
 });
 
-// Log shutdown signals for debugging Railway restarts
+// Log shutdown signals
 process.on('SIGTERM', () => {
-  console.log('⚠️ Received SIGTERM. Railway is checking out or restarting container.');
+  console.log('⚠️ Received SIGTERM. Graceful shutdown initiated.');
   process.exit(0);
 });
 
@@ -24,31 +24,28 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 const app = express();
 
 // --- 1. MIDDLEWARE ---
-app.use(cors()); // Allow all origins (simplest for troubleshooting)
+app.use(cors()); // Allow all origins
 app.use(express.json({ limit: '10mb' }));
 
-// Request Logging (exclude /health to keep logs clean)
+// Request Logging (Exclude health checks to reduce log noise)
 app.use((req, res, next) => {
-  if (req.url !== '/health' && req.url !== '/') {
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  if (req.url === '/health' || req.url === '/') {
+      return next();
   }
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
 // --- 2. HEALTH CHECKS (CRITICAL FOR RAILWAY) ---
-// Lightweight endpoint that responds IMMEDIATELY, no DB check required
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
+// Handle both GET and HEAD for health checks
+const healthHandler = (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: Date.now() });
+};
 
-// Root endpoint with slightly more info
-app.get('/', (req, res) => {
-    res.status(200).json({ 
-        status: 'online', 
-        service: 'FitStream Backend',
-        timestamp: new Date().toISOString() 
-    });
-});
+app.get('/health', healthHandler);
+app.head('/health', healthHandler);
+app.get('/', healthHandler);
+app.head('/', healthHandler);
 
 // --- 3. DATABASE SETUP ---
 const connectionString = process.env.DATABASE_URL;
@@ -181,7 +178,7 @@ app.get('/api/phones', async (req, res) => {
             client.release();
         }
     } catch (e) {
-        console.error(e);
+        // Fallback to seed data if DB fails
         res.json(SEED_PHONES);
     }
 });
@@ -308,8 +305,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0'; 
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 FitStream Backend running on http://${HOST}:${PORT}`);
-  // Initialize DB asynchronously
-  setTimeout(initDb, 100);
+  
+  // Non-blocking DB init
+  initDb();
 });
+
+// IMPORTANT: Enhance timeout settings for Railway/AWS Load Balancers
+// This prevents 502 Bad Gateway errors and SIGTERM loops
+server.keepAliveTimeout = 120 * 1000;
+server.headersTimeout = 120 * 1000;

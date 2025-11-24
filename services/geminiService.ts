@@ -4,7 +4,12 @@ import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
 
-const API_KEY = process.env.API_KEY || '';
+// Helper to get API Key (Env or Local Storage)
+const getApiKey = () => {
+    if (process.env.API_KEY) return process.env.API_KEY;
+    const settings = StorageService.getSettings();
+    return settings.apiKey || '';
+};
 
 // Helper to sanitize base64 (remove data:image/... prefix if present)
 const cleanBase64 = (b64: string) => {
@@ -13,8 +18,9 @@ const cleanBase64 = (b64: string) => {
 
 // 1. Vision Service for Weight Scale Reading
 export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: number | null, confidence: string }> => {
-  if (!API_KEY) throw new Error("API Key missing");
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key missing");
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const response = await ai.models.generateContent({
@@ -57,8 +63,9 @@ export const analyzeFood = async (
     referenceObject: string,
     referenceDimensions?: string
 ): Promise<{ name: string, calories: number, protein: number, carbs: number, fat: number }> => {
-    if (!API_KEY) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
 
     const refContext = referenceDimensions 
@@ -105,8 +112,9 @@ export const calculateNutritionFromText = async (
     foodName: string, 
     amount: string
 ): Promise<{ calories: number, protein: number, carbs: number, fat: number }> => {
-    if (!API_KEY) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
     
     try {
         const response = await ai.models.generateContent({
@@ -143,8 +151,9 @@ export const calculateNutritionFromText = async (
 
 // 3. Identify Reference Object
 export const identifyReferenceObject = async (base64Image: string): Promise<{ name: string, dimensions: string }> => {
-    if (!API_KEY) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
 
     try {
@@ -181,8 +190,9 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
 
 // 4. Phone Specs
 export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: string, weightGrams: number } | null> => {
-    if (!API_KEY) return null;
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) return null;
+    const ai = new GoogleGenAI({ apiKey });
     const settings = StorageService.getSettings();
     
     let knownPhones: any[] = [];
@@ -236,8 +246,9 @@ export interface MenuRecommendation {
 }
 
 export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendation[]> => {
-    if (!API_KEY) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
 
     try {
@@ -280,8 +291,9 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
 
 // 6. Motivation
 export const getMotivation = async (streak: number, repsToday: number): Promise<string> => {
-    if (!API_KEY) return t('defaultMotivation');
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const apiKey = getApiKey();
+    if (!apiKey) return t('defaultMotivation');
+    const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
     try {
         const response = await ai.models.generateContent({
