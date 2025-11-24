@@ -1,11 +1,16 @@
 
 
-import { GoogleGenAI, Type, FunctionDeclaration, Modality, Schema } from "@google/genai";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
 
 const API_KEY = process.env.API_KEY || '';
+
+// Helper to sanitize base64 (remove data:image/... prefix if present)
+const cleanBase64 = (b64: string) => {
+    return b64.includes(',') ? b64.split(',')[1] : b64;
+};
 
 // 1. Vision Service for Weight Scale Reading
 export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: number | null, confidence: string }> => {
@@ -17,8 +22,8 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: "Identify the number displayed on this weighing scale. Return ONLY the number. If unsure, return 0." }
+          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+          { text: "Read the number on this scale. Return JSON with 'weight' (number) and 'confidence' (HIGH/LOW). If invalid, return weight 0." }
         ]
       },
       config: {
@@ -33,9 +38,9 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
       }
     });
     
-    const text = response.text;
-    if (text) {
-        return JSON.parse(text);
+    // Safety check for null response
+    if (response.text) {
+        return JSON.parse(response.text);
     }
     return { weight: null, confidence: "LOW" };
   } catch (error) {
@@ -44,7 +49,7 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
   }
 };
 
-// 2. Nutrition Analysis with Reference Object
+// 2. Nutrition Analysis
 export const analyzeFood = async (
     base64Image: string, 
     referenceObject: string,
@@ -55,22 +60,16 @@ export const analyzeFood = async (
     const lang = navigator.language;
 
     const refContext = referenceDimensions 
-        ? `The user is using a "${referenceObject}" (approx. ${referenceDimensions}) as a size reference.`
-        : `There is a "${referenceObject}" in the image next to the food for scale.`;
+        ? `User is using a "${referenceObject}" (${referenceDimensions}) for scale.`
+        : `A "${referenceObject}" is used for scale.`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: `Identify the food in this image. 
-                      ${refContext}
-                      Use this to estimate the physical size and portion of the food accurately. 
-                      Based on the estimated portion size, calculate the calories and macros.
-                      Respond with the 'name' of the food in ${lang} language.
-                      Return the result in JSON format.` 
-                    }
+                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                    { text: `Identify food. ${refContext} Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
                 ]
             },
             config: {
@@ -89,16 +88,15 @@ export const analyzeFood = async (
             }
         });
         
-        const text = response.text;
-        if (text) return JSON.parse(text);
-        throw new Error("Failed to parse AI response");
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
     } catch (error) {
         console.error("Error analyzing food:", error);
         throw error;
     }
 };
 
-// 2.1 Calculate Nutrition from Text Input
+// 2.1 Calculate Nutrition from Text
 export const calculateNutritionFromText = async (
     foodName: string, 
     amount: string
@@ -106,18 +104,12 @@ export const calculateNutritionFromText = async (
     if (!API_KEY) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     
-    // Default to 100g/standard portion if no amount specified, but UI enforces amount mostly
-    const weightContext = amount ? `${amount}g` : "a standard serving";
-
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { text: `Calculate the nutrition for "${foodName}" with a weight of ${weightContext}.
-                      Estimate the calories, protein, carbs, and fat.
-                      Return the result in JSON format.` 
-                    }
+                    { text: `Calculate nutrition for "${foodName}" (${amount || 'standard serving'}). Return JSON: calories, protein, carbs, fat.` }
                 ]
             },
             config: {
@@ -129,22 +121,20 @@ export const calculateNutritionFromText = async (
                         protein: { type: Type.NUMBER },
                         carbs: { type: Type.NUMBER },
                         fat: { type: Type.NUMBER }
-                    },
-                    required: ["calories", "protein", "carbs", "fat"]
+                    }
                 }
             }
         });
         
-        const text = response.text;
-        if (text) return JSON.parse(text);
-        throw new Error("Failed to parse AI response");
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
     } catch (error) {
-        console.error("Error calculating nutrition from text:", error);
+        console.error("Error calculating nutrition:", error);
         throw error;
     }
 };
 
-// 3. Identify Reference Object for Settings
+// 3. Identify Reference Object
 export const identifyReferenceObject = async (base64Image: string): Promise<{ name: string, dimensions: string }> => {
     if (!API_KEY) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -155,12 +145,8 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: `Identify the main object in this image that will be used as a size reference. 
-                      Common examples: Credit Card, Keys, Ring, Lighter, AirPods Case.
-                      Return the name in ${lang} language and estimated standard physical dimensions (width x height in cm, e.g. "8.5 x 5.4 cm").
-                      Return JSON: { "name": "...", "dimensions": "..." }` 
-                    }
+                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                    { text: `Identify the main reference object (e.g. credit card, coin, lighter). Return JSON: {name, dimensions} in ${lang}.` }
                 ]
             },
             config: {
@@ -170,55 +156,38 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
                     properties: {
                         name: { type: Type.STRING },
                         dimensions: { type: Type.STRING }
-                    },
-                    required: ["name", "dimensions"]
+                    }
                 }
             }
         });
         
-        const text = response.text;
-        if (text) return JSON.parse(text);
-        throw new Error("Failed to parse AI response");
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
     } catch (error) {
         console.error("Error identifying object:", error);
         throw error;
     }
 };
 
-// 4. Identify Phone Weight from Model using DB and AI Matching
+// 4. Phone Specs
 export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: string, weightGrams: number } | null> => {
     if (!API_KEY) return null;
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     const settings = StorageService.getSettings();
     
-    // Step 1: Fetch Known Phones from Backend
-    let knownPhones = [];
+    let knownPhones: any[] = [];
     try {
         knownPhones = await ApiService.getPhoneDatabase(settings.backendUrl);
-    } catch (e) {
-        console.warn("Could not fetch phone DB, relying on AI knowledge.");
-    }
+    } catch (e) {}
     
-    const dbContext = knownPhones.length > 0 
-        ? `I have a database of known phones and their weights in grams: ${JSON.stringify(knownPhones)}.`
-        : `I do not have a local database connection right now.`;
+    const dbContext = knownPhones.length > 0 ? JSON.stringify(knownPhones) : "[]";
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { text: `
-                        User Input: "${modelName}".
-                        
-                        ${dbContext}
-                        
-                        Task: 
-                        1. Compare the user's input with the provided database to find the best matching phone model. Use AI fuzzy matching (e.g., "s25 ultra" -> "Samsung Galaxy S25 Ultra").
-                        2. If a match is found in the database, return the 'name' from the DB as 'officialName' and the 'weight' from the DB as 'weightGrams'.
-                        3. If NO match is found in the database, identify the phone based on your own knowledge and estimate the weight.
-                        4. If the input is invalid or not a phone, return null.
-                    ` }
+                    { text: `Find phone model "${modelName}". Use DB if matches: ${dbContext}. Else estimate. Return JSON: {officialName, weightGrams, isValid, source}.` }
                 ]
             },
             config: {
@@ -226,25 +195,20 @@ export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: 
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        officialName: { type: Type.STRING, description: "The full official marketing name of the phone." },
-                        weightGrams: { type: Type.NUMBER, description: "Weight of the phone in grams." },
-                        isValid: { type: Type.BOOLEAN, description: "True if a known phone model was found." },
-                        source: { type: Type.STRING, enum: ["DATABASE", "AI_ESTIMATE"], description: "Where the data came from." }
+                        officialName: { type: Type.STRING },
+                        weightGrams: { type: Type.NUMBER },
+                        isValid: { type: Type.BOOLEAN },
+                        source: { type: Type.STRING }
                     }
                 }
             }
         });
-        const text = response.text;
-        if (text) {
-            const data = JSON.parse(text);
-            if (data.isValid && data.officialName && data.weightGrams > 0) {
-                console.log(`Phone Identified: ${data.officialName} (${data.weightGrams}g) via ${data.source}`);
-                return { officialName: data.officialName, weightGrams: data.weightGrams };
-            }
+        if (response.text) {
+            const data = JSON.parse(response.text);
+            if (data.isValid) return { officialName: data.officialName, weightGrams: data.weightGrams };
         }
         return null;
     } catch (e) {
-        console.error("Error getting phone specs:", e);
         return null;
     }
 };
@@ -268,19 +232,8 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
             model: 'gemini-2.5-flash',
             contents: {
                 parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: `Analyze the restaurant menu in this image.
-                      Identify dishes and recommend options for someone trying to be healthy but practical.
-                      
-                      Select 3 distinct recommendations:
-                      1. BEST_CHOICE: The most balanced, healthy option (good macros, reasonable calories).
-                      2. HIGH_PROTEIN: The best option for muscle gain/satiety.
-                      3. LESSER_OF_EVILS: A "cheat meal" that is the "least bad" among the indulgent options (e.g. burger without bun, or pizza with veggies).
-                      
-                      Estimate calories and protein for each.
-                      Provide a short 'reasoning' in ${lang} language explaining why it was chosen.
-                      Return JSON array.` 
-                    }
+                    { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                    { text: `Analyze menu. Recommend 3 dishes: BEST_CHOICE, HIGH_PROTEIN, LESSER_OF_EVILS. JSON Array. Language: ${lang}.` }
                 ]
             },
             config: {
@@ -301,8 +254,7 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
             }
         });
         
-        const text = response.text;
-        if (text) return JSON.parse(text);
+        if (response.text) return JSON.parse(response.text);
         return [];
     } catch (error) {
         console.error("Error analyzing menu:", error);
@@ -310,7 +262,7 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
     }
 };
 
-// 6. Motivation & Recommendations
+// 6. Motivation
 export const getMotivation = async (streak: number, repsToday: number): Promise<string> => {
     if (!API_KEY) return t('defaultMotivation');
     const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -318,7 +270,7 @@ export const getMotivation = async (streak: number, repsToday: number): Promise<
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Generate a single short, punchy, motivational sentence for a user who has a ${streak} day streak and did ${repsToday} reps today. Respond in ${lang} language.`,
+            contents: `Motivational quote for fitness. Streak: ${streak} days. Reps today: ${repsToday}. Language: ${lang}. Keep it short.`,
         });
         return response.text || t('defaultMotivation');
     } catch (e) {
