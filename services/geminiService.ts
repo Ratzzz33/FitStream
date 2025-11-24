@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
@@ -33,7 +34,8 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
           properties: {
             weight: { type: Type.NUMBER },
             confidence: { type: Type.STRING, enum: ["HIGH", "LOW"] }
-          }
+          },
+          required: ["weight", "confidence"]
         }
       }
     });
@@ -121,7 +123,8 @@ export const calculateNutritionFromText = async (
                         protein: { type: Type.NUMBER },
                         carbs: { type: Type.NUMBER },
                         fat: { type: Type.NUMBER }
-                    }
+                    },
+                    required: ["calories", "protein", "carbs", "fat"]
                 }
             }
         });
@@ -156,7 +159,8 @@ export const identifyReferenceObject = async (base64Image: string): Promise<{ na
                     properties: {
                         name: { type: Type.STRING },
                         dimensions: { type: Type.STRING }
-                    }
+                    },
+                    required: ["name", "dimensions"]
                 }
             }
         });
@@ -199,7 +203,8 @@ export const getPhoneSpecs = async (modelName: string): Promise<{ officialName: 
                         weightGrams: { type: Type.NUMBER },
                         isValid: { type: Type.BOOLEAN },
                         source: { type: Type.STRING }
-                    }
+                    },
+                    required: ["officialName", "weightGrams", "isValid"]
                 }
             }
         });
@@ -248,7 +253,8 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
                             protein: { type: Type.NUMBER },
                             category: { type: Type.STRING, enum: ['BEST_CHOICE', 'HIGH_PROTEIN', 'LESSER_OF_EVILS'] },
                             reasoning: { type: Type.STRING }
-                        }
+                        },
+                        required: ["dishName", "calories", "protein", "category", "reasoning"]
                     }
                 }
             }

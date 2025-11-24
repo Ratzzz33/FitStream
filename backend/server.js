@@ -3,6 +3,26 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 
+// --- 0. SAFETY NETS (CRASH HANDLERS) ---
+// Catch silent crashes to log them before exit
+process.on('uncaughtException', (err) => {
+  console.error('❌ CRITICAL: Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ CRITICAL: Unhandled Rejection:', reason);
+});
+
+process.on('SIGTERM', () => {
+  console.log('⚠️ Received SIGTERM. Railway is stopping the container (Healthcheck failed or Redeploy).');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ Received SIGINT. Shutting down...');
+  process.exit(0);
+});
+
 // Safe initialization for Stripe
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -39,13 +59,17 @@ pool.on('error', (err, client) => {
 
 // --- 4. ROUTES ---
 
-// Health Check
+// Health Check - CRITICAL for Railway
 app.get('/', (req, res) => {
     res.status(200).json({ 
         status: 'online', 
         message: 'FitStream Node.js Backend is RUNNING!',
         timestamp: new Date().toISOString() 
     });
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
 
 app.use(express.json({ limit: '10mb' }));
@@ -145,7 +169,7 @@ const initDb = async () => {
                 ON CONFLICT (name) DO NOTHING
             `, [phone.name, phone.weight]);
         }
-        console.log("✅ Database initialized.");
+        console.log("✅ Database initialized successfully.");
     } finally {
         client.release();
     }
@@ -203,6 +227,7 @@ app.post('/api/user/sync', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
+        // Simple Upsert
         await pool.query(`
             INSERT INTO users (id, settings, last_synced_at) 
             VALUES ($1, $2, CURRENT_TIMESTAMP)
@@ -289,7 +314,11 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 FitStream Backend running on port ${PORT}`);
-  initDb();
+// CRITICAL: Bind to 0.0.0.0 for Railway to map ports correctly
+const HOST = '0.0.0.0'; 
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 FitStream Backend running on http://${HOST}:${PORT}`);
+  // Run DB init slightly delayed to ensure server is listening first
+  setTimeout(initDb, 100);
 });
