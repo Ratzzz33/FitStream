@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Server, Globe, Wifi, WifiOff, RefreshCw, Terminal, AlertTriangle, CheckCircle2, XCircle, Utensils, Ruler, Smartphone, X, Mic, Volume2, Copy, LogOut, Mail, Key } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -44,7 +44,6 @@ const App = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showRefScanner, setShowRefScanner] = useState(false);
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   
   // Goal Selection
   const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
@@ -60,19 +59,12 @@ const App = () => {
   const [isQuickScanning, setIsQuickScanning] = useState(false);
   const quickScanCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Diagnostics State
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
-  const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
-  const [isDiagnosing, setIsDiagnosing] = useState(false);
-  
   // Local state for auto-save fields
   const [nameInput, setNameInput] = useState(settings.name);
   const [ageInput, setAgeInput] = useState(settings.age.toString());
   const [heightInput, setHeightInput] = useState(settings.height.toString());
   const [targetWeightInput, setTargetWeightInput] = useState(settings.targetWeight.toString());
   const [currentWeightInput, setCurrentWeightInput] = useState<string>(StorageService.getLastWeight().toString());
-  const [backendUrlInput, setBackendUrlInput] = useState(settings.backendUrl || '');
-  const [apiKeyInput, setApiKeyInput] = useState(settings.apiKey || '');
   
   // Google Client ID with fallback to the provided ID
   const [googleClientIdInput, setGoogleClientIdInput] = useState(process.env.GOOGLE_CLIENT_ID || '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com');
@@ -173,155 +165,24 @@ const App = () => {
       initBackground();
   }, []);
 
-  // Function to check connection status (Quick Check)
-  const checkServerConnection = async (customUrl?: string) => {
-      setServerStatus('checking');
+  // Function to check connection status (Silent Check for Pro Status)
+  const checkServerConnection = async () => {
       const userId = StorageService.getUserId();
       const currentSettings = StorageService.getSettings();
-      const urlToCheck = customUrl || currentSettings.backendUrl;
       
       try {
-          const result = await ApiService.syncUser(userId, currentSettings, urlToCheck);
+          const result = await ApiService.syncUser(userId, currentSettings, currentSettings.backendUrl);
           
           if (result) {
-              setServerStatus('online');
               if (currentSettings.isPro !== result.isPro) {
                   currentSettings.isPro = result.isPro;
                   StorageService.saveSettings(currentSettings, false); // No push needed, we just pulled
                   refreshData();
               }
-          } else {
-              setServerStatus('offline');
           }
       } catch (e) {
-          setServerStatus('offline');
+          // Silent failure is fine here, it's just a background check
       }
-  };
-
-  // Detailed Diagnostics Tool v6
-  const runDiagnostics = async () => {
-      setIsDiagnosing(true);
-      setShowDiagnostics(true);
-      setDiagnosticLogs(["Starting diagnostics v6 (Ultra Verbose)...", "--------------------------------"]);
-      
-      const addLog = (msg: string) => setDiagnosticLogs(prev => [...prev, msg]);
-      
-      // 0. Environment
-      addLog(`[0] Environment:`);
-      addLog(`   Origin: ${window.location.origin}`);
-      addLog(`   Online: ${navigator.onLine ? '✅ Yes' : '❌ No'}`);
-      addLog(`   Google Client ID: ${googleClientIdInput ? '✅ Set' : '❌ Missing'}`);
-      
-      const userId = StorageService.getUserId();
-      let url = backendUrlInput.trim();
-      
-      if (!url) {
-          addLog("❌ Error: URL is empty.");
-          setIsDiagnosing(false);
-          return;
-      }
-
-      // 1. URL Analysis
-      addLog(`[1] Target URL: ${url}`);
-      try {
-          const parsed = new URL(url);
-          addLog(`   Protocol: ${parsed.protocol}`);
-          addLog(`   Hostname: ${parsed.hostname}`);
-          if (parsed.protocol === 'http:' && window.location.protocol === 'https:') {
-               addLog("⚠️ BLOCKER: Mixed Content (HTTP API on HTTPS Site)");
-               addLog("   Browser will BLOCK this request.");
-          }
-      } catch(e) {
-          addLog("❌ Invalid URL format");
-          setIsDiagnosing(false);
-          return;
-      }
-      
-      if (url.endsWith('/')) url = url.slice(0, -1);
-      const baseUrl = url.endsWith('/api') ? url.slice(0, -4) : url;
-      const apiUrl = url.endsWith('/api') ? url : `${url}/api`;
-
-      addLog(`   Base: ${baseUrl}`);
-      addLog(`   API:  ${apiUrl}`);
-
-      // 2. Reachability Probe (NO-CORS)
-      // This helps distinguish between "Server Down/SSL Error" and "CORS Error"
-      addLog(`[2] Reachability Probe (mode: no-cors)...`);
-      let reachabilitySuccess = false;
-      try {
-          const start = Date.now();
-          // We assume a GET to root exists
-          const res = await fetch(`${baseUrl}/?t=${Date.now()}`, { 
-              method: 'GET', 
-              mode: 'no-cors' // IMPORTANT: This allows us to talk to the server even if CORS headers are missing
-          });
-          const latency = Date.now() - start;
-          addLog(`✅ Server Reachable (${latency}ms)`);
-          addLog(`   Response Type: ${res.type}`); // Should be 'opaque'
-          addLog(`   Result: Network path is clear. Server exists.`);
-          reachabilitySuccess = true;
-      } catch (e: any) {
-           addLog(`❌ Reachability Failed:`);
-           addLog(`   ${e.toString()}`);
-           addLog(`   Conclusion: DNS, SSL, or Server Down.`);
-           addLog(`   Verify the URL and that the server is running.`);
-           setIsDiagnosing(false);
-           return; // No point continuing if we can't even touch the server
-      }
-
-      // 3. CORS Check (Standard Fetch)
-      addLog(`[3] CORS Check (GET /)...`);
-      try {
-          const res = await fetch(`${baseUrl}/?t=${Date.now()}`, { 
-              method: 'GET'
-              // mode: cors is default
-          });
-          addLog(`${res.ok ? '✅' : '⚠️'} Status: ${res.status}`);
-          if (res.ok) {
-              addLog(`   CORS headers are CORRECT.`);
-          } else {
-              addLog(`   Server responded but with error status.`);
-          }
-      } catch (e: any) {
-          addLog(`❌ CORS/Fetch Error:`);
-          addLog(`   ${e.name}: ${e.message}`);
-          if (e.message === 'Failed to fetch') {
-               addLog(`   -> CRITICAL: Server reachable (see [2]), but browser blocked response.`);
-               addLog(`   -> CAUSE: Missing 'Access-Control-Allow-Origin' header on server.`);
-               if (reachabilitySuccess) {
-                   addLog(`   💡 DIAGNOSIS: Server is ONLINE but refusing connections.`);
-                   addLog(`   💡 ACTION: Redeploy backend with CORS enabled for *.`);
-               }
-          }
-      }
-
-      // 4. API Logic Check
-      addLog(`[4] API Endpoint (POST /user/sync)...`);
-      try {
-          const res = await fetch(`${apiUrl}/user/sync`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId, settings: { ...settings, diagnostic: true } })
-          });
-
-          if (res.ok) {
-              const json = await res.json();
-              addLog(`✅ API Success! Is Pro: ${json.isPro}`);
-              setServerStatus('online');
-          } else {
-              addLog(`❌ API Status: ${res.status}`);
-              try {
-                  const text = await res.text();
-                  addLog(`   Body: ${text.substring(0, 100)}`);
-              } catch (err) {}
-          }
-      } catch (e: any) {
-          addLog(`❌ API Failed: ${e.message}`);
-      }
-      
-      addLog("--------------------------------");
-      addLog("Diagnostics Complete.");
-      setIsDiagnosing(false);
   };
 
   // Sync with Backend on Load
@@ -375,8 +236,6 @@ const App = () => {
         setHeightInput(s.height.toString());
         setTargetWeightInput(s.targetWeight.toString());
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
-        setBackendUrlInput(s.backendUrl || '');
-        setApiKeyInput(s.apiKey || '');
     }
   };
 
@@ -395,9 +254,7 @@ const App = () => {
           if (nameInput !== settings.name || 
               parseInt(ageInput) !== settings.age || 
               parseInt(heightInput) !== settings.height ||
-              parseFloat(targetWeightInput) !== settings.targetWeight ||
-              backendUrlInput !== (settings.backendUrl || '') ||
-              apiKeyInput !== (settings.apiKey || '')) {
+              parseFloat(targetWeightInput) !== settings.targetWeight) {
               
               setIsSavingSettings(true);
               const newSettings = { 
@@ -406,21 +263,16 @@ const App = () => {
                   age: parseInt(ageInput) || 0,
                   height: parseInt(heightInput) || 170,
                   targetWeight: parseFloat(targetWeightInput) || 0,
-                  backendUrl: backendUrlInput,
-                  apiKey: apiKeyInput
               };
               StorageService.saveSettings(newSettings);
               setSettings(newSettings);
               
-              if (backendUrlInput !== settings.backendUrl) {
-                  checkServerConnection(backendUrlInput);
-              }
               setTimeout(() => setIsSavingSettings(false), 800);
           }
       }, 1500);
 
       return () => clearTimeout(timer);
-  }, [nameInput, ageInput, heightInput, targetWeightInput, backendUrlInput, apiKeyInput, settings]);
+  }, [nameInput, ageInput, heightInput, targetWeightInput, settings]);
 
   const updateGender = (g: Gender) => {
       const newSettings = { ...settings, gender: g };
@@ -640,27 +492,10 @@ const App = () => {
                   <p className="mb-6 text-gray-600 dark:text-gray-300">{t('apiKeyMissingDesc')}</p>
                   
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                      <h3 className="font-bold mb-4 flex items-center justify-center gap-2"><Key size={20} className="text-blue-500"/> Configure API Key</h3>
-                      <input 
-                        type="text" 
-                        value={apiKeyInput}
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-                        placeholder="Paste your Gemini API Key here"
-                        className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm mb-4 font-mono"
-                      />
-                      <button 
-                        onClick={() => {
-                            const newSettings = { ...settings, apiKey: apiKeyInput };
-                            setSettings(newSettings);
-                            StorageService.saveSettings(newSettings);
-                            window.location.reload();
-                        }}
-                        disabled={!apiKeyInput}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl disabled:opacity-50"
-                      >
-                          Save & Continue
-                      </button>
-                      <p className="text-xs text-gray-400 mt-4">The key is saved locally in your browser.</p>
+                      <h3 className="font-bold mb-4 flex items-center justify-center gap-2"><AlertTriangle size={20} className="text-red-500"/> API Key Required</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                          This application requires a Gemini API Key to function. Please ensure the <code>API_KEY</code> environment variable is set in your deployment configuration.
+                      </p>
                   </div>
               </div>
           </div>
@@ -968,28 +803,6 @@ const App = () => {
                     )}
                 </div>
                 
-                {/* API Key Configuration */}
-                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                            <Key size={16} className="text-amber-500"/> API Configuration
-                        </h4>
-                    </div>
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Gemini API Key</span>
-                        <input 
-                            type="password" 
-                            value={apiKeyInput}
-                            onChange={(e) => setApiKeyInput(e.target.value)}
-                            placeholder={process.env.API_KEY ? "Using Env Var (Hidden)" : "Paste key here"}
-                            className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm font-mono focus:border-amber-500 outline-none"
-                        />
-                        <p className="text-[10px] text-gray-400 mt-1">
-                            {process.env.API_KEY ? "✅ Loaded from Environment" : "Required for AI features if Env Var is missing."}
-                        </p>
-                    </label>
-                </div>
-
                 {/* Coach Settings */}
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex justify-between items-center mb-3">
@@ -1124,88 +937,6 @@ const App = () => {
 
                 {/* Health Connect */}
                 <HealthConnect settings={settings} onUpdate={refreshData} />
-
-                {/* Backend Settings */}
-                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                        <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                            <Server size={16} className="text-indigo-500" /> Backend
-                        </h4>
-                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold transition-all ${
-                            serverStatus === 'online' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 border-green-200 dark:border-green-800' :
-                            serverStatus === 'offline' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800' :
-                            'bg-gray-100 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700'
-                        }`}>
-                            {serverStatus === 'checking' && <Loader2 size={10} className="animate-spin" />}
-                            {serverStatus === 'online' && <Wifi size={10} />}
-                            {serverStatus === 'offline' && <WifiOff size={10} />}
-                            <span>{serverStatus === 'online' ? t('online') : serverStatus === 'offline' ? t('offline') : t('checking')}</span>
-                        </div>
-                    </div>
-                    
-                    <label className="block">
-                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">{t('url')}</span>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Globe size={16} className="text-gray-400" />
-                            <input 
-                                type="text" 
-                                value={backendUrlInput} 
-                                onChange={(e) => setBackendUrlInput(e.target.value)}
-                                placeholder="https://your-app.up.railway.app"
-                                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 outline-none transition font-mono"
-                            />
-                            <button 
-                                onClick={runDiagnostics}
-                                disabled={isDiagnosing}
-                                className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-lg text-xs font-bold whitespace-nowrap text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition flex items-center gap-2"
-                            >
-                                {isDiagnosing ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
-                                {t('test')}
-                            </button>
-                        </div>
-                    </label>
-
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                        <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider block mb-1">Stripe Webhook URL (for Dashboard)</span>
-                        <div className="flex items-center gap-2">
-                            <code className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-[10px] text-gray-600 dark:text-gray-400 font-mono overflow-x-auto whitespace-nowrap">
-                                {backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '.../api/webhook'}
-                            </code>
-                            <button 
-                                onClick={() => {
-                                    const url = backendUrlInput ? `${backendUrlInput.endsWith('/') ? backendUrlInput.slice(0, -1) : backendUrlInput}/api/webhook` : '';
-                                    if (url) navigator.clipboard.writeText(url);
-                                }}
-                                className="bg-gray-100 dark:bg-gray-800 p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700"
-                                title="Copy to clipboard"
-                            >
-                                <Copy size={14} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Diagnostics Log Panel */}
-                {showDiagnostics && (
-                    <div className="mt-3 bg-black rounded-lg p-3 font-mono text-[10px] text-green-400 overflow-hidden relative">
-                        <div className="absolute top-2 right-2">
-                            <button onClick={() => setShowDiagnostics(false)} className="text-gray-500 hover:text-white">
-                                <XCircle size={14} />
-                            </button>
-                        </div>
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {diagnosticLogs.map((log, i) => (
-                                <div key={i} className={
-                                    log.includes('❌') || log.includes('Error') || log.includes('CRITICAL') || log.includes('Failed') ? "text-red-400" : 
-                                    log.includes('⚠️') || log.includes('DIAGNOSIS') ? "text-yellow-400" : ""
-                                }>
-                                    {log}
-                                </div>
-                            ))}
-                            {isDiagnosing && <div className="animate-pulse">_</div>}
-                        </div>
-                    </div>
-                )}
             </div>
         )}
       </main>
