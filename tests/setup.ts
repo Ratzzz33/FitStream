@@ -59,6 +59,71 @@ vi.mock('@capacitor/haptics', () => ({
   },
 }));
 
+// Мок для offlineStorage сервиса
+vi.mock('../services/offlineStorage', () => ({
+  offlineStorage: {
+    getPendingItems: vi.fn().mockResolvedValue([]),
+    getPendingPhotos: vi.fn().mockResolvedValue([]),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    addPendingItem: vi.fn().mockResolvedValue(undefined),
+    removePendingItem: vi.fn().mockResolvedValue(undefined),
+    storePhoto: vi.fn().mockResolvedValue(undefined),
+    getPhoto: vi.fn().mockResolvedValue(null),
+    removePhoto: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Мок для syncQueue сервиса
+vi.mock('../services/syncQueue', () => ({
+  syncQueue: {
+    queueNutritionLog: vi.fn().mockResolvedValue(undefined),
+    queueWeightLog: vi.fn().mockResolvedValue(undefined),
+    processQueue: vi.fn().mockResolvedValue(undefined),
+    syncNow: vi.fn().mockResolvedValue(undefined),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+  },
+}));
+
+// Мок для IndexedDB
+const indexedDBMock = {
+  open: vi.fn(() => ({
+    onupgradeneeded: null,
+    onsuccess: null,
+    onerror: null,
+    result: {
+      createObjectStore: vi.fn(() => ({
+        createIndex: vi.fn(),
+      })),
+      transaction: vi.fn(() => ({
+        objectStore: vi.fn(() => ({
+          add: vi.fn(),
+          put: vi.fn(),
+          get: vi.fn(),
+          getAll: vi.fn(),
+          delete: vi.fn(),
+          index: vi.fn(() => ({
+            getAll: vi.fn(),
+          })),
+        })),
+      })),
+      objectStoreNames: { contains: vi.fn(() => false) },
+    },
+  })),
+  deleteDatabase: vi.fn(),
+};
+Object.defineProperty(window, 'indexedDB', { value: indexedDBMock, writable: true });
+
+// Мок для IDBKeyRange
+const IDBKeyRangeMock = {
+  only: vi.fn((value) => value),
+  lowerBound: vi.fn(),
+  upperBound: vi.fn(),
+  bound: vi.fn(),
+};
+Object.defineProperty(window, 'IDBKeyRange', { value: IDBKeyRangeMock, writable: true });
+
 // Мок для localStorage
 const localStorageMock = {
   getItem: vi.fn(),
