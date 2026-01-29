@@ -1,14 +1,31 @@
-import { expect, afterEach, vi } from 'vitest';
+import { expect, afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
 // Расширяем expect матчерами из jest-dom
 expect.extend(matchers);
 
+// localStorage store - объявляем здесь для доступа в hooks
+let localStorageStore: Record<string, string> = {};
+
+// Функция для очистки localStorageStore
+const clearLocalStorageStore = () => {
+  for (const key of Object.keys(localStorageStore)) {
+    delete localStorageStore[key];
+  }
+};
+
+// Сброс перед каждым тестом
+beforeEach(() => {
+  clearLocalStorageStore();
+});
+
 // Очистка после каждого теста
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  // Сбрасываем localStorage store между тестами
+  clearLocalStorageStore();
 });
 
 // Мок для matchMedia (нужен для некоторых UI компонентов)
@@ -56,6 +73,21 @@ vi.mock('@capacitor/haptics', () => ({
     impact: vi.fn(),
     notification: vi.fn(),
     vibrate: vi.fn(),
+  },
+}));
+
+// Мок для scaleService (который импортирует @capacitor-community/bluetooth-le)
+vi.mock('../services/scaleService', () => ({
+  scaleService: {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    isAvailable: vi.fn().mockResolvedValue(false),
+    startScan: vi.fn().mockResolvedValue(undefined),
+    stopScan: vi.fn().mockResolvedValue(undefined),
+    connect: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+    getLastWeight: vi.fn().mockReturnValue(null),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
   },
 }));
 
@@ -124,16 +156,22 @@ const IDBKeyRangeMock = {
 };
 Object.defineProperty(window, 'IDBKeyRange', { value: IDBKeyRangeMock, writable: true });
 
-// Мок для localStorage
+// Мок для localStorage с реальным хранением
+// Используем функции которые напрямую работают с localStorageStore
 const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
+  getItem(key: string) { return localStorageStore[key] ?? null; },
+  setItem(key: string, value: string) { localStorageStore[key] = value; },
+  removeItem(key: string) { delete localStorageStore[key]; },
+  clear() {
+    for (const key of Object.keys(localStorageStore)) {
+      delete localStorageStore[key];
+    }
+  },
+  get length() { return Object.keys(localStorageStore).length; },
+  key(index: number) { return Object.keys(localStorageStore)[index] ?? null; },
 };
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
 
 // Подавляем console.error для ожидаемых ошибок в тестах
 const originalError = console.error;

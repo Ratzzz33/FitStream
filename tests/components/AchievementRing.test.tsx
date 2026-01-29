@@ -34,6 +34,7 @@ describe('AchievementRing', () => {
 
   it('shows completion star when goal is met', () => {
     render(<AchievementRing {...defaultProps} progress={100} total={100} />);
+    // Component uses emoji ⭐ for completion star
     expect(screen.getByText('⭐')).toBeInTheDocument();
   });
 
@@ -74,7 +75,8 @@ describe('AchievementRing', () => {
   it('calculates stroke dashoffset correctly', () => {
     const { container } = render(<AchievementRing {...defaultProps} progress={50} total={100} />);
     const progressCircle = container.querySelectorAll('circle')[1];
-    // When progress is 50%, dashoffset should be 50% of circumference
-    expect(progressCircle).toHaveStyle({ strokeDashoffset: expect.any(String) });
+    // When progress is 50%, dashoffset should be set via style attribute
+    const style = progressCircle?.getAttribute('style') || '';
+    expect(style).toContain('stroke-dashoffset');
   });
 });

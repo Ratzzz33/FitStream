@@ -108,6 +108,11 @@ describe('StorageService', () => {
     });
 
     it('updates goal progress when saving exercise', () => {
+      // Get initial goal value
+      const initialSettings = StorageService.getSettings();
+      const initialPushupGoal = initialSettings.goals.find(g => g.type === 'PUSHUPS');
+      const initialValue = initialPushupGoal?.current ?? 0;
+
       const exercise: ExerciseLog = {
         id: 'ex_2',
         date: '2025-01-29',
@@ -121,7 +126,8 @@ describe('StorageService', () => {
       const settings = StorageService.getSettings();
       const pushupGoal = settings.goals.find(g => g.type === 'PUSHUPS');
 
-      expect(pushupGoal?.current).toBe(15);
+      // Check that the goal increased by 15
+      expect(pushupGoal?.current).toBe(initialValue + 15);
     });
   });
 
@@ -275,17 +281,27 @@ describe('StorageService', () => {
 
   describe('Goals', () => {
     it('updates step goal', () => {
+      // Get initial value
+      const initialSettings = StorageService.getSettings();
+      const initialStepGoal = initialSettings.goals.find(g => g.type === 'STEPS');
+      const initialValue = initialStepGoal?.current ?? 0;
+
       StorageService.updateSteps(1000);
       const settings = StorageService.getSettings();
       const stepGoal = settings.goals.find(g => g.type === 'STEPS');
-      expect(stepGoal?.current).toBe(1000);
+      expect(stepGoal?.current).toBe(initialValue + 1000);
     });
 
     it('syncs external steps', () => {
+      // Get initial value
+      const initialSettings = StorageService.getSettings();
+      const initialStepGoal = initialSettings.goals.find(g => g.type === 'STEPS');
+      const initialValue = initialStepGoal?.current ?? 0;
+
       StorageService.syncExternalSteps(5000);
       const settings = StorageService.getSettings();
       const stepGoal = settings.goals.find(g => g.type === 'STEPS');
-      expect(stepGoal?.current).toBe(5000);
+      expect(stepGoal?.current).toBe(initialValue + 5000);
       expect(settings.connectedPlatforms.lastSync).not.toBeNull();
     });
   });

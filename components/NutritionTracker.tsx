@@ -73,7 +73,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     }, []);
 
     // Check Trial/Pro Status
-    const installDate = new Date(settings.installDate).getTime();
+    const parsedInstallDate = new Date(settings.installDate);
+    const installDate = isNaN(parsedInstallDate.getTime()) ? Date.now() : parsedInstallDate.getTime();
     const daysSinceInstall = (Date.now() - installDate) / (1000 * 60 * 60 * 24);
     const isTrialActive = daysSinceInstall < 7;
     const isScannerUnlocked = settings.isPro || isTrialActive;

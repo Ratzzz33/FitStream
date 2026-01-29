@@ -420,7 +420,9 @@ export const StorageService = {
     if (!settings.referenceObject) settings.referenceObject = '';
     if (!settings.phoneModel) settings.phoneModel = '';
     if (settings.phoneWeight === undefined) settings.phoneWeight = 0;
-    if (!settings.installDate) settings.installDate = new Date().toISOString();
+    if (!settings.installDate || isNaN(new Date(settings.installDate).getTime())) {
+      settings.installDate = new Date().toISOString();
+    }
     if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
     if (!settings.coachVoice) settings.coachVoice = DEFAULT_SETTINGS.coachVoice;
     
