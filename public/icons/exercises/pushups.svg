@@ -1,0 +1,37 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body-part { fill: #FFFFFF; }
+    .upper-body {
+      transform-origin: 48px 36px;
+      animation: pushup 1s ease-in-out infinite;
+    }
+    .arms {
+      fill: #FFFFFF;
+      transform-origin: 48px 40px;
+      animation: arms-bend 1s ease-in-out infinite;
+    }
+    @keyframes pushup {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(15deg); }
+    }
+    @keyframes arms-bend {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.5); }
+    }
+  </style>
+  <!-- Ground reference -->
+  <rect x="4" y="54" width="56" height="2" fill="#666"/>
+  <!-- Head -->
+  <circle cx="12" cy="32" r="5" class="body-part upper-body"/>
+  <!-- Torso (horizontal) -->
+  <rect x="14" y="30" width="24" height="6" rx="3" class="body-part upper-body"/>
+  <!-- Hips -->
+  <rect x="38" y="30" width="8" height="6" rx="2" class="body-part"/>
+  <!-- Legs (straight back) -->
+  <rect x="44" y="32" width="16" height="4" rx="2" class="body-part"/>
+  <!-- Arms -->
+  <g class="arms">
+    <rect x="20" y="36" width="4" height="18" rx="2" class="body-part"/>
+    <rect x="32" y="36" width="4" height="18" rx="2" class="body-part"/>
+  </g>
+</svg>

@@ -1,0 +1,43 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body-part { fill: #FFFFFF; }
+    .left-leg {
+      transform-origin: 28px 34px;
+      animation: knee-left 0.4s ease-in-out infinite;
+    }
+    .right-leg {
+      transform-origin: 36px 34px;
+      animation: knee-right 0.4s ease-in-out infinite;
+    }
+    .left-arm {
+      transform-origin: 26px 20px;
+      animation: arm-left 0.4s ease-in-out infinite;
+    }
+    .right-arm {
+      transform-origin: 38px 20px;
+      animation: arm-right 0.4s ease-in-out infinite;
+    }
+    @keyframes knee-left {
+      0%, 100% { transform: rotate(-70deg); }
+      50% { transform: rotate(0deg); }
+    }
+    @keyframes knee-right {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-70deg); }
+    }
+    @keyframes arm-left {
+      0%, 100% { transform: rotate(30deg); }
+      50% { transform: rotate(-30deg); }
+    }
+    @keyframes arm-right {
+      0%, 100% { transform: rotate(-30deg); }
+      50% { transform: rotate(30deg); }
+    }
+  </style>
+  <circle cx="32" cy="10" r="6" class="body-part"/>
+  <rect x="28" y="17" width="8" height="14" rx="3" class="body-part"/>
+  <rect x="22" y="18" width="6" height="4" rx="2" class="body-part left-arm"/>
+  <rect x="36" y="18" width="6" height="4" rx="2" class="body-part right-arm"/>
+  <rect x="26" y="32" width="5" height="18" rx="2" class="body-part left-leg"/>
+  <rect x="33" y="32" width="5" height="18" rx="2" class="body-part right-leg"/>
+</svg>

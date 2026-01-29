@@ -1,10 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import {
-  Camera, X, Play, Square, Mic, MicOff, AlertCircle, Cpu, Sparkles, ChevronRight,
-  Dumbbell, ArrowUp, Timer, Zap, Move, Footprints, Mountain,
-  TrendingUp, CircleDot, Armchair, ArrowLeftRight, Hand
-} from 'lucide-react';
+import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles } from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
@@ -25,23 +21,26 @@ const LOCAL_EXERCISES: TrackableExercise[] = [
   'GLUTE_BRIDGES', 'CALF_RAISES', 'WALL_SIT', 'SIDE_LUNGES', 'TRICEP_DIPS'
 ];
 
-// Exercise icons mapping
-const EXERCISE_ICONS: Record<TrackableExercise, React.ReactNode> = {
-  SQUATS: <Dumbbell className="w-7 h-7" />,
-  PUSHUPS: <ArrowUp className="w-7 h-7" />,
-  PLANK: <Timer className="w-7 h-7" />,
-  LUNGES: <Footprints className="w-7 h-7" />,
-  SITUPS: <TrendingUp className="w-7 h-7" />,
-  BURPEES: <Zap className="w-7 h-7" />,
-  JUMPING_JACKS: <Move className="w-7 h-7" />,
-  HIGH_KNEES: <ArrowUp className="w-7 h-7" />,
-  MOUNTAIN_CLIMBERS: <Mountain className="w-7 h-7" />,
-  LEG_RAISES: <TrendingUp className="w-7 h-7" />,
-  GLUTE_BRIDGES: <CircleDot className="w-7 h-7" />,
-  CALF_RAISES: <Footprints className="w-7 h-7" />,
-  WALL_SIT: <Armchair className="w-7 h-7" />,
-  SIDE_LUNGES: <ArrowLeftRight className="w-7 h-7" />,
-  TRICEP_DIPS: <Hand className="w-7 h-7" />
+// Exercise icon component - uses generated SVGs
+const ExerciseIcon: React.FC<{ exercise: TrackableExercise; className?: string }> = ({ exercise, className = "w-8 h-8" }) => {
+  const iconMap: Record<TrackableExercise, string> = {
+    SQUATS: 'squats',
+    PUSHUPS: 'pushups',
+    PLANK: 'plank',
+    LUNGES: 'lunges',
+    SITUPS: 'situps',
+    BURPEES: 'burpees',
+    JUMPING_JACKS: 'jumping_jacks',
+    HIGH_KNEES: 'high_knees',
+    MOUNTAIN_CLIMBERS: 'mountain_climbers',
+    LEG_RAISES: 'leg_raises',
+    GLUTE_BRIDGES: 'glute_bridges',
+    CALF_RAISES: 'calf_raises',
+    WALL_SIT: 'wall_sit',
+    SIDE_LUNGES: 'side_lunges',
+    TRICEP_DIPS: 'tricep_dips'
+  };
+  return <img src={`/icons/exercises/${iconMap[exercise]}.svg`} alt="" className={className} />;
 };
 
 // Function declaration for the model
@@ -540,7 +539,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 }`}
               >
                 <div className="mb-1">
-                  {EXERCISE_ICONS[exercise]}
+                  <ExerciseIcon exercise={exercise} className="w-8 h-8" />
                 </div>
                 <div className="text-white font-medium text-xs text-center leading-tight">
                   {getExerciseNameRu(exercise)}
