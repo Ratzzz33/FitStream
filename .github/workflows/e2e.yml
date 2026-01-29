@@ -58,7 +58,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:5173
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-results-${{ matrix.browser }}
@@ -68,7 +68,7 @@ jobs:
           retention-days: 7
 
       - name: Upload traces on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-traces-${{ matrix.browser }}
@@ -148,7 +148,7 @@ jobs:
           CI: true
 
       - name: Upload mobile test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-results-mobile
@@ -191,7 +191,7 @@ jobs:
           CI: true
 
       - name: Upload visual diffs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: visual-regression-diffs
