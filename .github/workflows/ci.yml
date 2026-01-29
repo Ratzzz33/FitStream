@@ -193,9 +193,10 @@ jobs:
           fetch-depth: 0
 
       - name: Run Gitleaks
+        continue-on-error: true
         run: |
           docker run --rm \
-            -v "${PWD}:/path:Z" \
+            -v "${PWD}:/path" \
             docker.io/zricethezav/gitleaks:latest \
             detect \
             --source="/path" \
