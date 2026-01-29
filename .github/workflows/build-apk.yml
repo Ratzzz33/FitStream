@@ -1,5 +1,5 @@
 # Build Android APK
-# Builds debug and release APK artifacts using Docker
+# Builds debug APK using direct SDK installation
 
 name: Build APK
 
@@ -11,27 +11,54 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '22'
+  ANDROID_SDK_ROOT: /opt/android-sdk
+  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
 jobs:
   build-android:
     name: Build Android APK
     runs-on: self-hosted
-    timeout-minutes: 45
-    container:
-      image: docker.io/cimg/android:2024.01.1-node
-      options: --user root
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
+      - name: Setup Java 17
         run: |
-          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-          apt-get install -y nodejs
-          node --version
-          npm --version
+          if ! command -v java &> /dev/null || ! java -version 2>&1 | grep -q "17"; then
+            echo "Installing Java 17..."
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk
+          fi
+          java -version
+
+      - name: Setup Android SDK
+        run: |
+          if [ ! -d "$ANDROID_SDK_ROOT" ]; then
+            echo "Installing Android SDK..."
+            sudo mkdir -p $ANDROID_SDK_ROOT
+            sudo chown -R $USER:$USER $ANDROID_SDK_ROOT
+
+            # Download command line tools
+            cd /tmp
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q commandlinetools-linux-11076708_latest.zip
+            mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
+            mv cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+
+            # Install SDK components
+            yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          fi
+
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
 
       - name: Install dependencies
         run: npm ci
@@ -42,52 +69,41 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Accept Android licenses
-        run: yes | sdkmanager --licenses || true
-
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=$JAVA_HOME
 
-      - name: Build Release APK (unsigned)
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
-
-      - name: Copy APKs to workspace
+      - name: List APK output
         run: |
-          mkdir -p apk-output
-          cp android/app/build/outputs/apk/debug/app-debug.apk apk-output/FitStream-debug.apk || true
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk apk-output/FitStream-release.apk || true
-          ls -la apk-output/
+          find android -name "*.apk" -type f
+          ls -la android/app/build/outputs/apk/debug/ 2>/dev/null || echo "Debug APK not found"
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v6
         with:
-          name: FitStream-debug-apk
-          path: apk-output/FitStream-debug.apk
+          name: FitStream-debug-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v6
-        with:
-          name: FitStream-release-apk
-          path: apk-output/FitStream-release.apk
-          retention-days: 30
+          if-no-files-found: warn
 
       - name: Generate summary
+        if: always()
         run: |
-          echo "# Android Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "# Android Build" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Download APK" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to **Actions** tab" >> $GITHUB_STEP_SUMMARY
-          echo "2. Click on this workflow run" >> $GITHUB_STEP_SUMMARY
-          echo "3. Scroll to **Artifacts** section" >> $GITHUB_STEP_SUMMARY
-          echo "4. Download **FitStream-debug-apk**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Features Included" >> $GITHUB_STEP_SUMMARY
-          echo "- Xiaomi Mi Scale BLE integration" >> $GITHUB_STEP_SUMMARY
-          echo "- Health Connect (Samsung Health sync)" >> $GITHUB_STEP_SUMMARY
-          echo "- Weight, Steps, Heart Rate, Exercise tracking" >> $GITHUB_STEP_SUMMARY
-          echo "- Body composition analysis" >> $GITHUB_STEP_SUMMARY
+          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            SIZE=$(du -h android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "## APK Ready" >> $GITHUB_STEP_SUMMARY
+            echo "- **Size**: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "- **Artifact**: FitStream-debug-${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## Features" >> $GITHUB_STEP_SUMMARY
+            echo "- Xiaomi Mi Scale BLE" >> $GITHUB_STEP_SUMMARY
+            echo "- Samsung Health via Health Connect" >> $GITHUB_STEP_SUMMARY
+            echo "- Weight, Steps, Heart Rate sync" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo "APK was not generated. Check logs for errors." >> $GITHUB_STEP_SUMMARY
+          fi
