@@ -63,7 +63,8 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
       return;
     }
 
-    const last = new Date(platforms.lastSync).getTime();
+    const lastDate = new Date(platforms.lastSync);
+    const last = isNaN(lastDate.getTime()) ? 0 : lastDate.getTime();
     const now = Date.now();
     const hoursSinceSync = (now - last) / (1000 * 60 * 60);
 
@@ -349,7 +350,10 @@ export const HealthConnect: React.FC<HealthConnectProps> = ({ settings, onUpdate
       {(platforms.googleFit || platforms.appleHealth) && (
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
           <span className="text-xs text-gray-400">
-            {platforms.lastSync ? `${t('lastSync')}: ${new Date(platforms.lastSync).toLocaleTimeString()}` : ''}
+            {platforms.lastSync ? `${t('lastSync')}: ${(() => {
+              const d = new Date(platforms.lastSync);
+              return isNaN(d.getTime()) ? '' : d.toLocaleTimeString();
+            })()}` : ''}
           </span>
           <button
             onClick={handleSync}

@@ -37,7 +37,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, t
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const date = new Date(data.date);
-    const formattedDate = date.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    const formattedDate = isNaN(date.getTime()) ? data.date : date.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 
     return (
       <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl text-sm min-w-[200px] z-50">
@@ -139,7 +139,13 @@ export const StatsCharts: React.FC<ChartsProps> = ({ exercises, weights, targetW
        entry.lastWeightTime = w.timestamp;
     });
 
-    const fullData = Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const fullData = Array.from(dataMap.values()).sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+      const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+      return timeA - timeB;
+    });
     
     // If NOT pro, only show last 7 days + dummy data for blur effect
     if (!isPro) {

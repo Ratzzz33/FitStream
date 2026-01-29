@@ -100,7 +100,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, selected
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const date = new Date(data.date);
-    const formattedDate = date.toLocaleDateString(undefined, {
+    const formattedDate = isNaN(date.getTime()) ? data.date : date.toLocaleDateString(undefined, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -178,7 +178,10 @@ export const BodyCompositionCharts: React.FC<BodyCompositionChartsProps> = ({
       cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    const filtered = weightsWithBC.filter((w) => new Date(w.date) >= cutoffDate);
+    const filtered = weightsWithBC.filter((w) => {
+      const wDate = new Date(w.date);
+      return !isNaN(wDate.getTime()) && wDate >= cutoffDate;
+    });
 
     // Group by date, take latest reading per day
     const byDate = new Map<string, WeightLog>();
@@ -191,7 +194,13 @@ export const BodyCompositionCharts: React.FC<BodyCompositionChartsProps> = ({
 
     // Convert to chart data
     return Array.from(byDate.values())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+        return timeA - timeB;
+      })
       .map((w) => ({
         date: w.date,
         weight: w.weight,
@@ -281,7 +290,10 @@ export const BodyCompositionCharts: React.FC<BodyCompositionChartsProps> = ({
             </h3>
             <div className="flex items-center gap-2">
               <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
-                {new Date(latestReading.date).toLocaleDateString()}
+                {(() => {
+                  const d = new Date(latestReading.date);
+                  return isNaN(d.getTime()) ? latestReading.date : d.toLocaleDateString();
+                })()}
               </span>
               {showDetails ? (
                 <ChevronUp size={16} className={isDark ? 'text-zinc-400' : 'text-gray-500'} />
@@ -513,6 +525,7 @@ export const BodyCompositionCharts: React.FC<BodyCompositionChartsProps> = ({
                 fontSize={10}
                 tickFormatter={(str) => {
                   const date = new Date(str);
+                  if (isNaN(date.getTime())) return str;
                   return `${date.getDate()}/${date.getMonth() + 1}`;
                 }}
               />

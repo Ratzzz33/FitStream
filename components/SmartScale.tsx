@@ -152,7 +152,10 @@ const SmartScale: React.FC<SmartScaleProps> = ({ settings, onWeightLogged, theme
             Latest Reading
           </h3>
           <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
-            {new Date(lastReading.timestamp).toLocaleTimeString()}
+            {(() => {
+              const d = new Date(lastReading.timestamp);
+              return isNaN(d.getTime()) ? '' : d.toLocaleTimeString();
+            })()}
           </span>
         </div>
 

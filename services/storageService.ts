@@ -423,6 +423,9 @@ export const StorageService = {
     if (!settings.installDate || isNaN(new Date(settings.installDate).getTime())) {
       settings.installDate = new Date().toISOString();
     }
+    if (!settings.lastActiveDate || isNaN(new Date(settings.lastActiveDate).getTime())) {
+      settings.lastActiveDate = new Date().toISOString().split('T')[0];
+    }
     if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
     if (!settings.coachVoice) settings.coachVoice = DEFAULT_SETTINGS.coachVoice;
     
@@ -470,12 +473,13 @@ export const StorageService = {
 
   updateStreak: () => {
       const settings = StorageService.getSettings();
-      const lastActive = new Date(settings.lastActiveDate);
+      const lastActiveDate = new Date(settings.lastActiveDate);
+      const lastActive = isNaN(lastActiveDate.getTime()) ? new Date() : lastActiveDate;
       const today = new Date();
-      
+
       lastActive.setHours(0,0,0,0);
       today.setHours(0,0,0,0);
-      
+
       const diffTime = Math.abs(today.getTime() - lastActive.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
