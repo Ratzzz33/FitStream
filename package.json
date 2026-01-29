@@ -43,7 +43,7 @@
     "@capacitor/splash-screen": "^6.0.0",
     "@capacitor/status-bar": "^6.0.0",
     "@google/genai": "^1.30.0",
-    "lucide-react": "^0.554.0",
+    "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.5.0"
@@ -68,7 +68,7 @@
     "jsdom": "^25.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
-    "typescript": "~5.8.2",
+    "typescript": "~5.9.3",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^0.21.2",
     "vitest": "^2.0.0",
