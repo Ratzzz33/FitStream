@@ -66,8 +66,14 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(request);
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // Return offline error response for API calls
+          return new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
         })
     );
     return;
@@ -95,15 +101,20 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
 
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        });
+        return fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const responseClone = response.clone();
+              caches.open(RUNTIME_CACHE).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return response;
+          })
+          .catch(() => {
+            // Return empty response for missing static assets
+            return new Response('', { status: 404 });
+          });
       })
     );
     return;
@@ -120,8 +131,16 @@ self.addEventListener('fetch', (event) => {
           });
           return response;
         })
-        .catch(() => {
-          return caches.match(request) || caches.match('/');
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const indexCached = await caches.match('/');
+          if (indexCached) return indexCached;
+          // Fallback offline page
+          return new Response('<html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>', {
+            status: 503,
+            headers: { 'Content-Type': 'text/html' }
+          });
         })
     );
     return;
@@ -139,7 +158,12 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request))
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        // Return empty response for uncached resources
+        return new Response('', { status: 503 });
+      })
   );
 });
 

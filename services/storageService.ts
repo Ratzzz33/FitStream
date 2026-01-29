@@ -426,7 +426,12 @@ export const StorageService = {
     if (!settings.lastActiveDate || isNaN(new Date(settings.lastActiveDate).getTime())) {
       settings.lastActiveDate = new Date().toISOString().split('T')[0];
     }
-    if (!settings.backendUrl) settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
+    // Validate backendUrl - reset if malformed (e.g., missing subdomain like "https://.fitstream.health")
+    if (!settings.backendUrl ||
+        settings.backendUrl.includes('://.') ||
+        !settings.backendUrl.match(/^https?:\/\/[a-zA-Z0-9]/)) {
+      settings.backendUrl = DEFAULT_SETTINGS.backendUrl;
+    }
     if (!settings.coachVoice) settings.coachVoice = DEFAULT_SETTINGS.coachVoice;
     
     return settings;
