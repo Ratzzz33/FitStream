@@ -231,7 +231,15 @@ const translations = {
     apiKeyMissingDesc: "Please configure your process.env.API_KEY to use this application.",
     syncRequired: "Sync Required",
     backgroundSyncNote: "Background sync is unavailable in browser mode. It has been a while since your last update.",
-    sync: "Sync"
+    sync: "Sync",
+
+    // Offline Mode
+    offlineMode: "Offline Mode",
+    pending: "pending",
+    photoSaved: "Photo saved",
+    offlinePhotoHint: "You can enter data manually now or save the photo for AI analysis when you're back online.",
+    saveForLater: "Analyze When Online",
+    pendingAnalysis: "Pending Analysis"
   },
   ru: {
     dashboard: 'Главная',
@@ -461,7 +469,15 @@ const translations = {
     apiKeyMissingDesc: "Пожалуйста, настройте process.env.API_KEY для использования приложения.",
     syncRequired: "Требуется синхронизация",
     backgroundSyncNote: "Фоновая синхронизация недоступна в браузере. Данные давно не обновлялись.",
-    sync: "Синхр."
+    sync: "Синхр.",
+
+    // Offline Mode
+    offlineMode: "Офлайн режим",
+    pending: "ожидает",
+    photoSaved: "Фото сохранено",
+    offlinePhotoHint: "Введите данные вручную или сохраните фото для ИИ-анализа при появлении интернета.",
+    saveForLater: "Анализировать позже",
+    pendingAnalysis: "Ожидает анализа"
   },
   es: {
     dashboard: 'Inicio',

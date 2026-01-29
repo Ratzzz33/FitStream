@@ -1,324 +1,434 @@
 /**
- * SyncQueue Service
+ * Sync Queue Service
  *
- * Handles offline-first data synchronization with Background Sync API.
- * Stores failed requests in IndexedDB and processes them when online.
+ * Manages synchronization of offline data when connectivity is restored.
+ * Processes pending items including those that need AI analysis.
  */
 
-const DB_NAME = 'fitstream_sync';
-const DB_VERSION = 1;
-const STORE_NAME = 'pending_requests';
+import { offlineStorage } from './offlineStorage';
+import { StorageService } from './storageService';
+import { NutritionLog, WeightLog, ExerciseLog, PendingItem } from '../types';
+import * as GeminiService from './geminiService';
 
-interface PendingRequest {
-  id: string;
-  type: 'EXERCISE' | 'WEIGHT' | 'NUTRITION' | 'SETTINGS' | 'BULK';
-  data: any;
-  userId: string;
-  timestamp: number;
-  retryCount: number;
-  backendUrl: string;
+type SyncStatus = 'idle' | 'syncing' | 'error';
+
+interface SyncState {
+  status: SyncStatus;
+  pendingCount: number;
+  lastSyncTime: number | null;
+  errorMessage?: string;
 }
 
 class SyncQueueService {
-  private db: IDBDatabase | null = null;
+  private state: SyncState = {
+    status: 'idle',
+    pendingCount: 0,
+    lastSyncTime: null
+  };
+
+  private listeners: Set<(state: SyncState) => void> = new Set();
   private isProcessing = false;
   private onlineHandler: (() => void) | null = null;
 
-  /**
-   * Initialize IndexedDB
-   */
-  async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!('indexedDB' in window)) {
-        console.warn('IndexedDB not supported, sync queue disabled');
-        resolve();
-        return;
+  constructor() {
+    this.init();
+  }
+
+  private async init() {
+    // Update pending count on init
+    this.state.pendingCount = await offlineStorage.getPendingCount();
+
+    // Listen for online events
+    if (typeof window !== 'undefined') {
+      this.onlineHandler = () => this.processQueue();
+      window.addEventListener('online', this.onlineHandler);
+
+      // Process queue if already online
+      if (navigator.onLine) {
+        this.processQueue();
       }
-
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => {
-        console.error('Failed to open IndexedDB:', request.error);
-        reject(request.error);
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        console.log('SyncQueue: IndexedDB initialized');
-        this.setupOnlineListener();
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-          store.createIndex('timestamp', 'timestamp', { unique: false });
-          store.createIndex('type', 'type', { unique: false });
-        }
-      };
-    });
+    }
   }
 
   /**
-   * Setup listener for when device comes back online
+   * Subscribe to sync state changes
    */
-  private setupOnlineListener(): void {
-    if (this.onlineHandler) {
-      window.removeEventListener('online', this.onlineHandler);
+  subscribe(listener: (state: SyncState) => void): () => void {
+    this.listeners.add(listener);
+    listener(this.state); // Immediately notify with current state
+    return () => this.listeners.delete(listener);
+  }
+
+  private notify() {
+    this.listeners.forEach(listener => listener(this.state));
+  }
+
+  private updateState(partial: Partial<SyncState>) {
+    this.state = { ...this.state, ...partial };
+    this.notify();
+  }
+
+  /**
+   * Get current sync state
+   */
+  getState(): SyncState {
+    return { ...this.state };
+  }
+
+  /**
+   * Add a nutrition log to the queue (with optional photo for AI analysis)
+   */
+  async queueNutritionLog(
+    log: NutritionLog,
+    photoBase64?: string,
+    needsAiAnalysis: boolean = false
+  ): Promise<void> {
+    let photoId: string | undefined;
+
+    // Save photo if provided
+    if (photoBase64) {
+      photoId = await offlineStorage.savePhoto(
+        photoBase64,
+        'image/jpeg',
+        log.id,
+        'NUTRITION'
+      );
+      log.photoId = photoId;
     }
 
-    this.onlineHandler = () => {
-      console.log('SyncQueue: Online detected, processing queue...');
-      this.processQueue();
-    };
-
-    window.addEventListener('online', this.onlineHandler);
-
-    // Also try Background Sync API if available
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-      navigator.serviceWorker.ready.then((registration) => {
-        // @ts-ignore - SyncManager types
-        registration.sync?.register('fitstream-sync').catch((err: Error) => {
-          console.warn('Background Sync registration failed:', err);
-        });
+    // If needs AI analysis and offline, queue for later
+    if (needsAiAnalysis && !navigator.onLine) {
+      await offlineStorage.addPendingItem({
+        type: 'NUTRITION',
+        data: log,
+        photoId,
+        needsAiAnalysis: true
       });
+      log.pendingAiAnalysis = true;
     }
+
+    // Save to local storage
+    StorageService.saveNutrition(log);
+
+    this.state.pendingCount = await offlineStorage.getPendingCount();
+    this.notify();
   }
 
   /**
-   * Add a failed request to the queue
+   * Add a weight log to the queue (with optional photo for AI analysis)
    */
-  async addToQueue(request: Omit<PendingRequest, 'id' | 'timestamp' | 'retryCount'>): Promise<void> {
-    if (!this.db) {
-      console.warn('SyncQueue: DB not initialized, skipping queue');
+  async queueWeightLog(
+    log: WeightLog,
+    photoBase64?: string,
+    needsAiAnalysis: boolean = false
+  ): Promise<void> {
+    let photoId: string | undefined;
+
+    // Save photo if provided
+    if (photoBase64) {
+      photoId = await offlineStorage.savePhoto(
+        photoBase64,
+        'image/jpeg',
+        log.id,
+        'WEIGHT'
+      );
+      log.photoId = photoId;
+    }
+
+    // If needs AI analysis and offline, queue for later
+    if (needsAiAnalysis && !navigator.onLine) {
+      await offlineStorage.addPendingItem({
+        type: 'WEIGHT',
+        data: log,
+        photoId,
+        needsAiAnalysis: true
+      });
+      log.pendingAiAnalysis = true;
+    }
+
+    // Save to local storage
+    StorageService.saveWeight(log);
+
+    this.state.pendingCount = await offlineStorage.getPendingCount();
+    this.notify();
+  }
+
+  /**
+   * Queue a photo for AI analysis when online
+   */
+  async queuePhotoForAnalysis(
+    photoBase64: string,
+    analysisType: 'FOOD' | 'SCALE' | 'MENU',
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    const photoId = await offlineStorage.savePendingPhoto(
+      photoBase64,
+      analysisType,
+      metadata
+    );
+
+    this.state.pendingCount = await offlineStorage.getPendingCount();
+    this.notify();
+
+    return photoId;
+  }
+
+  /**
+   * Process the sync queue
+   */
+  async processQueue(): Promise<void> {
+    if (this.isProcessing || !navigator.onLine) {
       return;
     }
 
-    const pendingRequest: PendingRequest = {
-      ...request,
-      id: `${request.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
-      retryCount: 0
-    };
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const addRequest = store.add(pendingRequest);
-
-      addRequest.onsuccess = () => {
-        console.log(`SyncQueue: Added ${request.type} to queue`);
-        this.dispatchQueueUpdate();
-        resolve();
-      };
-
-      addRequest.onerror = () => {
-        console.error('SyncQueue: Failed to add to queue:', addRequest.error);
-        reject(addRequest.error);
-      };
-    });
-  }
-
-  /**
-   * Get count of pending items
-   */
-  async getPendingCount(): Promise<number> {
-    if (!this.db) return 0;
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const countRequest = store.count();
-
-      countRequest.onsuccess = () => resolve(countRequest.result);
-      countRequest.onerror = () => resolve(0);
-    });
-  }
-
-  /**
-   * Get all pending requests
-   */
-  async getPendingRequests(): Promise<PendingRequest[]> {
-    if (!this.db) return [];
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const getAllRequest = store.getAll();
-
-      getAllRequest.onsuccess = () => resolve(getAllRequest.result || []);
-      getAllRequest.onerror = () => resolve([]);
-    });
-  }
-
-  /**
-   * Remove a processed request from queue
-   */
-  private async removeFromQueue(id: string): Promise<void> {
-    if (!this.db) return;
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const deleteRequest = store.delete(id);
-
-      deleteRequest.onsuccess = () => {
-        this.dispatchQueueUpdate();
-        resolve();
-      };
-      deleteRequest.onerror = () => resolve();
-    });
-  }
-
-  /**
-   * Update retry count for a failed request
-   */
-  private async updateRetryCount(request: PendingRequest): Promise<void> {
-    if (!this.db) return;
-
-    request.retryCount += 1;
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const putRequest = store.put(request);
-
-      putRequest.onsuccess = () => resolve();
-      putRequest.onerror = () => resolve();
-    });
-  }
-
-  /**
-   * Process all pending requests
-   */
-  async processQueue(): Promise<{ success: number; failed: number }> {
-    if (this.isProcessing || !navigator.onLine) {
-      return { success: 0, failed: 0 };
-    }
-
     this.isProcessing = true;
-    let success = 0;
-    let failed = 0;
+    this.updateState({ status: 'syncing' });
 
     try {
-      const pending = await this.getPendingRequests();
-      console.log(`SyncQueue: Processing ${pending.length} pending requests`);
+      // Process pending items
+      const pendingItems = await offlineStorage.getPendingItems();
 
-      for (const request of pending) {
-        // Skip if too many retries
-        if (request.retryCount >= 5) {
-          console.warn(`SyncQueue: Removing ${request.id} after 5 failed attempts`);
-          await this.removeFromQueue(request.id);
-          failed++;
-          continue;
-        }
-
-        const processed = await this.processRequest(request);
-
-        if (processed) {
-          await this.removeFromQueue(request.id);
-          success++;
-        } else {
-          await this.updateRetryCount(request);
-          failed++;
+      for (const item of pendingItems) {
+        try {
+          await this.processPendingItem(item);
+          await offlineStorage.removePendingItem(item.id);
+        } catch (error) {
+          console.error('Error processing pending item:', error);
+          // Increment retry count
+          item.retryCount++;
+          if (item.retryCount < 3) {
+            await offlineStorage.updatePendingItem(item);
+          } else {
+            // Give up after 3 retries
+            await offlineStorage.removePendingItem(item.id);
+          }
         }
       }
 
-      console.log(`SyncQueue: Processed ${success} success, ${failed} failed`);
+      // Process pending photos for AI analysis
+      const pendingPhotos = await offlineStorage.getPendingPhotos();
+
+      for (const photo of pendingPhotos) {
+        try {
+          await this.processPhotoAnalysis(photo);
+          await offlineStorage.removePendingPhoto(photo.id);
+        } catch (error) {
+          console.error('Error processing pending photo:', error);
+        }
+      }
+
+      this.state.pendingCount = await offlineStorage.getPendingCount();
+      this.updateState({
+        status: 'idle',
+        lastSyncTime: Date.now(),
+        errorMessage: undefined
+      });
+    } catch (error) {
+      console.error('Sync queue error:', error);
+      this.updateState({
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Sync failed'
+      });
     } finally {
       this.isProcessing = false;
     }
-
-    return { success, failed };
   }
 
   /**
-   * Process a single pending request
+   * Process a single pending item
    */
-  private async processRequest(request: PendingRequest): Promise<boolean> {
-    const { ApiService } = await import('./api');
+  private async processPendingItem(item: PendingItem): Promise<void> {
+    if (!item.needsAiAnalysis) {
+      // Just needs to sync to backend - already saved locally
+      return;
+    }
 
-    try {
-      switch (request.type) {
-        case 'EXERCISE':
-        case 'WEIGHT':
-        case 'NUTRITION':
-          return await ApiService.pushLog(
-            request.userId,
-            request.type,
-            request.data,
-            request.backendUrl
-          );
-
-        case 'SETTINGS':
-          const result = await ApiService.syncUser(
-            request.userId,
-            request.data,
-            request.backendUrl
-          );
-          return result !== null;
-
-        case 'BULK':
-          return await ApiService.pushBulk(
-            request.userId,
-            request.data,
-            request.backendUrl
-          );
-
-        default:
-          console.warn(`SyncQueue: Unknown request type: ${request.type}`);
-          return false;
+    // Get photo if exists
+    let photoBase64: string | undefined;
+    if (item.photoId) {
+      const photo = await offlineStorage.getPhoto(item.photoId);
+      if (photo) {
+        photoBase64 = photo.data;
       }
-    } catch (error) {
-      console.error(`SyncQueue: Failed to process request:`, error);
-      return false;
+    }
+
+    switch (item.type) {
+      case 'NUTRITION':
+        if (photoBase64) {
+          await this.processNutritionWithAi(item.data as NutritionLog, photoBase64);
+        }
+        break;
+      case 'WEIGHT':
+        if (photoBase64) {
+          await this.processWeightWithAi(item.data as WeightLog, photoBase64);
+        }
+        break;
     }
   }
 
   /**
-   * Dispatch custom event for UI updates
+   * Process nutrition item with AI
    */
-  private dispatchQueueUpdate(): void {
-    this.getPendingCount().then(count => {
-      window.dispatchEvent(new CustomEvent('syncqueue-update', {
-        detail: { pendingCount: count }
-      }));
-    });
+  private async processNutritionWithAi(log: NutritionLog, photoBase64: string): Promise<void> {
+    const settings = StorageService.getSettings();
+
+    try {
+      const result = await GeminiService.analyzeFood(
+        photoBase64,
+        settings.referenceObject,
+        settings.referenceDimensions
+      );
+
+      if (result) {
+        // Update the log with AI results
+        const updatedLog: NutritionLog = {
+          ...log,
+          name: result.name,
+          calories: result.calories,
+          protein: result.protein,
+          carbs: result.carbs,
+          fat: result.fat,
+          pendingAiAnalysis: false
+        };
+
+        // Update in storage
+        const logs = StorageService.getNutritionLogs();
+        const index = logs.findIndex(l => l.id === log.id);
+        if (index !== -1) {
+          logs[index] = updatedLog;
+          localStorage.setItem('fitstream_nutrition', JSON.stringify(logs));
+        }
+      }
+    } catch (error) {
+      console.error('AI nutrition analysis failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * Clear all pending requests (use with caution)
+   * Process weight item with AI
+   */
+  private async processWeightWithAi(log: WeightLog, photoBase64: string): Promise<void> {
+    const settings = StorageService.getSettings();
+
+    try {
+      const result = await GeminiService.scanScaleDisplay(photoBase64);
+
+      if (result && result.confidence === 'HIGH') {
+        let weight = result.weight;
+
+        // Subtract phone weight if set
+        if (settings.phoneWeight && settings.phoneWeight > 0) {
+          weight -= settings.phoneWeight;
+        }
+
+        // Update the log with AI results
+        const updatedLog: WeightLog = {
+          ...log,
+          weight: Math.round(weight * 10) / 10,
+          pendingAiAnalysis: false
+        };
+
+        // Update in storage
+        const weights = StorageService.getWeights();
+        const index = weights.findIndex(w => w.id === log.id);
+        if (index !== -1) {
+          weights[index] = updatedLog;
+          localStorage.setItem('fitstream_weights', JSON.stringify(weights));
+        }
+      }
+    } catch (error) {
+      console.error('AI weight analysis failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process a pending photo analysis
+   */
+  private async processPhotoAnalysis(photo: {
+    id: string;
+    data: string;
+    analysisType: 'FOOD' | 'SCALE' | 'MENU';
+    metadata: Record<string, any>;
+    createdAt: number;
+  }): Promise<void> {
+    const settings = StorageService.getSettings();
+
+    switch (photo.analysisType) {
+      case 'FOOD':
+        const foodResult = await GeminiService.analyzeFood(
+          photo.data,
+          settings.referenceObject,
+          settings.referenceDimensions
+        );
+        // Notify listeners with result
+        this.dispatchAnalysisResult('FOOD', foodResult, photo.metadata);
+        break;
+
+      case 'SCALE':
+        const scaleResult = await GeminiService.scanScaleDisplay(photo.data);
+        this.dispatchAnalysisResult('SCALE', scaleResult, photo.metadata);
+        break;
+
+      case 'MENU':
+        const menuResult = await GeminiService.analyzeMenu(photo.data);
+        this.dispatchAnalysisResult('MENU', menuResult, photo.metadata);
+        break;
+    }
+  }
+
+  private analysisResultListeners: Map<string, (type: string, result: any, metadata: any) => void> = new Map();
+
+  /**
+   * Register for analysis result notifications
+   */
+  onAnalysisResult(id: string, callback: (type: string, result: any, metadata: any) => void): () => void {
+    this.analysisResultListeners.set(id, callback);
+    return () => this.analysisResultListeners.delete(id);
+  }
+
+  private dispatchAnalysisResult(type: string, result: any, metadata: any) {
+    this.analysisResultListeners.forEach(callback => callback(type, result, metadata));
+  }
+
+  /**
+   * Force sync now
+   */
+  async syncNow(): Promise<void> {
+    if (navigator.onLine) {
+      await this.processQueue();
+    }
+  }
+
+  /**
+   * Clear all pending items
    */
   async clearQueue(): Promise<void> {
-    if (!this.db) return;
+    const items = await offlineStorage.getPendingItems();
+    for (const item of items) {
+      await offlineStorage.removePendingItem(item.id);
+    }
 
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const clearRequest = store.clear();
+    const photos = await offlineStorage.getPendingPhotos();
+    for (const photo of photos) {
+      await offlineStorage.removePendingPhoto(photo.id);
+    }
 
-      clearRequest.onsuccess = () => {
-        this.dispatchQueueUpdate();
-        resolve();
-      };
-      clearRequest.onerror = () => resolve();
-    });
+    this.state.pendingCount = 0;
+    this.notify();
   }
 
   /**
-   * Check if device is online
+   * Cleanup
    */
-  isOnline(): boolean {
-    return navigator.onLine;
+  destroy() {
+    if (this.onlineHandler && typeof window !== 'undefined') {
+      window.removeEventListener('online', this.onlineHandler);
+    }
+    this.listeners.clear();
   }
 }
 
-// Singleton instance
+// Singleton export
 export const syncQueue = new SyncQueueService();
-
-// Initialize on load
-if (typeof window !== 'undefined') {
-  syncQueue.init().catch(console.error);
-}

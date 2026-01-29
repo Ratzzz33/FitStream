@@ -15,6 +15,9 @@ export interface WeightLog {
   timestamp: number;
   weight: number;
   photoUrl?: string;
+  photoId?: string; // Reference to IndexedDB stored photo
+  pendingAiAnalysis?: boolean; // Needs AI processing when online
+  manualEntry?: boolean; // Was entered manually
 }
 
 export interface NutritionLog {
@@ -28,6 +31,20 @@ export interface NutritionLog {
     carbs?: number;
     fat?: number;
     amount?: number; // volume in ml for water
+    photoId?: string; // Reference to IndexedDB stored photo
+    pendingAiAnalysis?: boolean; // Needs AI processing when online
+    manualEntry?: boolean; // Was entered manually
+}
+
+// Pending item for sync queue
+export interface PendingItem {
+    id: string;
+    type: 'NUTRITION' | 'WEIGHT' | 'EXERCISE';
+    data: NutritionLog | WeightLog | ExerciseLog;
+    photoId?: string;
+    createdAt: number;
+    retryCount: number;
+    needsAiAnalysis: boolean;
 }
 
 export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES' | 'DIPS' | 'PULLUPS';

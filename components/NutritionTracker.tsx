@@ -1,26 +1,33 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2 } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
+import { syncQueue } from '../services/syncQueue';
+import { offlineStorage } from '../services/offlineStorage';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
 }
 
-type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU';
+type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
 
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
-    
+
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
     const [menuRecommendations, setMenuRecommendations] = useState<MenuRecommendation[]>([]);
+
+    // Offline States
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [pendingCount, setPendingCount] = useState(0);
+    const [capturedPhotoBase64, setCapturedPhotoBase64] = useState<string | null>(null);
     
     // UI Logic
     const [showRefWarning, setShowRefWarning] = useState(false);
@@ -42,6 +49,28 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const settings = StorageService.getSettings();
     const dailyNeeds = StorageService.calculateDailyNeeds();
     const todayStats = StorageService.getTodayNutrition();
+
+    // Track online status
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    // Track pending items count
+    useEffect(() => {
+        const unsubscribe = syncQueue.subscribe((state) => {
+            setPendingCount(state.pendingCount);
+        });
+        return unsubscribe;
+    }, []);
 
     // Check Trial/Pro Status
     const installDate = new Date(settings.installDate).getTime();
@@ -109,25 +138,33 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
     const captureAndAnalyze = async () => {
         if (!videoRef.current || !canvasRef.current) return;
-        
+
         const currentMode = mode; // Capture before state change
-        setMode('ANALYZING');
-        
+
         const context = canvasRef.current.getContext('2d');
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         context?.drawImage(videoRef.current, 0, 0);
-        
+
         const base64 = canvasRef.current.toDataURL('image/jpeg').split(',')[1];
-        
+
         // Stop stream
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(t => t.stop());
 
+        // If offline, save photo and show manual entry with photo
+        if (!navigator.onLine) {
+            setCapturedPhotoBase64(base64);
+            setMode('OFFLINE_PHOTO');
+            return;
+        }
+
+        setMode('ANALYZING');
+
         try {
             if (currentMode === 'CAMERA_FOOD') {
                 const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
-                setScannedFood({
+                const foodLog: NutritionLog = {
                     id: Date.now().toString(),
                     date: new Date().toISOString().split('T')[0],
                     timestamp: Date.now(),
@@ -137,7 +174,11 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     protein: result.protein,
                     carbs: result.carbs,
                     fat: result.fat
-                });
+                };
+                // Save photo with the log
+                const photoId = await offlineStorage.savePhoto(base64, 'image/jpeg', foodLog.id, 'NUTRITION');
+                foodLog.photoId = photoId;
+                setScannedFood(foodLog);
                 setMode('RESULT_FOOD');
             } else if (currentMode === 'CAMERA_MENU') {
                 const recs = await analyzeMenu(base64);
@@ -145,8 +186,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 setMode('RESULT_MENU');
             }
         } catch (e) {
-            alert(t('scanError'));
-            setMode('IDLE');
+            // If analysis fails (maybe went offline during), offer manual entry with photo
+            setCapturedPhotoBase64(base64);
+            setMode('OFFLINE_PHOTO');
         }
     };
 
@@ -187,7 +229,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         }
     };
 
-    const saveManualFood = () => {
+    const saveManualFood = async () => {
         if (!manualName || !manualCals) return;
         const log: NutritionLog = {
             id: Date.now().toString(),
@@ -199,8 +241,16 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             protein: parseInt(manualProt) || 0,
             carbs: parseInt(manualCarbs) || 0,
             fat: parseInt(manualFat) || 0,
-            amount: parseInt(manualAmount) || undefined // Store weight in amount field
+            amount: parseInt(manualAmount) || undefined, // Store weight in amount field
+            manualEntry: true
         };
+
+        // If we have a captured photo, save it with the log
+        if (capturedPhotoBase64) {
+            const photoId = await offlineStorage.savePhoto(capturedPhotoBase64, 'image/jpeg', log.id, 'NUTRITION');
+            log.photoId = photoId;
+        }
+
         StorageService.saveNutrition(log);
         setShowManualEntry(false);
         setManualName('');
@@ -209,11 +259,72 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         setManualProt('');
         setManualCarbs('');
         setManualFat('');
+        setCapturedPhotoBase64(null);
         setNeedsUpdate(prev => prev + 1);
+    };
+
+    // Save photo for later AI analysis when online
+    const savePhotoForLater = async () => {
+        if (!capturedPhotoBase64) return;
+
+        const log: NutritionLog = {
+            id: Date.now().toString(),
+            date: new Date().toISOString().split('T')[0],
+            timestamp: Date.now(),
+            type: 'FOOD',
+            name: t('pendingAnalysis') || 'Pending Analysis',
+            calories: 0,
+            pendingAiAnalysis: true
+        };
+
+        // Save to queue for AI analysis when online
+        await syncQueue.queueNutritionLog(log, capturedPhotoBase64, true);
+
+        setCapturedPhotoBase64(null);
+        setMode('IDLE');
+        setNeedsUpdate(prev => prev + 1);
+    };
+
+    // Open manual entry with captured photo
+    const openManualWithPhoto = () => {
+        setMode('IDLE');
+        setShowManualEntry(true);
     };
 
     return (
         <div className="p-4 space-y-6 pb-24">
+            {/* Offline / Pending Sync Indicator */}
+            {(!isOnline || pendingCount > 0) && (
+                <div className={`rounded-xl p-3 flex items-center justify-between ${
+                    !isOnline
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'
+                        : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        {!isOnline ? (
+                            <>
+                                <WifiOff size={16} className="text-yellow-600 dark:text-yellow-400" />
+                                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                                    {t('offlineMode') || 'Offline Mode'}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <Loader2 size={16} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                    {t('syncing') || 'Syncing...'}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    {pendingCount > 0 && (
+                        <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full font-bold text-gray-600 dark:text-gray-300">
+                            {pendingCount} {t('pending') || 'pending'}
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
                 <div className="flex flex-col items-center">
@@ -377,6 +488,61 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     <div className="h-64 rounded-xl bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-center p-6 animate-pulse">
                         <Loader2 size={40} className="text-orange-500 animate-spin mb-4" />
                         <p className="text-gray-500 font-medium dark:text-gray-300">{t('analyzingFood')}</p>
+                    </div>
+                )}
+
+                {/* --- 3.5. OFFLINE PHOTO STATE --- */}
+                {mode === 'OFFLINE_PHOTO' && capturedPhotoBase64 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-yellow-200 dark:border-yellow-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex items-center gap-2 mb-4 text-yellow-600 dark:text-yellow-400">
+                            <WifiOff size={20} />
+                            <span className="font-bold">{t('offlineMode') || 'Offline Mode'}</span>
+                        </div>
+
+                        {/* Photo Preview */}
+                        <div className="relative rounded-lg overflow-hidden mb-4 aspect-square max-h-48 mx-auto">
+                            <img
+                                src={`data:image/jpeg;base64,${capturedPhotoBase64}`}
+                                alt="Captured food"
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-white text-xs flex items-center gap-1">
+                                <Image size={12} />
+                                {t('photoSaved') || 'Photo saved'}
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">
+                            {t('offlinePhotoHint') || 'You can enter data manually now or save the photo for AI analysis when you are back online.'}
+                        </p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={openManualWithPhoto}
+                                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                            >
+                                <PenTool size={18} />
+                                {t('enterManually') || 'Enter Manually'}
+                            </button>
+
+                            <button
+                                onClick={savePhotoForLater}
+                                className="w-full py-3 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold border border-yellow-200 dark:border-yellow-800 flex items-center justify-center gap-2"
+                            >
+                                <CloudOff size={18} />
+                                {t('saveForLater') || 'Analyze When Online'}
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setCapturedPhotoBase64(null);
+                                    setMode('IDLE');
+                                }}
+                                className="w-full py-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                            >
+                                {t('dismiss')}
+                            </button>
+                        </div>
                     </div>
                 )}
 

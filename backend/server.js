@@ -83,8 +83,8 @@ app.post('/api/webhook/paypal', async (req, res) => {
     console.log('PayPal Webhook:', event.event_type);
 
     try {
-        if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED' ||
-            event.event_type === 'BILLING.SUBSCRIPTION.RENEWED') {
+        // New subscription activated
+        if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED') {
             const subscription = event.resource;
             const subscriptionId = subscription.id;
             const userId = subscription.custom_id; // We pass userId as custom_id
@@ -96,9 +96,11 @@ app.post('/api/webhook/paypal', async (req, res) => {
                 );
                 console.log(`✅ User ${userId} upgraded to PRO via PayPal`);
             }
-        } else if (event.event_type === 'BILLING.SUBSCRIPTION.CANCELLED' ||
-                   event.event_type === 'BILLING.SUBSCRIPTION.EXPIRED' ||
-                   event.event_type === 'BILLING.SUBSCRIPTION.SUSPENDED') {
+        }
+        // Subscription cancelled, expired, or suspended
+        else if (event.event_type === 'BILLING.SUBSCRIPTION.CANCELLED' ||
+                 event.event_type === 'BILLING.SUBSCRIPTION.EXPIRED' ||
+                 event.event_type === 'BILLING.SUBSCRIPTION.SUSPENDED') {
             const subscription = event.resource;
             const subscriptionId = subscription.id;
 
@@ -106,7 +108,21 @@ app.post('/api/webhook/paypal', async (req, res) => {
                 `UPDATE users SET is_pro = FALSE WHERE paypal_subscription_id = $1`,
                 [subscriptionId]
             );
-            console.log(`⚠️ Subscription ${subscriptionId} cancelled/expired`);
+            console.log(`⚠️ Subscription ${subscriptionId} cancelled/expired/suspended`);
+        }
+        // Payment completed (for renewals)
+        else if (event.event_type === 'PAYMENT.SALE.COMPLETED') {
+            const sale = event.resource;
+            const subscriptionId = sale.billing_agreement_id;
+
+            if (subscriptionId) {
+                // Ensure user stays PRO on successful renewal payment
+                await pool.query(
+                    `UPDATE users SET is_pro = TRUE WHERE paypal_subscription_id = $1`,
+                    [subscriptionId]
+                );
+                console.log(`✅ Renewal payment received for subscription ${subscriptionId}`);
+            }
         }
     } catch (e) {
         console.error('PayPal Webhook Error:', e.message);
