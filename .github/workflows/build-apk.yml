@@ -69,11 +69,17 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Clean Gradle cache
+        run: |
+          rm -rf ~/.gradle/caches/jars-* || true
+          rm -rf android/.gradle || true
+
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=$JAVA_HOME
+          export GRADLE_USER_HOME=${{ github.workspace }}/.gradle
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=$JAVA_HOME --stacktrace
 
       - name: List APK output
         run: |
