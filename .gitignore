@@ -63,3 +63,15 @@ android/local.properties
 ios/App/Pods/
 ios/App/App.xcworkspace/xcuserdata/
 *.xcuserstate
+
+# AWS Deployment
+eb-options.json
+*.zip
+*.tar.gz
+bucket-policy.json
+cf-config.json
+cloudfront-config.json
+dns-*.json
+trust-policy.json
+backend-clean/
+nul
