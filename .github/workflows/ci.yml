@@ -56,7 +56,7 @@ jobs:
         run: npm run test:ci
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: test-results
@@ -85,14 +85,14 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")-${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: dist/
           retention-days: 7
 
       - name: Upload ESLint report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: eslint-report
@@ -146,7 +146,7 @@ jobs:
           fi
 
       - name: Upload Semgrep results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: semgrep-results
           path: semgrep-results.json
@@ -224,7 +224,7 @@ jobs:
           fi
 
       - name: Upload Gitleaks report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: gitleaks-report
@@ -294,7 +294,7 @@ jobs:
           fi
 
       - name: Upload SCA reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sca-reports
           path: |
@@ -371,7 +371,7 @@ jobs:
           fi
 
       - name: Upload container scan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: container-scan
           path: trivy-container.json
@@ -429,7 +429,7 @@ jobs:
           fi
 
       - name: Upload ZAP reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: zap-reports
@@ -504,7 +504,7 @@ jobs:
           echo '{"schemaVersion":1,"label":"security","message":"scanned","color":"green"}' > security-badge.json
 
       - name: Upload security badge
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-badge
           path: security-badge.json
