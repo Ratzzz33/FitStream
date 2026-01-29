@@ -1,15 +1,22 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Loader2, Smartphone, CheckCircle, AlertCircle, X, RefreshCw, PenTool, WifiOff, CloudOff, Image } from 'lucide-react';
+import { Camera, Loader2, Smartphone, CheckCircle, AlertCircle, X, RefreshCw, PenTool, WifiOff, CloudOff, Image, Bluetooth } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { scanScaleDisplay } from '../services/geminiService';
-import { WeightLog } from '../types';
+import { WeightLog, UserSettings } from '../types';
 import { t } from '../services/i18n';
 import { syncQueue } from '../services/syncQueue';
 import { offlineStorage } from '../services/offlineStorage';
+import SmartScale from './SmartScale';
+import { BodyCompositionCharts } from './BodyCompositionCharts';
+import { Capacitor } from '@capacitor/core';
 
-export const WeightTracker: React.FC = () => {
+interface WeightTrackerProps {
+  onWeightLogged?: (log: WeightLog) => void;
+}
+
+export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastSaved, setLastSaved] = useState<{raw: number, net: number} | null>(null);
@@ -27,6 +34,10 @@ export const WeightTracker: React.FC = () => {
   // Manual entry states
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualWeight, setManualWeight] = useState('');
+
+  // Smart scale states
+  const [inputMode, setInputMode] = useState<'camera' | 'smart_scale'>('camera');
+  const isNativePlatform = Capacitor.isNativePlatform();
 
   // Track online status
   useEffect(() => {
@@ -176,6 +187,12 @@ export const WeightTracker: React.FC = () => {
     setShowManualEntry(true);
   };
 
+  // Handle weight logged from smart scale
+  const handleSmartScaleWeight = (log: WeightLog) => {
+    setLastSaved({ raw: log.weight, net: log.weight });
+    onWeightLogged?.(log);
+  };
+
   return (
     <div className="p-4 space-y-6 pb-24">
        {/* Offline / Pending Sync Indicator */}
@@ -228,6 +245,55 @@ export const WeightTracker: React.FC = () => {
            </p>
        </div>
 
+       {/* Input Mode Selector - Only on native platforms */}
+       {isNativePlatform && (
+         <div className="bg-white dark:bg-gray-800 rounded-2xl p-2 border border-gray-200 dark:border-gray-700 shadow-sm">
+           <div className="flex gap-2">
+             <button
+               onClick={() => setInputMode('smart_scale')}
+               className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition ${
+                 inputMode === 'smart_scale'
+                   ? 'bg-blue-500 text-white'
+                   : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+               }`}
+             >
+               <Bluetooth size={18} />
+               {t('smartScale') || 'Smart Scale'}
+             </button>
+             <button
+               onClick={() => setInputMode('camera')}
+               className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition ${
+                 inputMode === 'camera'
+                   ? 'bg-blue-500 text-white'
+                   : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+               }`}
+             >
+               <Camera size={18} />
+               {t('aiScan') || 'AI Scan'}
+             </button>
+           </div>
+         </div>
+       )}
+
+       {/* Smart Scale Section */}
+       {isNativePlatform && inputMode === 'smart_scale' && (
+         <SmartScale
+           settings={settings}
+           onWeightLogged={handleSmartScaleWeight}
+           theme={settings.theme}
+         />
+       )}
+
+       {/* Body Composition Trends */}
+       {isNativePlatform && inputMode === 'smart_scale' && (
+         <BodyCompositionCharts
+           weights={StorageService.getWeights()}
+           isPro={settings.isPro}
+         />
+       )}
+
+       {/* Camera/AI Scan Section */}
+       {(!isNativePlatform || inputMode === 'camera') && (
        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('logWeight')}</h2>
           
@@ -306,6 +372,7 @@ export const WeightTracker: React.FC = () => {
               )}
           </div>
        </div>
+       )}
 
        {/* Error Modal */}
        {error && (
