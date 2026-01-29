@@ -1,5 +1,5 @@
 # Build Android APK
-# Builds debug and release APK artifacts
+# Builds debug and release APK artifacts using Docker
 
 name: Build APK
 
@@ -12,32 +12,26 @@ on:
 
 env:
   NODE_VERSION: '22'
-  JAVA_VERSION: '17'
 
 jobs:
   build-android:
     name: Build Android APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: self-hosted
+    timeout-minutes: 45
+    container:
+      image: docker.io/cimg/android:2024.01.1-node
+      options: --user root
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+          apt-get install -y nodejs
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: npm ci
@@ -48,40 +42,52 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Build Release APK (unsigned)
         working-directory: android
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Copy APKs to workspace
+        run: |
+          mkdir -p apk-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk apk-output/FitStream-debug.apk || true
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk apk-output/FitStream-release.apk || true
+          ls -la apk-output/
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v6
         with:
-          name: fitstream-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: FitStream-debug-apk
+          path: apk-output/FitStream-debug.apk
           retention-days: 30
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v6
         with:
-          name: fitstream-release-apk
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          name: FitStream-release-apk
+          path: apk-output/FitStream-release.apk
           retention-days: 30
 
       - name: Generate summary
         run: |
           echo "# Android Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## APK Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- **Debug APK**: fitstream-debug-apk" >> $GITHUB_STEP_SUMMARY
-          echo "- **Release APK**: fitstream-release-apk (unsigned)" >> $GITHUB_STEP_SUMMARY
+          echo "## Download APK" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to **Actions** tab" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click on this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "3. Scroll to **Artifacts** section" >> $GITHUB_STEP_SUMMARY
+          echo "4. Download **FitStream-debug-apk**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Features" >> $GITHUB_STEP_SUMMARY
+          echo "## Features Included" >> $GITHUB_STEP_SUMMARY
           echo "- Xiaomi Mi Scale BLE integration" >> $GITHUB_STEP_SUMMARY
-          echo "- Health Connect (Samsung Health, Google Fit sync)" >> $GITHUB_STEP_SUMMARY
+          echo "- Health Connect (Samsung Health sync)" >> $GITHUB_STEP_SUMMARY
           echo "- Weight, Steps, Heart Rate, Exercise tracking" >> $GITHUB_STEP_SUMMARY
+          echo "- Body composition analysis" >> $GITHUB_STEP_SUMMARY
