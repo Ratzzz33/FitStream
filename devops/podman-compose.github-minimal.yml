@@ -14,18 +14,25 @@ services:
     restart: unless-stopped
     environment:
       - REPO_URL=${GITHUB_REPO_URL}
-      - ACCESS_TOKEN=${GITHUB_PAT}
+      - RUNNER_TOKEN=${RUNNER_TOKEN}
       - RUNNER_NAME=${RUNNER_NAME:-fitstream-runner}
       - RUNNER_WORKDIR=/tmp/runner/work
       - LABELS=self-hosted,linux,x64,podman
+      - EPHEMERAL=false
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - runner-work:/tmp/runner/work
     security_opt:
       - label=disable
     networks:
       - devops-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "github-runner"
     deploy:
       resources:
         limits:
@@ -46,6 +53,12 @@ services:
       - "4954:4954"
     networks:
       - devops-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "trivy-server"
     deploy:
       resources:
         limits:

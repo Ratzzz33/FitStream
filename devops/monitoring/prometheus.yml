@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Trivy server
+  - job_name: 'trivy'
+    static_configs:
+      - targets: ['trivy-server:4954']
+    metrics_path: /metrics
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+
+  # FitStream Backend (when deployed)
+  # Uncomment and update when backend is running
+  # - job_name: 'fitstream-backend'
+  #   static_configs:
+  #     - targets: ['api.fitstream.health:443']
+  #   scheme: https

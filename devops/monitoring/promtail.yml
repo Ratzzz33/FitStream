@@ -1,0 +1,104 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # System logs
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          host: fitstream-runner
+          __path__: /var/log/*.log
+
+  # Auth logs
+  - job_name: auth
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: auth
+          host: fitstream-runner
+          __path__: /var/log/auth.log
+
+  # Syslog
+  - job_name: syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          host: fitstream-runner
+          __path__: /var/log/syslog
+
+  # Journal logs (systemd)
+  - job_name: journal
+    journal:
+      max_age: 12h
+      labels:
+        job: systemd-journal
+        host: fitstream-runner
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+
+  # Docker container logs
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          host: fitstream-runner
+          __path__: /var/lib/docker/containers/**/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            time: time
+      - labels:
+          stream:
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+      - output:
+          source: output
+
+  # Podman container logs
+  - job_name: podman
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: podman
+          host: fitstream-runner
+          __path__: /var/lib/containers/storage/overlay-containers/*/userdata/ctr.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<time>\S+) (?P<stream>stdout|stderr) (?P<flags>\S+) (?P<content>.*)$'
+      - labels:
+          stream:
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+      - output:
+          source: content
+
+  # GitHub Actions Runner logs
+  - job_name: github-runner
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: github-runner
+          host: fitstream-runner
+          __path__: /tmp/runner/work/_diag/*.log
