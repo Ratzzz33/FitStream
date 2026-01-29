@@ -51,8 +51,8 @@ export default defineConfig({
     },
 
     // Таймауты
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 30000,
+    hookTimeout: 30000,
 
     // Параллельный запуск
     pool: 'threads',
