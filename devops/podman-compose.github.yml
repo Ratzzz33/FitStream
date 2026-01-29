@@ -1,0 +1,234 @@
+version: "3.8"
+
+# FitStream DevSecOps Stack - GitHub Actions Self-Hosted Runner
+# Использование: podman-compose -f podman-compose.github.yml up -d
+
+services:
+  # ============================================
+  # GITHUB ACTIONS RUNNER
+  # ============================================
+  github-runner:
+    image: docker.io/myoung34/github-runner:latest
+    container_name: github-runner
+    restart: unless-stopped
+    environment:
+      # Обязательные переменные
+      - REPO_URL=${GITHUB_REPO_URL}              # https://github.com/username/repo
+      - ACCESS_TOKEN=${GITHUB_PAT}               # Personal Access Token (repo scope)
+      # ИЛИ для организации:
+      # - ORG_NAME=${GITHUB_ORG}
+      # - ACCESS_TOKEN=${GITHUB_PAT}
+
+      # Опциональные настройки
+      - RUNNER_NAME=${RUNNER_NAME:-fitstream-runner}
+      - RUNNER_WORKDIR=/tmp/runner/work
+      - RUNNER_GROUP=default
+      - LABELS=self-hosted,linux,x64,podman
+      - DISABLE_AUTO_UPDATE=false
+
+      # Для запуска Podman внутри контейнера
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      # Podman socket (rootless)
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro
+      # Кэш для ускорения сборок
+      - runner-work:/tmp/runner/work
+      - runner-cache:/home/runner/.cache
+    security_opt:
+      - label=disable
+    networks:
+      - devops-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # ============================================
+  # GITHUB RUNNER #2 (для параллельных jobs)
+  # ============================================
+  github-runner-2:
+    image: docker.io/myoung34/github-runner:latest
+    container_name: github-runner-2
+    restart: unless-stopped
+    environment:
+      - REPO_URL=${GITHUB_REPO_URL}
+      - ACCESS_TOKEN=${GITHUB_PAT}
+      - RUNNER_NAME=${RUNNER_NAME:-fitstream-runner}-2
+      - RUNNER_WORKDIR=/tmp/runner/work
+      - LABELS=self-hosted,linux,x64,podman
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro
+      - runner-work-2:/tmp/runner/work
+      - runner-cache-2:/home/runner/.cache
+    security_opt:
+      - label=disable
+    networks:
+      - devops-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # ============================================
+  # SONARQUBE - SAST & Code Quality
+  # ============================================
+  sonarqube:
+    image: docker.io/sonarqube:10-community
+    container_name: sonarqube
+    restart: unless-stopped
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonarqube
+      - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonarqube}
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - sonarqube-logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    depends_on:
+      - sonar-db
+    networks:
+      - devops-net
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  sonar-db:
+    image: docker.io/postgres:16-alpine
+    container_name: sonar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=sonarqube
+      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonarqube}
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - sonar-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+  # ============================================
+  # TRIVY SERVER - SCA & Container Scanning
+  # ============================================
+  trivy-server:
+    image: docker.io/aquasec/trivy:latest
+    container_name: trivy-server
+    restart: unless-stopped
+    command: ["server", "--listen", "0.0.0.0:4954", "--cache-dir", "/cache"]
+    volumes:
+      - trivy-cache:/cache
+    ports:
+      - "4954:4954"
+    networks:
+      - devops-net
+
+  # ============================================
+  # DEPENDENCY-TRACK - SCA Dashboard
+  # ============================================
+  dependency-track-api:
+    image: docker.io/dependencytrack/apiserver:latest
+    container_name: dependency-track-api
+    restart: unless-stopped
+    environment:
+      - ALPINE_DATABASE_MODE=external
+      - ALPINE_DATABASE_URL=jdbc:postgresql://dtrack-db:5432/dtrack
+      - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
+      - ALPINE_DATABASE_USERNAME=dtrack
+      - ALPINE_DATABASE_PASSWORD=${DTRACK_DB_PASSWORD:-dtrack}
+    volumes:
+      - dtrack-data:/data
+    ports:
+      - "8081:8080"
+    depends_on:
+      - dtrack-db
+    networks:
+      - devops-net
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  dependency-track-frontend:
+    image: docker.io/dependencytrack/frontend:latest
+    container_name: dependency-track-frontend
+    restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://localhost:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      - dependency-track-api
+    networks:
+      - devops-net
+
+  dtrack-db:
+    image: docker.io/postgres:16-alpine
+    container_name: dtrack-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=dtrack
+      - POSTGRES_PASSWORD=${DTRACK_DB_PASSWORD:-dtrack}
+      - POSTGRES_DB=dtrack
+    volumes:
+      - dtrack-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+  # ============================================
+  # DEFECTDOJO - Vulnerability Management
+  # ============================================
+  defectdojo:
+    image: docker.io/defectdojo/defectdojo-django:latest
+    container_name: defectdojo
+    restart: unless-stopped
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:${DOJO_DB_PASSWORD:-defectdojo}@dojo-db:5432/defectdojo
+      - DD_SECRET_KEY=${DOJO_SECRET_KEY:-change-me}
+      - DD_CREDENTIAL_AES_256_KEY=${DOJO_AES_KEY:-change-me}
+      - DD_ALLOWED_HOSTS=*
+    ports:
+      - "8000:8080"
+    depends_on:
+      - dojo-db
+    networks:
+      - devops-net
+
+  dojo-db:
+    image: docker.io/postgres:16-alpine
+    container_name: dojo-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=defectdojo
+      - POSTGRES_PASSWORD=${DOJO_DB_PASSWORD:-defectdojo}
+      - POSTGRES_DB=defectdojo
+    volumes:
+      - dojo-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  runner-work:
+  runner-cache:
+  runner-work-2:
+  runner-cache-2:
+  sonarqube-data:
+  sonarqube-extensions:
+  sonarqube-logs:
+  sonar-db-data:
+  trivy-cache:
+  dtrack-data:
+  dtrack-db-data:
+  dojo-db-data:

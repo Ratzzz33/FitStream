@@ -1,0 +1,124 @@
+# Weekly Security Scan
+# Запускается по расписанию для глубокого сканирования
+
+name: Weekly Security Scan
+
+on:
+  schedule:
+    # Каждое воскресенье в 3:00 UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  full-security-scan:
+    name: 🔒 Full Security Scan
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Полная история для анализа
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Глубокое сканирование Semgrep
+      - name: Semgrep Full Scan
+        run: |
+          podman run --rm \
+            -v "${PWD}:/src:Z" \
+            docker.io/returntocorp/semgrep:latest \
+            semgrep scan \
+            --config auto \
+            --config p/security-audit \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --config p/react \
+            --config p/typescript \
+            --config p/xss \
+            --config p/sql-injection \
+            --verbose \
+            --json \
+            --output /src/semgrep-full.json \
+            /src || true
+
+      # Проверка всех зависимостей
+      - name: Full Dependency Audit
+        run: |
+          npm audit --json > npm-audit-full.json || true
+
+          # Также проверяем production deps
+          npm audit --omit=dev --json > npm-audit-prod.json || true
+
+      # Trivy полное сканирование
+      - name: Trivy Full Scan
+        run: |
+          podman run --rm \
+            -v "${PWD}:/src:Z" \
+            docker.io/aquasec/trivy:latest \
+            filesystem \
+            --scanners vuln,secret,misconfig,license \
+            --severity LOW,MEDIUM,HIGH,CRITICAL \
+            --format json \
+            --output /src/trivy-full.json \
+            /src
+
+      # Проверка лицензий
+      - name: License Check
+        run: |
+          npx license-checker --json > licenses.json || true
+
+      # Генерация отчёта
+      - name: Generate Weekly Report
+        run: |
+          echo "# 🔒 Weekly Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u +"%Y-%m-%d")" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Semgrep Findings" >> $GITHUB_STEP_SUMMARY
+          if [ -f semgrep-full.json ]; then
+            TOTAL=$(jq '.results | length' semgrep-full.json)
+            echo "Total findings: **$TOTAL**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          if [ -f npm-audit-full.json ]; then
+            jq -r '.metadata.vulnerabilities | "- Critical: \(.critical)\n- High: \(.high)\n- Moderate: \(.moderate)\n- Low: \(.low)"' npm-audit-full.json >> $GITHUB_STEP_SUMMARY || true
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 Full reports in artifacts" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-security-report-${{ github.run_number }}
+          path: |
+            semgrep-full.json
+            npm-audit-full.json
+            npm-audit-prod.json
+            trivy-full.json
+            licenses.json
+          retention-days: 90
+
+      # Создание Issue при критических находках
+      - name: Create Issue on Critical Findings
+        if: always()
+        run: |
+          CRITICAL=0
+
+          if [ -f npm-audit-full.json ]; then
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' npm-audit-full.json)
+          fi
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::Found $CRITICAL critical vulnerabilities - consider creating an issue"
+          fi

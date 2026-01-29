@@ -1,0 +1,452 @@
+# FitStream CI/CD Pipeline
+# Полный DevSecOps пайплайн с SAST, SCA, DAST, Secrets Scanning
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  SONAR_HOST_URL: http://sonarqube:9000
+  TRIVY_SERVER: http://trivy-server:4954
+  DTRACK_URL: http://dependency-track-api:8080
+  ZAP_URL: http://zap:8090
+
+jobs:
+  # ============================================
+  # STAGE 1: Build & Lint
+  # ============================================
+  build:
+    name: 🔨 Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: |
+          npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react eslint-plugin-react-hooks || true
+          npx eslint . --ext .ts,.tsx --format json --output-file eslint-report.json || true
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+          retention-days: 7
+
+      - name: Upload ESLint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          retention-days: 7
+
+  # ============================================
+  # STAGE 2: Security Scans (Parallel)
+  # ============================================
+
+  # --- SAST: Semgrep ---
+  sast-semgrep:
+    name: 🔍 SAST - Semgrep
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          podman run --rm \
+            -v "${PWD}:/src:Z" \
+            docker.io/returntocorp/semgrep:latest \
+            semgrep scan \
+            --config auto \
+            --config p/react \
+            --config p/typescript \
+            --config p/security-audit \
+            --config p/secrets \
+            --json \
+            --output /src/semgrep-results.json \
+            /src || true
+
+      - name: Upload Semgrep results
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.json
+          retention-days: 30
+
+  # --- SAST: SonarQube ---
+  sast-sonarqube:
+    name: 🔍 SAST - SonarQube
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Для анализа blame
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - name: SonarQube Scan
+        run: |
+          podman run --rm \
+            --network host \
+            -e SONAR_HOST_URL=${{ env.SONAR_HOST_URL }} \
+            -e SONAR_TOKEN=${{ secrets.SONAR_TOKEN }} \
+            -v "${PWD}:/usr/src:Z" \
+            docker.io/sonarsource/sonar-scanner-cli:latest \
+            -Dsonar.projectKey=fitstream \
+            -Dsonar.projectName="FitStream" \
+            -Dsonar.sources=. \
+            -Dsonar.exclusions=node_modules/**,dist/**,coverage/** \
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+  # --- Secrets Scanning: Gitleaks ---
+  secrets-scan:
+    name: 🔐 Secrets Scan - Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        run: |
+          podman run --rm \
+            -v "${PWD}:/path:Z" \
+            docker.io/zricethezav/gitleaks:latest \
+            detect \
+            --source="/path" \
+            --report-format=json \
+            --report-path=/path/gitleaks-report.json \
+            --exit-code=0
+
+      - name: Upload Gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          retention-days: 30
+
+      - name: Check for secrets
+        run: |
+          if [ -f gitleaks-report.json ]; then
+            LEAKS=$(jq length gitleaks-report.json)
+            if [ "$LEAKS" -gt 0 ]; then
+              echo "::error::Found $LEAKS potential secrets in code!"
+              jq -r '.[] | "File: \(.File), Line: \(.StartLine), Rule: \(.RuleID)"' gitleaks-report.json
+              exit 1
+            fi
+          fi
+
+  # --- SCA: npm audit + Trivy ---
+  sca-dependencies:
+    name: 📦 SCA - Dependencies
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: npm audit
+        run: |
+          npm audit --json > npm-audit.json || true
+
+          # Проверяем критические уязвимости
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' npm-audit.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' npm-audit.json)
+
+          echo "Critical: $CRITICAL, High: $HIGH"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical vulnerabilities!"
+          fi
+
+      - name: Trivy filesystem scan
+        run: |
+          podman run --rm \
+            -v "${PWD}:/src:Z" \
+            docker.io/aquasec/trivy:latest \
+            filesystem \
+            --scanners vuln \
+            --format json \
+            --output /src/trivy-fs-report.json \
+            /src
+
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          podman run --rm \
+            -v "${PWD}:/src:Z" \
+            docker.io/aquasec/trivy:latest \
+            filesystem \
+            --format cyclonedx \
+            --output /src/sbom.json \
+            /src
+
+      - name: Upload SCA reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-reports
+          path: |
+            npm-audit.json
+            trivy-fs-report.json
+            sbom.json
+          retention-days: 30
+
+  # --- SCA: Dependency-Track Upload ---
+  sca-dependency-track:
+    name: 📦 SCA - Dependency-Track
+    runs-on: ubuntu-latest
+    needs: sca-dependencies
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sca-reports
+
+      - name: Upload to Dependency-Track
+        run: |
+          curl -X POST "${{ env.DTRACK_URL }}/api/v1/bom" \
+            -H "Content-Type: multipart/form-data" \
+            -H "X-Api-Key: ${{ secrets.DTRACK_API_KEY }}" \
+            -F "projectName=FitStream" \
+            -F "projectVersion=${{ github.sha }}" \
+            -F "autoCreate=true" \
+            -F "bom=@sbom.json"
+
+  # --- Container Scanning ---
+  container-scan:
+    name: 🐳 Container Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - name: Build container image
+        run: |
+          podman build -t fitstream:${{ github.sha }} -f Dockerfile .
+
+      - name: Trivy container scan
+        run: |
+          podman run --rm \
+            -v /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro \
+            docker.io/aquasec/trivy:latest \
+            image \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output /tmp/trivy-container.json \
+            fitstream:${{ github.sha }} || true
+
+      - name: Check container vulnerabilities
+        run: |
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' /tmp/trivy-container.json 2>/dev/null || echo 0)
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::Found $CRITICAL critical vulnerabilities in container image"
+          fi
+
+  # ============================================
+  # STAGE 3: DAST (Dynamic Testing)
+  # ============================================
+  dast-zap:
+    name: 🌐 DAST - OWASP ZAP
+    runs-on: ubuntu-latest
+    needs: [build, sast-semgrep, secrets-scan]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - name: Start preview server
+        run: |
+          npm install -g serve
+          serve -s dist -l 5000 &
+          sleep 5
+
+      - name: ZAP Baseline Scan
+        run: |
+          podman run --rm \
+            --network host \
+            -v "${PWD}:/zap/wrk:Z" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://localhost:5000 \
+            -J zap-report.json \
+            -r zap-report.html \
+            -I || true
+
+      - name: Upload ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-reports
+          path: |
+            zap-report.json
+            zap-report.html
+          retention-days: 30
+
+  # ============================================
+  # STAGE 4: Mobile Security (Capacitor)
+  # ============================================
+  mobile-security:
+    name: 📱 Mobile Security - MobSF
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Java (for Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Android
+        run: |
+          npm run build
+          npx cap sync android
+        continue-on-error: true
+
+      # MobSF анализ (если есть APK)
+      - name: Static Analysis with MobSF
+        if: success()
+        run: |
+          echo "MobSF analysis would run here on the APK"
+          # podman run --rm -p 8000:8000 opensecurity/mobile-security-framework-mobsf:latest
+
+  # ============================================
+  # STAGE 5: Aggregate & Report
+  # ============================================
+  security-report:
+    name: 📊 Security Report
+    runs-on: ubuntu-latest
+    needs: [sast-semgrep, secrets-scan, sca-dependencies, dast-zap]
+    if: always()
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/
+
+      - name: Generate summary
+        run: |
+          echo "# 🛡️ Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scanner | Status | Findings |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          # Semgrep
+          if [ -f reports/semgrep-results/semgrep-results.json ]; then
+            SEMGREP_COUNT=$(jq '.results | length' reports/semgrep-results/semgrep-results.json 2>/dev/null || echo "N/A")
+            echo "| Semgrep (SAST) | ✅ | $SEMGREP_COUNT |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Semgrep (SAST) | ⚠️ | No report |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Gitleaks
+          if [ -f reports/gitleaks-report/gitleaks-report.json ]; then
+            LEAKS_COUNT=$(jq 'length' reports/gitleaks-report/gitleaks-report.json 2>/dev/null || echo "N/A")
+            echo "| Gitleaks (Secrets) | ✅ | $LEAKS_COUNT |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Gitleaks (Secrets) | ⚠️ | No report |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # npm audit
+          if [ -f reports/sca-reports/npm-audit.json ]; then
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' reports/sca-reports/npm-audit.json)
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' reports/sca-reports/npm-audit.json)
+            echo "| npm audit (SCA) | ✅ | Critical: $CRITICAL, High: $HIGH |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # ZAP
+          if [ -f reports/zap-reports/zap-report.json ]; then
+            echo "| OWASP ZAP (DAST) | ✅ | See report |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 Full reports available in artifacts" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload to DefectDojo
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Would upload findings to DefectDojo for tracking"
+          # Здесь интеграция с DefectDojo API
+
+  # ============================================
+  # STAGE 6: Deploy (only on main)
+  # ============================================
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    needs: [security-report]
+    if: github.ref == 'refs/heads/main' && success()
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+          # Твой деплой скрипт здесь

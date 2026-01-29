@@ -1,0 +1,46 @@
+# Gitleaks Configuration for FitStream
+# https://github.com/gitleaks/gitleaks
+
+title = "FitStream Secret Scanner"
+
+[extend]
+# Наследуем стандартные правила
+useDefault = true
+
+# Дополнительные правила для проекта
+[[rules]]
+id = "google-api-key"
+description = "Google API Key (Gemini, etc.)"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+tags = ["google", "api", "key"]
+
+[[rules]]
+id = "capacitor-signing-key"
+description = "Android Keystore Password"
+regex = '''(?i)(keystore|signing).*password\s*[=:]\s*['"]?[\w\-]+['"]?'''
+tags = ["android", "capacitor", "signing"]
+
+[[rules]]
+id = "env-secrets"
+description = "Environment variable secrets"
+regex = '''(?i)(api_key|apikey|secret|password|token)\s*[=:]\s*['"]?[a-zA-Z0-9\-_]{8,}['"]?'''
+tags = ["env", "secrets"]
+
+# Исключения - файлы которые игнорируем
+[allowlist]
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.template$''',
+  '''package-lock\.json$''',
+  '''node_modules/''',
+  '''\.gitleaks\.toml$''',
+  '''devops/\.env\.example$''',
+  '''README\.md$''',
+]
+
+# Исключаем тестовые/фейковые секреты
+regexes = [
+  '''example|sample|test|fake|dummy|placeholder''',
+  '''your[_-]?api[_-]?key''',
+  '''xxx+''',
+]

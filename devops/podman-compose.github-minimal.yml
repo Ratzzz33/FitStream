@@ -1,0 +1,60 @@
+version: "3.8"
+
+# FitStream DevSecOps - MINIMAL GitHub Actions Runner
+# Для серверов с 4-8GB RAM
+# Использование: podman-compose -f podman-compose.github-minimal.yml up -d
+
+services:
+  # ============================================
+  # GITHUB ACTIONS RUNNER (single)
+  # ============================================
+  github-runner:
+    image: docker.io/myoung34/github-runner:latest
+    container_name: github-runner
+    restart: unless-stopped
+    environment:
+      - REPO_URL=${GITHUB_REPO_URL}
+      - ACCESS_TOKEN=${GITHUB_PAT}
+      - RUNNER_NAME=${RUNNER_NAME:-fitstream-runner}
+      - RUNNER_WORKDIR=/tmp/runner/work
+      - LABELS=self-hosted,linux,x64,podman
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro
+      - runner-work:/tmp/runner/work
+    security_opt:
+      - label=disable
+    networks:
+      - devops-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # ============================================
+  # TRIVY SERVER - Lightweight Scanner
+  # ============================================
+  trivy-server:
+    image: docker.io/aquasec/trivy:latest
+    container_name: trivy-server
+    restart: unless-stopped
+    command: ["server", "--listen", "0.0.0.0:4954", "--cache-dir", "/cache"]
+    volumes:
+      - trivy-cache:/cache
+    ports:
+      - "4954:4954"
+    networks:
+      - devops-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  runner-work:
+  trivy-cache:

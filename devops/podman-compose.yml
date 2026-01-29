@@ -1,0 +1,228 @@
+version: "3.8"
+
+# FitStream DevSecOps Stack
+# Использование: podman-compose up -d
+# Или: podman compose up -d (Podman 4.0+)
+
+services:
+  # ============================================
+  # GITEA - Git Server + CI/CD
+  # ============================================
+  gitea:
+    image: docker.io/gitea/gitea:1.22-rootless
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__server__ROOT_URL=http://localhost:3000
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__actions__ENABLED=true
+      - GITEA__actions__DEFAULT_ACTIONS_URL=github
+      - GITEA__security__INSTALL_LOCK=false
+      - GITEA__service__DISABLE_REGISTRATION=false
+    volumes:
+      - gitea-data:/var/lib/gitea
+      - gitea-config:/etc/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"   # Web UI
+      - "2222:2222"   # SSH
+    networks:
+      - devops-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # GITEA RUNNER - CI/CD Job Executor
+  # ============================================
+  gitea-runner:
+    image: docker.io/gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: unless-stopped
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_TOKEN:-}
+      - GITEA_RUNNER_NAME=fitstream-runner
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:20,linux:docker://ubuntu:22.04
+    volumes:
+      # Podman socket вместо Docker
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro
+      - gitea-runner-data:/data
+    depends_on:
+      gitea:
+        condition: service_healthy
+    networks:
+      - devops-net
+
+  # ============================================
+  # SONARQUBE - SAST & Code Quality
+  # ============================================
+  sonarqube:
+    image: docker.io/sonarqube:10-community
+    container_name: sonarqube
+    restart: unless-stopped
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonarqube
+      - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonarqube}
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - sonarqube-logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    depends_on:
+      - sonar-db
+    networks:
+      - devops-net
+    # SonarQube требует увеличенных лимитов
+    # На хосте: sysctl -w vm.max_map_count=524288
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  sonar-db:
+    image: docker.io/postgres:16-alpine
+    container_name: sonar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=sonarqube
+      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonarqube}
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - sonar-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+  # ============================================
+  # TRIVY - Container & SCA Scanner
+  # ============================================
+  trivy-server:
+    image: docker.io/aquasec/trivy:latest
+    container_name: trivy-server
+    restart: unless-stopped
+    command: ["server", "--listen", "0.0.0.0:4954", "--cache-dir", "/cache"]
+    volumes:
+      - trivy-cache:/cache
+    ports:
+      - "4954:4954"
+    networks:
+      - devops-net
+
+  # ============================================
+  # DEPENDENCY-TRACK - SCA Dashboard
+  # ============================================
+  dependency-track-api:
+    image: docker.io/dependencytrack/apiserver:latest
+    container_name: dependency-track-api
+    restart: unless-stopped
+    environment:
+      - ALPINE_DATABASE_MODE=external
+      - ALPINE_DATABASE_URL=jdbc:postgresql://dtrack-db:5432/dtrack
+      - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
+      - ALPINE_DATABASE_USERNAME=dtrack
+      - ALPINE_DATABASE_PASSWORD=${DTRACK_DB_PASSWORD:-dtrack}
+    volumes:
+      - dtrack-data:/data
+    ports:
+      - "8081:8080"
+    depends_on:
+      - dtrack-db
+    networks:
+      - devops-net
+
+  dependency-track-frontend:
+    image: docker.io/dependencytrack/frontend:latest
+    container_name: dependency-track-frontend
+    restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://localhost:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      - dependency-track-api
+    networks:
+      - devops-net
+
+  dtrack-db:
+    image: docker.io/postgres:16-alpine
+    container_name: dtrack-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=dtrack
+      - POSTGRES_PASSWORD=${DTRACK_DB_PASSWORD:-dtrack}
+      - POSTGRES_DB=dtrack
+    volumes:
+      - dtrack-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+  # ============================================
+  # OWASP ZAP - DAST Scanner (API mode)
+  # ============================================
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: zap
+    restart: unless-stopped
+    command: ["zap.sh", "-daemon", "-host", "0.0.0.0", "-port", "8090", "-config", "api.addrs.addr.name=.*", "-config", "api.addrs.addr.regex=true", "-config", "api.disablekey=true"]
+    ports:
+      - "8090:8090"
+    networks:
+      - devops-net
+
+  # ============================================
+  # DEFECTDOJO - Vulnerability Management
+  # ============================================
+  defectdojo:
+    image: docker.io/defectdojo/defectdojo-django:latest
+    container_name: defectdojo
+    restart: unless-stopped
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:${DOJO_DB_PASSWORD:-defectdojo}@dojo-db:5432/defectdojo
+      - DD_SECRET_KEY=${DOJO_SECRET_KEY:-change-me-in-production}
+      - DD_CREDENTIAL_AES_256_KEY=${DOJO_AES_KEY:-change-me-also}
+      - DD_ALLOWED_HOSTS=*
+    ports:
+      - "8000:8080"
+    depends_on:
+      - dojo-db
+    networks:
+      - devops-net
+
+  dojo-db:
+    image: docker.io/postgres:16-alpine
+    container_name: dojo-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=defectdojo
+      - POSTGRES_PASSWORD=${DOJO_DB_PASSWORD:-defectdojo}
+      - POSTGRES_DB=defectdojo
+    volumes:
+      - dojo-db-data:/var/lib/postgresql/data
+    networks:
+      - devops-net
+
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  gitea-data:
+  gitea-config:
+  gitea-runner-data:
+  sonarqube-data:
+  sonarqube-extensions:
+  sonarqube-logs:
+  sonar-db-data:
+  trivy-cache:
+  dtrack-data:
+  dtrack-db-data:
+  dojo-db-data:
