@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, TouchEvent } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, Minus, PlusIcon } from 'lucide-react';
 import { InventoryItem } from '../../types';
+
+// PRD Gesture thresholds
+const SWIPE_THRESHOLD = 50; // pixels
 
 interface ProductListProps {
   items: InventoryItem[];
@@ -65,8 +68,58 @@ export const ProductList: React.FC<ProductListProps> = ({
     }
   };
 
-  const handleSwipeLeft = (id: string) => {
-    // Mark as finished (remove)
+  // PRD Gesture Handlers:
+  // Swipe right → "Больше" → quantity × 1.5
+  // Swipe left → "Меньше" → quantity × 0.7
+  // Swipe down → "Закончилось" → delete
+
+  const touchStartRef = useRef<{ x: number; y: number; id: string } | null>(null);
+  const [swipingId, setSwipingId] = useState<string | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+
+  const handleTouchStart = (e: TouchEvent, id: string) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      id
+    };
+  };
+
+  const handleTouchMove = (e: TouchEvent, id: string) => {
+    if (!touchStartRef.current || touchStartRef.current.id !== id) return;
+
+    const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+    setSwipingId(id);
+    setSwipeOffset(deltaX);
+  };
+
+  const handleTouchEnd = (item: InventoryItem) => {
+    if (!touchStartRef.current || touchStartRef.current.id !== item.id) return;
+
+    const deltaY = 0; // We don't track Y in touchmove for simplicity
+
+    if (swipeOffset > SWIPE_THRESHOLD) {
+      // Swipe RIGHT → increase quantity by 50%
+      const newQuantity = Math.ceil(item.quantity * 1.5);
+      onUpdate({ ...item, quantity: newQuantity });
+    } else if (swipeOffset < -SWIPE_THRESHOLD) {
+      // Swipe LEFT → decrease quantity by 30%
+      const newQuantity = Math.max(1, Math.floor(item.quantity * 0.7));
+      if (newQuantity <= 1) {
+        onRemove(item.id);
+      } else {
+        onUpdate({ ...item, quantity: newQuantity });
+      }
+    }
+
+    // Reset
+    touchStartRef.current = null;
+    setSwipingId(null);
+    setSwipeOffset(0);
+  };
+
+  const handleSwipeDown = (id: string) => {
+    // Swipe down → remove
     onRemove(id);
   };
 
@@ -95,8 +148,20 @@ export const ProductList: React.FC<ProductListProps> = ({
           {sortedItems.map((item, index) => (
             <div
               key={item.id}
+              onTouchStart={(e) => handleTouchStart(e, item.id)}
+              onTouchMove={(e) => handleTouchMove(e, item.id)}
+              onTouchEnd={() => handleTouchEnd(item)}
+              style={{
+                transform: swipingId === item.id ? `translateX(${swipeOffset}px)` : 'none',
+                transition: swipingId === item.id ? 'none' : 'transform 0.2s ease-out',
+                backgroundColor: swipingId === item.id && swipeOffset > SWIPE_THRESHOLD
+                  ? 'rgba(34, 197, 94, 0.1)' // green for increase
+                  : swipingId === item.id && swipeOffset < -SWIPE_THRESHOLD
+                    ? 'rgba(239, 68, 68, 0.1)' // red for decrease
+                    : undefined
+              }}
               className={`
-                flex items-center gap-3 px-4 py-3
+                flex items-center gap-3 px-4 py-3 select-none touch-pan-y
                 ${index !== sortedItems.length - 1 ? 'border-b border-gray-100 dark:border-gray-700/50' : ''}
                 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
               `}

@@ -53,7 +53,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         </p>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
             <span>{recipe.totalTimeMinutes} мин</span>
@@ -67,6 +67,32 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             <span>{recipe.servings} порц.</span>
           </div>
         </div>
+
+        {/* PRD: Economic calculations */}
+        {recipe.costEstimate && (
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-3 text-sm">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-gray-600 dark:text-gray-400">💰 Себестоимость:</span>
+              <span className="font-medium dark:text-white">
+                ~{recipe.costEstimate}₽ ({Math.round(recipe.costEstimate / recipe.servings)}₽/порция)
+              </span>
+            </div>
+            {recipe.restaurantPrice && (
+              <>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-gray-600 dark:text-gray-400">🍽️ В ресторане:</span>
+                  <span className="text-gray-500 dark:text-gray-400">~{recipe.restaurantPrice}₽</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-green-200 dark:border-green-800">
+                  <span className="text-green-600 dark:text-green-400 font-medium">💚 Экономия:</span>
+                  <span className="text-green-600 dark:text-green-400 font-bold">
+                    {recipe.restaurantPrice - recipe.costEstimate}₽!
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Ingredients status */}
         <div className="mb-4">

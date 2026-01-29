@@ -527,6 +527,9 @@ export interface GeneratedRecipe {
         }[];
     }[];
     priorityReason?: string; // Why this recipe is recommended (e.g., "Курица портится завтра")
+    // PRD: Economic calculations
+    costEstimate?: number;    // Себестоимость блюда в рублях
+    restaurantPrice?: number; // Примерная цена в ресторане
 }
 
 export const generateRecipes = async (
@@ -586,6 +589,10 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
 5. Добавляй "doneWhen" — как понять что готово
 6. Добавляй troubleshoot — что делать если пригорает/не жарится
 
+ЭКОНОМИКА (обязательно):
+- costEstimate: примерная себестоимость блюда в рублях (сумма стоимости ингредиентов)
+- restaurantPrice: сколько стоило бы это блюдо в кафе/ресторане
+
 Язык ответа: ${lang}`
                         }
                     ]
@@ -603,6 +610,8 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                             servings: { type: Type.NUMBER },
                             totalTimeMinutes: { type: Type.NUMBER },
                             caloriesPerServing: { type: Type.NUMBER },
+                            costEstimate: { type: Type.NUMBER },      // PRD: себестоимость
+                            restaurantPrice: { type: Type.NUMBER },   // PRD: цена в ресторане
                             priorityReason: { type: Type.STRING },
                             ingredients: {
                                 type: Type.ARRAY,

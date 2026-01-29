@@ -215,12 +215,17 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
           </div>
         )}
 
-        {/* Summary card */}
+        {/* Summary card - PRD: Show savings */}
         <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
           <div className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
             ✨ Отличная работа!
           </div>
           <div className="space-y-1 text-sm text-green-600 dark:text-green-400">
+            {recipe.restaurantPrice && recipe.costEstimate && (
+              <div className="text-lg font-bold">
+                💰 Вы сэкономили {recipe.restaurantPrice - recipe.costEstimate} ₽
+              </div>
+            )}
             <div>🔥 Съедено: {caloriesEaten} ккал</div>
             <div>📦 Ингредиенты списаны из кухни</div>
             {portionsLeftover > 0 && (

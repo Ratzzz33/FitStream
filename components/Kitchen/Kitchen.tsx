@@ -23,6 +23,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
+  const settings = StorageService.getSettings();
+
   // Load data
   useEffect(() => {
     setStorages(StorageService.getStorages());
@@ -33,6 +35,36 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const currentInventory = inventory.filter(i => i.storageId === activeStorage);
   const expiringItems = StorageService.getExpiringItems(3);
   const totalItems = inventory.length;
+
+  // PRD: Financial tracking of inventory
+  const calculateInventoryValue = () => {
+    // Approximate value based on average prices per unit
+    const avgPrices: Record<string, number> = {
+      'мл': 0.08, // ~80₽ per liter
+      'л': 80,
+      'г': 0.3, // ~300₽ per kg
+      'кг': 300,
+      'шт': 50 // avg 50₽ per item
+    };
+    return inventory.reduce((sum, item) => {
+      const pricePerUnit = item.price || avgPrices[item.unit] || 50;
+      return sum + (item.quantity * pricePerUnit);
+    }, 0);
+  };
+
+  const calculateExpiringValue = () => {
+    const avgPrices: Record<string, number> = {
+      'мл': 0.08, 'л': 80, 'г': 0.3, 'кг': 300, 'шт': 50
+    };
+    return expiringItems.reduce((sum, item) => {
+      const pricePerUnit = item.price || avgPrices[item.unit] || 50;
+      return sum + (item.quantity * pricePerUnit);
+    }, 0);
+  };
+
+  const totalValue = Math.round(calculateInventoryValue());
+  const expiringValue = Math.round(calculateExpiringValue());
+  const currency = settings?.currency || '₽';
 
   // Handle taking photo of storage
   const handleTakePhoto = async () => {
@@ -188,19 +220,30 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 text-sm">
+      {/* Stats bar - PRD layout */}
+      <div className="grid grid-cols-2 gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 text-sm">
         <div className="flex items-center gap-1">
           <span>📊</span>
-          <span className="text-gray-600 dark:text-gray-400">Продуктов:</span>
+          <span className="text-gray-600 dark:text-gray-400">Всего продуктов:</span>
           <span className="font-medium dark:text-white">{totalItems}</span>
         </div>
+        <div className="flex items-center gap-1">
+          <span>💰</span>
+          <span className="text-gray-600 dark:text-gray-400">~</span>
+          <span className="font-medium dark:text-white">{totalValue.toLocaleString()} {currency}</span>
+        </div>
         {expiringItems.length > 0 && (
-          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-            <AlertTriangle className="w-4 h-4" />
-            <span>Портится:</span>
-            <span className="font-medium">{expiringItems.length}</span>
-          </div>
+          <>
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Скоро портится:</span>
+              <span className="font-medium">{expiringItems.length}</span>
+            </div>
+            <div className="flex items-center gap-1 text-red-500 dark:text-red-400">
+              <span>❌</span>
+              <span>~{expiringValue.toLocaleString()} {currency}</span>
+            </div>
+          </>
         )}
       </div>
 
