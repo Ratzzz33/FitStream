@@ -9,6 +9,20 @@ export interface ExerciseLog {
   feedback: string;
 }
 
+export interface BodyComposition {
+  bodyFat?: number;        // Body fat percentage
+  muscleMass?: number;     // Muscle mass in kg
+  boneMass?: number;       // Bone mass in kg
+  waterPercent?: number;   // Body water percentage
+  visceralFat?: number;    // Visceral fat level (1-59)
+  bmi?: number;            // Body Mass Index
+  bmr?: number;            // Basal Metabolic Rate (kcal)
+  metabolicAge?: number;   // Metabolic age in years
+  proteinPercent?: number; // Protein percentage
+  lbm?: number;            // Lean Body Mass in kg
+  impedance?: number;      // Raw impedance value from scale
+}
+
 export interface WeightLog {
   id: string;
   date: string;
@@ -18,6 +32,16 @@ export interface WeightLog {
   photoId?: string; // Reference to IndexedDB stored photo
   pendingAiAnalysis?: boolean; // Needs AI processing when online
   manualEntry?: boolean; // Was entered manually
+  source?: 'manual' | 'ai_scan' | 'smart_scale'; // How the weight was recorded
+  bodyComposition?: BodyComposition; // Body composition from smart scale
+}
+
+export interface SmartScaleDevice {
+  id: string;
+  name: string;
+  type: 'xiaomi_v1' | 'xiaomi_v2' | 'unknown';
+  connected: boolean;
+  lastSeen?: number;
 }
 
 export interface NutritionLog {

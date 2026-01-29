@@ -194,7 +194,26 @@ const translations = {
     rawReading: "Scale Reading",
     phoneDeduction: "Phone Deduction",
     confirmWeight: "Confirm Weight",
-    
+
+    // Smart Scale
+    smartScale: "Smart Scale",
+    aiScan: "AI Scan",
+    bodyFat: "Body Fat",
+    muscleMass: "Muscle Mass",
+    boneMass: "Bone Mass",
+    waterPercent: "Water",
+    visceralFat: "Visceral Fat",
+    bmi: "BMI",
+    bmr: "BMR",
+    metabolicAge: "Metabolic Age",
+    bluetoothUnavailable: "Bluetooth Unavailable",
+    enableBluetooth: "Please enable Bluetooth to connect to your smart scale.",
+    scanningForScales: "Searching for scales...",
+    connectToScale: "Connect",
+    disconnectScale: "Disconnect",
+    scaleConnected: "Connected",
+    stepOnScale: "Step on the scale to measure.",
+
     // Pro Features
     upgradeToPro: "Upgrade to Pro",
     removeLimits: "Remove limits & unlock insights",
@@ -432,7 +451,26 @@ const translations = {
     rawReading: "На весах",
     phoneDeduction: "Вес телефона",
     confirmWeight: "Подтвердить вес",
-    
+
+    // Smart Scale
+    smartScale: "Умные весы",
+    aiScan: "ИИ Скан",
+    bodyFat: "Жировая масса",
+    muscleMass: "Мышечная масса",
+    boneMass: "Костная масса",
+    waterPercent: "Вода",
+    visceralFat: "Висцеральный жир",
+    bmi: "ИМТ",
+    bmr: "Базовый метаболизм",
+    metabolicAge: "Метаболический возраст",
+    bluetoothUnavailable: "Bluetooth недоступен",
+    enableBluetooth: "Включите Bluetooth для подключения к умным весам.",
+    scanningForScales: "Поиск весов...",
+    connectToScale: "Подключить",
+    disconnectScale: "Отключить",
+    scaleConnected: "Подключено",
+    stepOnScale: "Встаньте на весы для измерения.",
+
     // Pro Features
     upgradeToPro: "Перейти на Pro",
     removeLimits: "Снять лимиты и открыть аналитику",
