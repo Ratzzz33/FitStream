@@ -48,3 +48,18 @@ devops/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Android
+android/keystore.properties
+android/*.keystore
+android/app/release/
+android/app/debug/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# iOS
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+*.xcuserstate

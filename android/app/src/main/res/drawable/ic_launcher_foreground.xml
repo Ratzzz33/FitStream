@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Dumbbell icon with heartbeat line -->
+    <group
+        android:translateX="22"
+        android:translateY="22">
+        <!-- Left weight -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,36 L24,36 L24,52 L12,52 L12,36 Z" />
+        <!-- Right weight -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M56,36 L68,36 L68,52 L56,52 L56,36 Z" />
+        <!-- Bar -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,40 L56,40 L56,48 L24,48 L24,40 Z" />
+        <!-- Heartbeat line -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000"
+            android:pathData="M16,60 L28,60 L34,52 L40,68 L46,56 L52,60 L64,60" />
+    </group>
+</vector>
