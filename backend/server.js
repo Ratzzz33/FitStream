@@ -56,7 +56,37 @@ pool.on('error', (err, client) => {
   console.error('❌ Unexpected error on idle client (DB Connection Lost)', err);
 });
 
-// --- 4. PAYPAL SETUP ---
+// --- 4. GOOGLE AUTH SETUP ---
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+// Verify Google ID Token
+async function verifyGoogleToken(idToken) {
+    try {
+        // Use Google's tokeninfo endpoint for verification
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        if (!response.ok) return null;
+
+        const payload = await response.json();
+
+        // Verify the token is for our app
+        if (payload.aud !== GOOGLE_CLIENT_ID) {
+            console.warn('Token audience mismatch');
+            return null;
+        }
+
+        return {
+            googleId: payload.sub,
+            email: payload.email,
+            name: payload.name,
+            picture: payload.picture
+        };
+    } catch (e) {
+        console.error('Google token verification failed:', e.message);
+        return null;
+    }
+}
+
+// --- 5. PAYPAL SETUP ---
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET;
 const PAYPAL_PLAN_ID = process.env.PAYPAL_PLAN_ID;
@@ -258,6 +288,17 @@ const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id VARCHAR(255);
     `);
 
+    // Migration: Add Google Auth columns
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE;
+    `);
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS user_logs (
         id VARCHAR(255) PRIMARY KEY,
@@ -303,6 +344,150 @@ const initDb = async () => {
 };
 
 // --- 6. API ENDPOINTS ---
+
+// Google Auth - Verify token and login/register user
+app.post('/api/auth/google', async (req, res) => {
+    const { idToken, localUserId } = req.body;
+
+    if (!idToken) {
+        return res.status(400).json({ error: 'Missing idToken' });
+    }
+
+    try {
+        // 1. Verify Google token
+        const googleUser = await verifyGoogleToken(idToken);
+        if (!googleUser) {
+            return res.status(401).json({ error: 'Invalid Google token' });
+        }
+
+        const { googleId, email, name, picture } = googleUser;
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            // 2. Check if user with this Google ID already exists
+            const existingGoogle = await client.query(
+                'SELECT id, is_pro, settings FROM users WHERE google_id = $1',
+                [googleId]
+            );
+
+            let userId;
+            let isPro = false;
+            let mergedSettings = null;
+
+            if (existingGoogle.rows.length > 0) {
+                // User already registered with Google - return existing account
+                const existingUser = existingGoogle.rows[0];
+                userId = existingUser.id;
+                isPro = existingUser.is_pro;
+                mergedSettings = existingUser.settings;
+
+                // If local data exists from anonymous session, merge it
+                if (localUserId && localUserId !== userId) {
+                    await migrateUserData(client, localUserId, userId);
+                }
+            } else {
+                // New Google user
+                if (localUserId) {
+                    // Check if local user exists
+                    const localUser = await client.query(
+                        'SELECT id, is_pro, settings FROM users WHERE id = $1',
+                        [localUserId]
+                    );
+
+                    if (localUser.rows.length > 0) {
+                        // Link Google to existing local account
+                        userId = localUserId;
+                        isPro = localUser.rows[0].is_pro;
+                        mergedSettings = localUser.rows[0].settings;
+
+                        await client.query(
+                            'UPDATE users SET google_id = $1, email = $2 WHERE id = $3',
+                            [googleId, email, userId]
+                        );
+                    } else {
+                        // Create new user with Google ID as primary
+                        userId = `google_${googleId}`;
+                        await client.query(
+                            `INSERT INTO users (id, google_id, email, settings)
+                             VALUES ($1, $2, $3, $4)`,
+                            [userId, googleId, email, JSON.stringify({ name, avatar: picture, email })]
+                        );
+                    }
+                } else {
+                    // No local user - create fresh Google account
+                    userId = `google_${googleId}`;
+                    await client.query(
+                        `INSERT INTO users (id, google_id, email, settings)
+                         VALUES ($1, $2, $3, $4)`,
+                        [userId, googleId, email, JSON.stringify({ name, avatar: picture, email })]
+                    );
+                }
+            }
+
+            await client.query('COMMIT');
+
+            // 3. Fetch all user data to return
+            const userData = await client.query(
+                'SELECT settings, is_pro FROM users WHERE id = $1',
+                [userId]
+            );
+            const logsData = await client.query(
+                'SELECT category, data FROM user_logs WHERE user_id = $1',
+                [userId]
+            );
+
+            const logs = logsData.rows;
+
+            res.json({
+                success: true,
+                userId,
+                googleId,
+                email,
+                name,
+                picture,
+                isPro: userData.rows[0]?.is_pro || false,
+                settings: userData.rows[0]?.settings || mergedSettings,
+                exercises: logs.filter(l => l.category === 'EXERCISE').map(l => l.data),
+                weights: logs.filter(l => l.category === 'WEIGHT').map(l => l.data),
+                nutrition: logs.filter(l => l.category === 'NUTRITION').map(l => l.data)
+            });
+
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        console.error('Google Auth Error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Helper: Migrate user data from old ID to new ID
+async function migrateUserData(client, fromUserId, toUserId) {
+    console.log(`📦 Migrating data from ${fromUserId} to ${toUserId}`);
+
+    // Move all logs to new user
+    await client.query(
+        'UPDATE user_logs SET user_id = $1 WHERE user_id = $2',
+        [toUserId, fromUserId]
+    );
+
+    // Merge Pro status (if old user was Pro, keep it)
+    await client.query(`
+        UPDATE users SET is_pro = TRUE
+        WHERE id = $1
+        AND EXISTS (SELECT 1 FROM users WHERE id = $2 AND is_pro = TRUE)
+    `, [toUserId, fromUserId]);
+
+    // Optionally delete old anonymous user (or keep for audit)
+    // await client.query('DELETE FROM users WHERE id = $1', [fromUserId]);
+
+    console.log(`✅ Migration complete: ${fromUserId} -> ${toUserId}`);
+}
 
 // Custom Icons Endpoints
 app.get('/api/assets/icons', async (req, res) => {

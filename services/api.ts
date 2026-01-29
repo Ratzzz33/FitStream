@@ -52,7 +52,45 @@ const fetchWithRetry = async (resource: string, options: any = {}, retries = 3, 
     }
 };
 
+export interface GoogleAuthResponse {
+    success: boolean;
+    userId: string;
+    googleId: string;
+    email: string;
+    name: string;
+    picture: string;
+    isPro: boolean;
+    settings: any;
+    exercises: any[];
+    weights: any[];
+    nutrition: any[];
+}
+
 export const ApiService = {
+    // 0. Google Auth - Verify token and get/create user
+    async authenticateWithGoogle(idToken: string, localUserId: string, customBaseUrl?: string): Promise<GoogleAuthResponse | null> {
+        const url = getEffectiveUrl(customBaseUrl);
+        try {
+            const response = await fetchWithRetry(`${url}/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken, localUserId }),
+                timeout: 15000
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('Google Auth failed:', error);
+                return null;
+            }
+
+            return await response.json();
+        } catch (e) {
+            console.error('Google Auth Error:', e);
+            return null;
+        }
+    },
+
     // 1. Sync Settings (Legacy + Pro check)
     async syncUser(userId: string, settings: any, customBaseUrl?: string): Promise<{ isPro: boolean } | null> {
         const url = getEffectiveUrl(customBaseUrl);

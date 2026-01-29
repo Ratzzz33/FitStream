@@ -239,7 +239,13 @@ const translations = {
     photoSaved: "Photo saved",
     offlinePhotoHint: "You can enter data manually now or save the photo for AI analysis when you're back online.",
     saveForLater: "Analyze When Online",
-    pendingAnalysis: "Pending Analysis"
+    pendingAnalysis: "Pending Analysis",
+
+    // Google Auth
+    welcomeBack: "Welcome back",
+    loggedOut: "You have been logged out. Your local data is preserved.",
+    loggingIn: "Signing in...",
+    syncAcrossDevices: "Sync across devices"
   },
   ru: {
     dashboard: 'Главная',
@@ -477,7 +483,13 @@ const translations = {
     photoSaved: "Фото сохранено",
     offlinePhotoHint: "Введите данные вручную или сохраните фото для ИИ-анализа при появлении интернета.",
     saveForLater: "Анализировать позже",
-    pendingAnalysis: "Ожидает анализа"
+    pendingAnalysis: "Ожидает анализа",
+
+    // Google Auth
+    welcomeBack: "С возвращением",
+    loggedOut: "Вы вышли из аккаунта. Локальные данные сохранены.",
+    loggingIn: "Вход...",
+    syncAcrossDevices: "Синхронизация между устройствами"
   },
   es: {
     dashboard: 'Inicio',
