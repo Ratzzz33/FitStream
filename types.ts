@@ -235,4 +235,5 @@ export interface Leftover {
   fromRecipeId?: string;
 }
 
-export type NutritionSubTab = 'food' | 'menu' | 'kitchen' | 'cooking';
+// PRD: Дневник | Кухня | Рецепты | Финансы
+export type NutritionSubTab = 'diary' | 'kitchen' | 'recipes' | 'finance';

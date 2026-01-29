@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
 import { NutritionLog, NutritionSubTab } from '../types';
@@ -11,6 +11,7 @@ import { syncQueue } from '../services/syncQueue';
 import { offlineStorage } from '../services/offlineStorage';
 import { Kitchen } from './Kitchen';
 import { Cooking } from './Cooking';
+import { FoodFinance } from './Finance';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
@@ -21,7 +22,7 @@ type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_F
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
-    const [activeSubTab, setActiveSubTab] = useState<NutritionSubTab>('food');
+    const [activeSubTab, setActiveSubTab] = useState<NutritionSubTab>('diary');
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
@@ -359,20 +360,20 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 </div>
             </div>
 
-            {/* Sub-Tab Navigation */}
+            {/* Sub-Tab Navigation - PRD: Дневник | Кухня | Рецепты | Финансы */}
             <div className="flex border-b border-gray-200 dark:border-gray-700 px-2">
                 {([
-                    { id: 'food' as const, label: 'Еда', icon: <Camera className="w-4 h-4" /> },
-                    { id: 'menu' as const, label: 'Меню', icon: <FileText className="w-4 h-4" /> },
-                    { id: 'kitchen' as const, label: 'Кухня', icon: <Package className="w-4 h-4" /> },
-                    { id: 'cooking' as const, label: 'Готовить', icon: <ChefHat className="w-4 h-4" /> }
+                    { id: 'diary' as const, label: t('diary') || 'Дневник', icon: <Camera className="w-4 h-4" />, color: 'orange' },
+                    { id: 'kitchen' as const, label: t('kitchen') || 'Кухня', icon: <Package className="w-4 h-4" />, color: 'blue' },
+                    { id: 'recipes' as const, label: t('recipes') || 'Рецепты', icon: <ChefHat className="w-4 h-4" />, color: 'green' },
+                    { id: 'finance' as const, label: t('finance') || 'Финансы', icon: <Wallet className="w-4 h-4" />, color: 'purple' }
                 ]).map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveSubTab(tab.id)}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors
                             ${activeSubTab === tab.id
-                                ? 'text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400'
+                                ? `text-${tab.color}-600 dark:text-${tab.color}-400 border-b-2 border-${tab.color}-600 dark:border-${tab.color}-400`
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                     >
@@ -384,21 +385,26 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
             {/* Tab Content */}
             <div className="flex-1 overflow-auto">
-                {/* Kitchen Tab */}
+                {/* Kitchen Tab - PRD: Инвентарь продуктов */}
                 {activeSubTab === 'kitchen' && (
                     <Kitchen />
                 )}
 
-                {/* Cooking Tab */}
-                {activeSubTab === 'cooking' && (
+                {/* Recipes Tab - PRD: Рецепты + Таймеры (includes cooking mode) */}
+                {activeSubTab === 'recipes' && (
                     <Cooking
                         caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
                         onCaloriesLogged={handleCaloriesLogged}
                     />
                 )}
 
-                {/* Food and Menu tabs - existing content */}
-                {(activeSubTab === 'food' || activeSubTab === 'menu') && (
+                {/* Finance Tab - PRD: Контроль затрат на еду */}
+                {activeSubTab === 'finance' && (
+                    <FoodFinance />
+                )}
+
+                {/* Diary Tab - PRD: Дневник питания (food log + water + menu scan) */}
+                {activeSubTab === 'diary' && (
                     <div className="p-4 space-y-6 pb-24">
                         {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
