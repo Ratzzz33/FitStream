@@ -56,49 +56,152 @@ pool.on('error', (err, client) => {
   console.error('❌ Unexpected error on idle client (DB Connection Lost)', err);
 });
 
-// --- 4. STRIPE WEBHOOK ---
-// Safe initialization for Stripe
-let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-    try {
-        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    } catch (e) {
-        console.warn("⚠️ Stripe failed to initialize:", e.message);
-    }
+// --- 4. PAYPAL SETUP ---
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
+const PAYPAL_SECRET = process.env.PAYPAL_SECRET;
+const PAYPAL_PLAN_ID = process.env.PAYPAL_PLAN_ID;
+const PAYPAL_API = 'https://api-m.paypal.com'; // Live API
+
+// Get PayPal Access Token
+async function getPayPalAccessToken() {
+    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`).toString('base64');
+    const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+    });
+    const data = await response.json();
+    return data.access_token;
 }
 
-app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  if (!stripe) return res.status(500).send("Stripe not configured");
-  
-  const sig = req.headers['stripe-signature'];
-  let event;
+// PayPal Webhook Handler
+app.post('/api/webhook/paypal', async (req, res) => {
+    const event = req.body;
+    console.log('PayPal Webhook:', event.event_type);
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('Webhook Error:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    try {
+        if (event.event_type === 'BILLING.SUBSCRIPTION.ACTIVATED' ||
+            event.event_type === 'BILLING.SUBSCRIPTION.RENEWED') {
+            const subscription = event.resource;
+            const subscriptionId = subscription.id;
+            const userId = subscription.custom_id; // We pass userId as custom_id
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.client_reference_id;
-    const customerId = session.customer;
+            if (userId) {
+                await pool.query(
+                    `UPDATE users SET is_pro = TRUE, paypal_subscription_id = $1 WHERE id = $2`,
+                    [subscriptionId, userId]
+                );
+                console.log(`✅ User ${userId} upgraded to PRO via PayPal`);
+            }
+        } else if (event.event_type === 'BILLING.SUBSCRIPTION.CANCELLED' ||
+                   event.event_type === 'BILLING.SUBSCRIPTION.EXPIRED' ||
+                   event.event_type === 'BILLING.SUBSCRIPTION.SUSPENDED') {
+            const subscription = event.resource;
+            const subscriptionId = subscription.id;
 
-    if (userId) {
-        try {
             await pool.query(
-                `UPDATE users SET is_pro = TRUE, stripe_customer_id = $1 WHERE id = $2`,
-                [customerId, userId]
+                `UPDATE users SET is_pro = FALSE WHERE paypal_subscription_id = $1`,
+                [subscriptionId]
             );
-            console.log(`User ${userId} upgraded to PRO via Stripe`);
-        } catch (e) {
-            console.error('Database update failed', e);
+            console.log(`⚠️ Subscription ${subscriptionId} cancelled/expired`);
         }
+    } catch (e) {
+        console.error('PayPal Webhook Error:', e.message);
     }
-  }
 
-  res.json({received: true});
+    res.json({ received: true });
+});
+
+// Create PayPal Subscription
+app.post('/api/create-subscription', async (req, res) => {
+    if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
+        return res.status(503).json({ error: "PayPal not configured" });
+    }
+
+    const { userId } = req.body;
+    const clientUrl = req.get('Referer') ? req.get('Referer').replace(/\/$/, "") : 'https://fitstream.health';
+
+    try {
+        const accessToken = await getPayPalAccessToken();
+
+        const response = await fetch(`${PAYPAL_API}/v1/billing/subscriptions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                plan_id: PAYPAL_PLAN_ID,
+                custom_id: userId,
+                application_context: {
+                    brand_name: 'FitStream PRO',
+                    locale: 'en-US',
+                    shipping_preference: 'NO_SHIPPING',
+                    user_action: 'SUBSCRIBE_NOW',
+                    return_url: `${clientUrl}?pro_status=success`,
+                    cancel_url: `${clientUrl}?canceled=true`
+                }
+            })
+        });
+
+        const subscription = await response.json();
+
+        if (subscription.error) {
+            console.error('PayPal Error:', subscription);
+            return res.status(500).json({ error: subscription.error_description || 'PayPal error' });
+        }
+
+        // Find approval link
+        const approvalLink = subscription.links?.find(l => l.rel === 'approve')?.href;
+
+        if (!approvalLink) {
+            return res.status(500).json({ error: 'No approval link returned' });
+        }
+
+        res.json({ url: approvalLink, subscriptionId: subscription.id });
+    } catch (e) {
+        console.error("PayPal Subscription Error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Verify PayPal Subscription (called after user returns)
+app.post('/api/verify-subscription', async (req, res) => {
+    const { subscriptionId, userId } = req.body;
+
+    try {
+        const accessToken = await getPayPalAccessToken();
+
+        const response = await fetch(`${PAYPAL_API}/v1/billing/subscriptions/${subscriptionId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const subscription = await response.json();
+
+        if (subscription.status === 'ACTIVE') {
+            await pool.query(
+                `UPDATE users SET is_pro = TRUE, paypal_subscription_id = $1 WHERE id = $2`,
+                [subscriptionId, userId]
+            );
+            res.json({ success: true, isPro: true });
+        } else {
+            res.json({ success: false, status: subscription.status });
+        }
+    } catch (e) {
+        console.error("Verify Subscription Error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get PayPal Client ID for frontend
+app.get('/api/paypal-client-id', (req, res) => {
+    res.json({ clientId: PAYPAL_CLIENT_ID });
 });
 
 
@@ -127,11 +230,16 @@ const initDb = async () => {
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(255) PRIMARY KEY,
         is_pro BOOLEAN DEFAULT FALSE,
-        stripe_customer_id VARCHAR(255),
+        paypal_subscription_id VARCHAR(255),
         settings JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Migration: Add paypal column if not exists (for existing DBs)
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id VARCHAR(255);
     `);
 
     await client.query(`
@@ -339,30 +447,44 @@ app.post('/api/data/bulk', async (req, res) => {
     }
 });
 
+// Legacy endpoint - redirects to PayPal
 app.post('/api/create-checkout-session', async (req, res) => {
-    if (!stripe) return res.status(503).json({ error: "Stripe not configured" });
+    // Redirect old Stripe calls to PayPal
     const { userId } = req.body;
-    const clientUrl = req.get('Referer') ? req.get('Referer').replace(/\/$/, "") : 'https://fitstream-ai.web.app';
+    const clientUrl = req.get('Referer') ? req.get('Referer').replace(/\/$/, "") : 'https://fitstream.health';
+
     try {
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'usd',
-                    product_data: { name: 'FitStream PRO' },
-                    unit_amount: 499, 
-                    recurring: { interval: 'month' },
-                },
-                quantity: 1,
-            }],
-            mode: 'subscription',
-            client_reference_id: userId,
-            success_url: `${clientUrl}?session_id={CHECKOUT_SESSION_ID}&pro_status=success`,
-            cancel_url: `${clientUrl}?canceled=true`,
+        const accessToken = await getPayPalAccessToken();
+        const response = await fetch(`${PAYPAL_API}/v1/billing/subscriptions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                plan_id: PAYPAL_PLAN_ID,
+                custom_id: userId,
+                application_context: {
+                    brand_name: 'FitStream PRO',
+                    locale: 'en-US',
+                    shipping_preference: 'NO_SHIPPING',
+                    user_action: 'SUBSCRIBE_NOW',
+                    return_url: `${clientUrl}?pro_status=success`,
+                    cancel_url: `${clientUrl}?canceled=true`
+                }
+            })
         });
-        res.json({ url: session.url });
+
+        const subscription = await response.json();
+        const approvalLink = subscription.links?.find(l => l.rel === 'approve')?.href;
+
+        if (!approvalLink) {
+            return res.status(500).json({ error: 'Payment setup failed' });
+        }
+
+        res.json({ url: approvalLink });
     } catch (e) {
-        console.error("Stripe Session Error:", e.message);
+        console.error("PayPal Error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });

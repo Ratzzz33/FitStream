@@ -1,6 +1,6 @@
 
 // Set the default API URL to the production backend provided
-const DEFAULT_API_URL = 'https://fitstream-production.up.railway.app/api';
+const DEFAULT_API_URL = 'https://api.fitstream.health/api';
 
 const getEffectiveUrl = (customUrl?: string) => {
     if (customUrl && customUrl.trim().length > 0) {

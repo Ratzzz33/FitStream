@@ -12,6 +12,32 @@ dist
 dist-ssr
 *.local
 
+# Test coverage
+coverage/
+test-results/
+*.lcov
+
+# Playwright
+playwright-report/
+playwright/.cache/
+e2e/**/*.png
+!e2e/**/*-snapshots/
+
+# Security scan reports
+npm-audit.json
+semgrep-results.json
+trivy-*.json
+gitleaks-report.json
+sbom.json
+eslint-report.json
+zap-report.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+devops/.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

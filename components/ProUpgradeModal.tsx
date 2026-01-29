@@ -130,7 +130,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ onClose, onUpg
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-center mt-6">
                 <p className="text-gray-500 text-sm">{t('monthlySubscription')}</p>
                 <div className="flex items-baseline justify-center gap-1 mt-1">
-                    <span className="text-3xl font-bold text-gray-900 dark:text-white">$4.99</span>
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">€4.99</span>
                     <span className="text-gray-500">{t('perMonth')}</span>
                 </div>
             </div>
