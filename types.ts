@@ -71,6 +71,7 @@ export interface UserSettings {
   name: string;
   email?: string; // Added for Google Auth
   googleId?: string; // Added for Google Auth
+  telegramId?: number; // Added for Telegram Mini App
   avatar: string;
   age: number;
   height: number; // in cm

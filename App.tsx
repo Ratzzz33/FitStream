@@ -18,6 +18,8 @@ import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
+import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback } from './services/telegramService';
+import TelegramLinkButton from './components/TelegramLinkButton';
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -50,6 +52,9 @@ const App = () => {
   
   // Goal Selection
   const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
+
+  // Telegram Mini App Detection
+  const [isTelegramApp, setIsTelegramApp] = useState(false);
   
   // Phone Weight Scan Logic
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -90,6 +95,42 @@ const App = () => {
       };
       loadIcons();
   }, [settings.backendUrl]);
+
+  // Initialize Telegram Mini App
+  useEffect(() => {
+      const isTgApp = isTelegramWebApp();
+      setIsTelegramApp(isTgApp);
+
+      if (isTgApp) {
+          initTelegramApp();
+
+          // Auto-login with Telegram user data
+          const tgUser = getTelegramUser();
+          if (tgUser && !settings.googleId) {
+              const tgUserId = getTelegramUserId();
+              if (tgUserId) {
+                  const newSettings = {
+                      ...settings,
+                      name: `${tgUser.first_name}${tgUser.last_name ? ' ' + tgUser.last_name : ''}`,
+                      avatar: tgUser.photo_url || settings.avatar,
+                      telegramId: tgUser.id,
+                      googleId: tgUserId, // Use telegramId as the primary identifier
+                  };
+                  setSettings(newSettings);
+                  StorageService.saveSettings(newSettings);
+                  setNameInput(newSettings.name);
+              }
+          }
+
+          // Apply Telegram theme
+          const tgTheme = getColorScheme();
+          if (tgTheme !== settings.theme) {
+              const newSettings = { ...settings, theme: tgTheme };
+              setSettings(newSettings);
+              StorageService.saveSettings(newSettings);
+          }
+      }
+  }, []);
 
   // Initialize Google Auth when in Settings tab
   useEffect(() => {
@@ -320,6 +361,11 @@ const App = () => {
   };
 
   const attemptStartWorkout = () => {
+      // Haptic feedback for Telegram Mini App
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'medium');
+      }
+
       if (settings.isPro) {
           setIsWorkoutActive(true);
           return;
@@ -726,14 +772,15 @@ const App = () => {
                     )}
                 </div>
 
-                {/* Account Section */}
+                {/* Account Section - Hide in Telegram Mini App */}
+                {!isTelegramApp && (
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex justify-between items-center mb-3">
                         <h4 className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
                             <Settings2 size={16} className="text-red-500"/> Google Account
                         </h4>
                     </div>
-                    
+
                     {!settings.email ? (
                         <div className="space-y-2">
                             <div id="googleSignInBtn" className="w-full flex justify-center"></div>
@@ -759,7 +806,16 @@ const App = () => {
                         </div>
                     )}
                 </div>
+                )}
                 
+                {/* Telegram Link */}
+                {settings.googleId && (
+                    <TelegramLinkButton
+                        userId={settings.googleId}
+                        backendUrl={settings.backendUrl}
+                    />
+                )}
+
                 {/* Coach Settings */}
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div className="flex justify-between items-center mb-3">

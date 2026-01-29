@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const telegramService = require('./services/telegramService');
 
 // --- 0. SAFETY NETS (CRASH HANDLERS) ---
 process.on('uncaughtException', (err) => {
@@ -94,7 +95,10 @@ app.post('/api/webhook/paypal', async (req, res) => {
                     `UPDATE users SET is_pro = TRUE, paypal_subscription_id = $1 WHERE id = $2`,
                     [subscriptionId, userId]
                 );
-                console.log(`✅ User ${userId} upgraded to PRO via PayPal`);
+                console.log(`User ${userId} upgraded to PRO via PayPal`);
+
+                // Send Telegram notification
+                telegramService.sendNotification(userId, 'PRO_ACTIVATED', {});
             }
         }
         // Subscription cancelled, expired, or suspended
@@ -258,6 +262,20 @@ const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id VARCHAR(255);
     `);
 
+    // Migration: Add Telegram columns
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;
+    `);
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(255);
+    `);
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_notifications BOOLEAN DEFAULT TRUE;
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_telegram_chat_id ON users(telegram_chat_id);
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS user_logs (
         id VARCHAR(255) PRIMARY KEY,
@@ -392,14 +410,47 @@ app.post('/api/user/sync', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
+        // Get previous settings to check for streak milestones
+        const prevRes = await pool.query('SELECT settings FROM users WHERE id = $1', [userId]);
+        const prevSettings = prevRes.rows[0]?.settings;
+        const prevStreak = prevSettings?.streak || 0;
+        const newStreak = settings?.streak || 0;
+
         // Simple Upsert
         await pool.query(`
-            INSERT INTO users (id, settings, last_synced_at) 
+            INSERT INTO users (id, settings, last_synced_at)
             VALUES ($1, $2, CURRENT_TIMESTAMP)
-            ON CONFLICT (id) DO UPDATE 
+            ON CONFLICT (id) DO UPDATE
             SET settings = $2, last_synced_at = CURRENT_TIMESTAMP
         `, [userId, settings]);
-        
+
+        // Check for streak milestones
+        const milestones = [7, 14, 30, 60, 90, 100, 365];
+        for (const milestone of milestones) {
+            if (newStreak >= milestone && prevStreak < milestone) {
+                telegramService.sendNotification(userId, 'STREAK_MILESTONE', {
+                    streak: milestone
+                });
+                break; // Only notify for one milestone at a time
+            }
+        }
+
+        // Check for goal completions
+        if (settings?.goals && prevSettings?.goals) {
+            for (const goal of settings.goals) {
+                if (!goal.isEnabled) continue;
+                const prevGoal = prevSettings.goals.find(g => g.type === goal.type);
+                if (prevGoal && goal.current >= goal.target && prevGoal.current < goal.target) {
+                    telegramService.sendNotification(userId, 'GOAL_COMPLETED', {
+                        goalType: goal.type,
+                        current: goal.current,
+                        target: goal.target,
+                        unit: goal.unit
+                    });
+                }
+            }
+        }
+
         const resPro = await pool.query('SELECT is_pro FROM users WHERE id = $1', [userId]);
         return res.json({ isPro: resPro.rows[0]?.is_pro || false });
     } catch (err) {
@@ -410,17 +461,28 @@ app.post('/api/user/sync', async (req, res) => {
 });
 
 app.post('/api/data/log', async (req, res) => {
-    const { userId, category, data } = req.body; 
+    const { userId, category, data } = req.body;
     try {
         // Ensure user exists first
         await pool.query(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [userId]);
-        
+
         await pool.query(`
             INSERT INTO user_logs (id, user_id, category, date, data)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE
             SET data = $5
         `, [data.id, userId, category, data.date, data]);
+
+        // Send Telegram notification for weight logs
+        if (category === 'WEIGHT' && data.weight) {
+            const userRes = await pool.query(`SELECT settings FROM users WHERE id = $1`, [userId]);
+            const settings = userRes.rows[0]?.settings;
+            telegramService.sendNotification(userId, 'WEIGHT_LOGGED', {
+                weight: data.weight,
+                targetWeight: settings?.targetWeight
+            });
+        }
+
         res.json({ success: true });
     } catch (e) {
         console.error("Log Data Error:", e.message);
@@ -460,6 +522,148 @@ app.post('/api/data/bulk', async (req, res) => {
         res.status(500).json({ error: e.message });
     } finally {
         if (client) client.release();
+    }
+});
+
+// --- TELEGRAM API ENDPOINTS ---
+
+// Telegram Webhook (for production)
+app.post('/api/telegram/webhook', (req, res) => {
+    try {
+        telegramService.processUpdate(req.body);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('Telegram webhook error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Generate link code for user
+app.get('/api/telegram/link-code', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    try {
+        // Check if already linked
+        const result = await pool.query(
+            `SELECT telegram_chat_id FROM users WHERE id = $1`,
+            [userId]
+        );
+
+        if (result.rows[0]?.telegram_chat_id) {
+            return res.json({
+                alreadyLinked: true,
+                message: 'Account already linked to Telegram'
+            });
+        }
+
+        const code = telegramService.generateLinkCode(userId);
+        res.json({ code, expiresIn: 600 }); // 10 minutes
+    } catch (e) {
+        console.error('Link code error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Link Telegram account (called from Mini App)
+app.post('/api/telegram/link', async (req, res) => {
+    const { userId, chatId, username, initData } = req.body;
+
+    if (!userId || !chatId) {
+        return res.status(400).json({ error: 'Missing userId or chatId' });
+    }
+
+    try {
+        // Verify initData if provided (for security in Mini Apps)
+        // In production, you should validate the Telegram Web App initData hash
+
+        const success = await telegramService.linkTelegramAccount(userId, chatId, username);
+
+        if (success) {
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ error: 'Failed to link account' });
+        }
+    } catch (e) {
+        console.error('Telegram link error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Unlink Telegram account
+app.post('/api/telegram/unlink', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    try {
+        await pool.query(
+            `UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE id = $1`,
+            [userId]
+        );
+        res.json({ success: true });
+    } catch (e) {
+        console.error('Telegram unlink error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get Telegram link status
+app.get('/api/telegram/status', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    try {
+        const result = await pool.query(
+            `SELECT telegram_chat_id, telegram_username, telegram_notifications FROM users WHERE id = $1`,
+            [userId]
+        );
+
+        const user = result.rows[0];
+        if (!user) return res.json({ linked: false });
+
+        res.json({
+            linked: !!user.telegram_chat_id,
+            username: user.telegram_username,
+            notificationsEnabled: user.telegram_notifications !== false
+        });
+    } catch (e) {
+        console.error('Telegram status error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Toggle Telegram notifications
+app.post('/api/telegram/notifications', async (req, res) => {
+    const { userId, enabled } = req.body;
+    if (!userId || enabled === undefined) {
+        return res.status(400).json({ error: 'Missing userId or enabled' });
+    }
+
+    try {
+        await pool.query(
+            `UPDATE users SET telegram_notifications = $1 WHERE id = $2`,
+            [enabled, userId]
+        );
+        res.json({ success: true });
+    } catch (e) {
+        console.error('Telegram notifications error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Send notification (internal/admin use)
+app.post('/api/telegram/notify', async (req, res) => {
+    const { userId, type, data } = req.body;
+    if (!userId || !type) {
+        return res.status(400).json({ error: 'Missing userId or type' });
+    }
+
+    try {
+        const success = await telegramService.sendNotification(userId, type, data);
+        res.json({ success });
+    } catch (e) {
+        console.error('Telegram notify error:', e);
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -510,10 +714,18 @@ const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0'; 
 
 const server = app.listen(PORT, HOST, () => {
-  console.log(`🚀 FitStream Backend running on http://${HOST}:${PORT}`);
-  
+  console.log(`FitStream Backend running on http://${HOST}:${PORT}`);
+
   // Non-blocking DB init
   initDb();
+
+  // Initialize Telegram bot
+  telegramService.initBot(pool);
+
+  // Set webhook in production
+  if (process.env.NODE_ENV === 'production' && process.env.TELEGRAM_WEBHOOK_URL) {
+      telegramService.setWebhook(`${process.env.TELEGRAM_WEBHOOK_URL}/api/telegram/webhook`);
+  }
 });
 
 // Enhance timeout settings for Load Balancers (Railway/AWS)
