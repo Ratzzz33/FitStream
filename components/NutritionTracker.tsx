@@ -1,14 +1,17 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
-import { NutritionLog } from '../types';
+import { NutritionLog, NutritionSubTab } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
 import { syncQueue } from '../services/syncQueue';
 import { offlineStorage } from '../services/offlineStorage';
+import { Kitchen } from './Kitchen';
+import { Cooking } from './Cooking';
+import { FoodFinance } from './Finance';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
@@ -19,6 +22,7 @@ type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_F
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
+    const [activeSubTab, setActiveSubTab] = useState<NutritionSubTab>('diary');
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
@@ -292,41 +296,117 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         setShowManualEntry(true);
     };
 
+    // Handle calories logged from cooking
+    const handleCaloriesLogged = (calories: number) => {
+        setNeedsUpdate(prev => prev + 1);
+    };
+
     return (
-        <div className="p-4 space-y-6 pb-24">
-            {/* Offline / Pending Sync Indicator */}
-            {(!isOnline || pendingCount > 0) && (
-                <div className={`rounded-xl p-3 flex items-center justify-between ${
-                    !isOnline
-                        ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'
-                        : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
-                }`}>
-                    <div className="flex items-center gap-2">
-                        {!isOnline ? (
-                            <>
-                                <WifiOff size={16} className="text-yellow-600 dark:text-yellow-400" />
-                                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
-                                    {t('offlineMode') || 'Offline Mode'}
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <Loader2 size={16} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                                    {t('syncing') || 'Syncing...'}
-                                </span>
-                            </>
+        <div className="flex flex-col h-full">
+            {/* Top Summary - Always visible */}
+            <div className="p-4 pb-2">
+                {/* Offline / Pending Sync Indicator */}
+                {(!isOnline || pendingCount > 0) && (
+                    <div className={`rounded-xl p-3 flex items-center justify-between mb-4 ${
+                        !isOnline
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'
+                            : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                    }`}>
+                        <div className="flex items-center gap-2">
+                            {!isOnline ? (
+                                <>
+                                    <WifiOff size={16} className="text-yellow-600 dark:text-yellow-400" />
+                                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                                        {t('offlineMode') || 'Offline Mode'}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Loader2 size={16} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                        {t('syncing') || 'Syncing...'}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                        {pendingCount > 0 && (
+                            <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full font-bold text-gray-600 dark:text-gray-300">
+                                {pendingCount} {t('pending') || 'pending'}
+                            </span>
                         )}
                     </div>
-                    {pendingCount > 0 && (
-                        <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full font-bold text-gray-600 dark:text-gray-300">
-                            {pendingCount} {t('pending') || 'pending'}
-                        </span>
-                    )}
-                </div>
-            )}
+                )}
 
-            {/* Top Summary */}
+                {/* Calories Progress Bar */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('calories')}</span>
+                        <span className="text-sm font-medium dark:text-white">
+                            {todayStats.calories} / {dailyNeeds.calories} {t('unitKcal')}
+                        </span>
+                    </div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                                todayStats.calories > dailyNeeds.calories
+                                    ? 'bg-red-500'
+                                    : todayStats.calories > dailyNeeds.calories * 0.8
+                                        ? 'bg-amber-500'
+                                        : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Sub-Tab Navigation - PRD: Дневник | Кухня | Рецепты | Финансы */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700 px-2">
+                {([
+                    { id: 'diary' as const, label: t('diary') || 'Дневник', icon: <Camera className="w-4 h-4" />, color: 'orange' },
+                    { id: 'kitchen' as const, label: t('kitchen') || 'Кухня', icon: <Package className="w-4 h-4" />, color: 'blue' },
+                    { id: 'recipes' as const, label: t('recipes') || 'Рецепты', icon: <ChefHat className="w-4 h-4" />, color: 'green' },
+                    { id: 'finance' as const, label: t('finance') || 'Финансы', icon: <Wallet className="w-4 h-4" />, color: 'purple' }
+                ]).map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveSubTab(tab.id)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors
+                            ${activeSubTab === tab.id
+                                ? `text-${tab.color}-600 dark:text-${tab.color}-400 border-b-2 border-${tab.color}-600 dark:border-${tab.color}-400`
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        {tab.icon}
+                        <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-auto">
+                {/* Kitchen Tab - PRD: Инвентарь продуктов */}
+                {activeSubTab === 'kitchen' && (
+                    <Kitchen />
+                )}
+
+                {/* Recipes Tab - PRD: Рецепты + Таймеры (includes cooking mode) */}
+                {activeSubTab === 'recipes' && (
+                    <Cooking
+                        caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
+                        onCaloriesLogged={handleCaloriesLogged}
+                    />
+                )}
+
+                {/* Finance Tab - PRD: Контроль затрат на еду */}
+                {activeSubTab === 'finance' && (
+                    <FoodFinance />
+                )}
+
+                {/* Diary Tab - PRD: Дневник питания (food log + water + menu scan) */}
+                {activeSubTab === 'diary' && (
+                    <div className="p-4 space-y-6 pb-24">
+                        {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
                 <div className="flex flex-col items-center">
                     <AchievementRing 
@@ -748,7 +828,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     />
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={saveManualFood}
                                 disabled={!manualName || !manualCals}
                                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -759,6 +839,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     </div>
                 </div>
             )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

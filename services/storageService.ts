@@ -1,6 +1,9 @@
 
 
-import { ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel } from '../types';
+import {
+  ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel,
+  KitchenStorage, InventoryItem, Recipe, CookedMeal, Leftover, StorageType
+} from '../types';
 import { ApiService } from './api';
 
 const KEYS = {
@@ -10,8 +13,21 @@ const KEYS = {
   SETTINGS: 'fitstream_settings_v4',
   FRIENDS: 'fitstream_friends',
   USER_ID: 'fitstream_user_id',
-  SYNC_STATUS: 'fitstream_sync_status'
+  SYNC_STATUS: 'fitstream_sync_status',
+  // Smart Kitchen
+  KITCHEN_STORAGES: 'fitstream_kitchen_storages',
+  INVENTORY: 'fitstream_inventory',
+  COOKING_HISTORY: 'fitstream_cooking_history',
+  LEFTOVERS: 'fitstream_leftovers',
+  RECENT_RECIPES: 'fitstream_recent_recipes'
 };
+
+// Default kitchen storages
+const DEFAULT_STORAGES: KitchenStorage[] = [
+  { id: 'fridge', name: 'Холодильник', type: 'fridge', lastUpdated: new Date().toISOString() },
+  { id: 'cabinet', name: 'Шкаф', type: 'cabinet', lastUpdated: new Date().toISOString() },
+  { id: 'freezer', name: 'Морозилка', type: 'freezer', lastUpdated: new Date().toISOString() }
+];
 
 // --- Avatar Helpers ---
 export const generateTotem = (emoji: string, colorFrom: string, colorTo: string, accent: string = '#ffffff') => {
@@ -504,5 +520,188 @@ export const StorageService = {
           { id: '2', name: 'Jordan', score: 85, avatar: PREDEFINED_AVATARS[2].url },
           { id: '3', name: 'Casey', score: 45, avatar: PREDEFINED_AVATARS[3].url },
       ];
+  },
+
+  // === SMART KITCHEN: Storages ===
+
+  getStorages: (): KitchenStorage[] => {
+    const data = localStorage.getItem(KEYS.KITCHEN_STORAGES);
+    return data ? JSON.parse(data) : DEFAULT_STORAGES;
+  },
+
+  saveStoragePhoto: (storageId: string, photo: string): void => {
+    const storages = StorageService.getStorages();
+    const idx = storages.findIndex(s => s.id === storageId);
+    if (idx !== -1) {
+      storages[idx].photo = photo;
+      storages[idx].lastUpdated = new Date().toISOString();
+      localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    }
+  },
+
+  // === SMART KITCHEN: Inventory ===
+
+  getInventory: (): InventoryItem[] => {
+    const data = localStorage.getItem(KEYS.INVENTORY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  getInventoryByStorage: (storageId: string): InventoryItem[] => {
+    return StorageService.getInventory().filter(item => item.storageId === storageId);
+  },
+
+  saveInventoryItem: (item: InventoryItem): void => {
+    const inventory = StorageService.getInventory();
+    const existingIdx = inventory.findIndex(i => i.id === item.id);
+    if (existingIdx !== -1) {
+      inventory[existingIdx] = item;
+    } else {
+      inventory.push(item);
+    }
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+  },
+
+  saveInventoryBulk: (items: InventoryItem[]): void => {
+    const inventory = StorageService.getInventory();
+    items.forEach(item => {
+      const existingIdx = inventory.findIndex(i => i.id === item.id);
+      if (existingIdx !== -1) {
+        inventory[existingIdx] = item;
+      } else {
+        inventory.push(item);
+      }
+    });
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+  },
+
+  removeInventoryItem: (id: string): void => {
+    const inventory = StorageService.getInventory().filter(i => i.id !== id);
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+  },
+
+  updateInventoryQuantity: (id: string, newQuantity: number): void => {
+    const inventory = StorageService.getInventory();
+    const idx = inventory.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      if (newQuantity <= 0) {
+        inventory.splice(idx, 1);
+      } else {
+        inventory[idx].quantity = newQuantity;
+      }
+      localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    }
+  },
+
+  consumeInventoryItems: (items: { itemId: string; quantity: number }[]): void => {
+    const inventory = StorageService.getInventory();
+    items.forEach(({ itemId, quantity }) => {
+      const idx = inventory.findIndex(i => i.id === itemId);
+      if (idx !== -1) {
+        inventory[idx].quantity -= quantity;
+        if (inventory[idx].quantity <= 0) {
+          inventory.splice(idx, 1);
+        }
+      }
+    });
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+  },
+
+  getExpiringItems: (days: number = 3): InventoryItem[] => {
+    const inventory = StorageService.getInventory();
+    const now = new Date();
+    const threshold = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return inventory.filter(item => {
+      if (!item.expiresAt) return false;
+      const expDate = new Date(item.expiresAt);
+      return expDate <= threshold && expDate >= now;
+    }).sort((a, b) => new Date(a.expiresAt!).getTime() - new Date(b.expiresAt!).getTime());
+  },
+
+  getExpiredItems: (): InventoryItem[] => {
+    const inventory = StorageService.getInventory();
+    const now = new Date();
+    return inventory.filter(item => {
+      if (!item.expiresAt) return false;
+      return new Date(item.expiresAt) < now;
+    });
+  },
+
+  // === SMART KITCHEN: Cooking History ===
+
+  getCookingHistory: (): CookedMeal[] => {
+    const data = localStorage.getItem(KEYS.COOKING_HISTORY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveCookedMeal: (meal: CookedMeal): void => {
+    const history = StorageService.getCookingHistory();
+    history.push(meal);
+    localStorage.setItem(KEYS.COOKING_HISTORY, JSON.stringify(history));
+
+    // Also log calories to nutrition
+    const nutritionLog: NutritionLog = {
+      id: 'cooked_' + meal.id,
+      date: meal.cookedAt.split('T')[0],
+      timestamp: new Date(meal.cookedAt).getTime(),
+      type: 'FOOD',
+      name: meal.recipeName,
+      calories: meal.caloriesEaten,
+      manualEntry: false
+    };
+    StorageService.saveNutrition(nutritionLog);
+  },
+
+  getRecentRecipeIds: (limit: number = 5): string[] => {
+    const history = StorageService.getCookingHistory();
+    return history
+      .sort((a, b) => new Date(b.cookedAt).getTime() - new Date(a.cookedAt).getTime())
+      .slice(0, limit)
+      .map(m => m.recipeId);
+  },
+
+  // === SMART KITCHEN: Leftovers ===
+
+  getLeftovers: (): Leftover[] => {
+    const data = localStorage.getItem(KEYS.LEFTOVERS);
+    const leftovers: Leftover[] = data ? JSON.parse(data) : [];
+    // Filter out expired leftovers
+    const now = new Date();
+    return leftovers.filter(l => new Date(l.expiresAt) >= now);
+  },
+
+  saveLeftover: (leftover: Leftover): void => {
+    const leftovers = StorageService.getLeftovers();
+    leftovers.push(leftover);
+    localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+  },
+
+  removeLeftover: (id: string): void => {
+    const leftovers = StorageService.getLeftovers().filter(l => l.id !== id);
+    localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+  },
+
+  consumeLeftover: (id: string, portions: number): void => {
+    const leftovers = StorageService.getLeftovers();
+    const idx = leftovers.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      const leftover = leftovers[idx];
+      leftover.portions -= portions;
+      if (leftover.portions <= 0) {
+        leftovers.splice(idx, 1);
+      }
+      localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+
+      // Log consumed calories
+      const nutritionLog: NutritionLog = {
+        id: 'leftover_' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        timestamp: Date.now(),
+        type: 'FOOD',
+        name: leftover.name + ' (остатки)',
+        calories: leftover.caloriesPerPortion * portions,
+        manualEntry: false
+      };
+      StorageService.saveNutrition(nutritionLog);
+    }
   }
 };
