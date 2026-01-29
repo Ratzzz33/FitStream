@@ -57,7 +57,6 @@ export default defineConfig({
     // Параллельный запуск (Vitest 4+ config)
     pool: 'threads',
     maxWorkers: 4,
-    minWorkers: 1,
 
     // Reporter для CI
     reporters: process.env.CI
