@@ -54,13 +54,9 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
 
-    // Параллельный запуск
+    // Параллельный запуск (Vitest 4+ config)
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-      },
-    },
+    maxWorkers: 4,
 
     // Reporter для CI
     reporters: process.env.CI
