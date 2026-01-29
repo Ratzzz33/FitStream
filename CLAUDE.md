@@ -88,3 +88,26 @@ Main interfaces in `types.ts`:
 - Tailwind for styling (no CSS files)
 - Icons from `lucide-react`
 - Named exports for services, default export for components
+
+## Git Workflow
+
+IMPORTANT: Все новые фичи и правки делать в отдельном git worktree:
+
+```bash
+# Создать worktree для новой фичи
+git worktree add ../FitStream-<feature-name> -b feature/<feature-name>
+
+# После завершения — merge и удалить
+git worktree remove ../FitStream-<feature-name>
+```
+
+Никогда не коммитить напрямую в main без worktree!
+
+## Documentation Sync
+
+IMPORTANT: При добавлении/изменении функций:
+1. Обновить `docs/features.json` — единый источник истины
+2. Проверить соответствие на лендинге (`landing/index.html`)
+3. Обновить скриншоты в `landing/screenshots/` если UI изменился
+
+Лендинг должен всегда отражать актуальные возможности приложения.
