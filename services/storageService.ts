@@ -119,7 +119,7 @@ const DEFAULT_SETTINGS: UserSettings = {
       lastSync: null
   },
   isPro: false,
-  backendUrl: 'https://fitstream-production.up.railway.app',
+  backendUrl: 'https://api.fitstream.health',
   coachVoice: 'Fenrir' // Default to Male voice
 };
 
@@ -132,6 +132,85 @@ export const StorageService = {
           localStorage.setItem(KEYS.USER_ID, id);
       }
       return id;
+  },
+
+  // Set user ID (used after Google login to switch to cloud account)
+  setUserId: (newUserId: string): void => {
+      localStorage.setItem(KEYS.USER_ID, newUserId);
+  },
+
+  // Check if user is logged in with Google
+  isLoggedIn: (): boolean => {
+      const settings = StorageService.getSettings();
+      return !!(settings.email && settings.googleId);
+  },
+
+  // Merge cloud data with local storage after Google login
+  mergeCloudData: (cloudData: {
+      settings?: any;
+      exercises?: any[];
+      weights?: any[];
+      nutrition?: any[];
+      isPro?: boolean;
+  }): void => {
+      // Merge exercises
+      if (cloudData.exercises?.length) {
+          const localEx = StorageService.getExercises();
+          const existingIds = new Set(localEx.map(e => e.id));
+          const newEx = cloudData.exercises.filter(e => !existingIds.has(e.id));
+          if (newEx.length > 0) {
+              const merged = [...localEx, ...newEx].sort((a, b) => a.timestamp - b.timestamp);
+              localStorage.setItem(KEYS.EXERCISES, JSON.stringify(merged));
+          }
+      }
+
+      // Merge weights
+      if (cloudData.weights?.length) {
+          const localW = StorageService.getWeights();
+          const existingIds = new Set(localW.map(w => w.id));
+          const newW = cloudData.weights.filter(w => !existingIds.has(w.id));
+          if (newW.length > 0) {
+              const merged = [...localW, ...newW].sort((a, b) => a.timestamp - b.timestamp);
+              localStorage.setItem(KEYS.WEIGHTS, JSON.stringify(merged));
+          }
+      }
+
+      // Merge nutrition
+      if (cloudData.nutrition?.length) {
+          const localN = StorageService.getNutritionLogs();
+          const existingIds = new Set(localN.map(n => n.id));
+          const newN = cloudData.nutrition.filter(n => !existingIds.has(n.id));
+          if (newN.length > 0) {
+              const merged = [...localN, ...newN].sort((a, b) => a.timestamp - b.timestamp);
+              localStorage.setItem(KEYS.NUTRITION, JSON.stringify(merged));
+          }
+      }
+
+      // Merge settings (cloud takes precedence for isPro)
+      if (cloudData.settings || cloudData.isPro !== undefined) {
+          const localSettings = StorageService.getSettings();
+          const mergedSettings = {
+              ...localSettings,
+              ...(cloudData.settings || {}),
+              isPro: cloudData.isPro || localSettings.isPro
+          };
+          localStorage.setItem(KEYS.SETTINGS, JSON.stringify(mergedSettings));
+      }
+  },
+
+  // Logout - clear Google-specific data but keep local data
+  logout: (): void => {
+      const settings = StorageService.getSettings();
+      const newSettings = {
+          ...settings,
+          email: undefined,
+          googleId: undefined
+      };
+      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(newSettings));
+
+      // Generate new anonymous user ID
+      const newId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+      localStorage.setItem(KEYS.USER_ID, newId);
   },
 
   // --- INITIALIZATION ---

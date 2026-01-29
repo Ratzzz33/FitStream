@@ -156,34 +156,92 @@ const App = () => {
       }
   }, [activeTab, settings.email, googleClientIdInput]);
 
-  const handleGoogleLogin = (response: any) => {
-      const payload = parseJwt(response.credential);
-      if (payload) {
-          const newSettings = { 
-              ...settings, 
-              email: payload.email,
-              name: payload.name,
-              avatar: payload.picture,
-              googleId: payload.sub
-          };
-          setSettings(newSettings);
-          StorageService.saveSettings(newSettings);
-          setNameInput(payload.name); // Update local input
-          alert(`Welcome, ${payload.name}!`);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleGoogleLogin = async (response: any) => {
+      setIsLoggingIn(true);
+
+      try {
+          const idToken = response.credential;
+          const localUserId = StorageService.getUserId();
+
+          // Verify token with backend and get/merge user data
+          const authResult = await ApiService.authenticateWithGoogle(
+              idToken,
+              localUserId,
+              settings.backendUrl
+          );
+
+          if (authResult && authResult.success) {
+              // Update user ID to the cloud account ID
+              StorageService.setUserId(authResult.userId);
+
+              // Merge any cloud data with local data
+              StorageService.mergeCloudData({
+                  settings: authResult.settings,
+                  exercises: authResult.exercises,
+                  weights: authResult.weights,
+                  nutrition: authResult.nutrition,
+                  isPro: authResult.isPro
+              });
+
+              // Update settings with Google info
+              const newSettings: UserSettings = {
+                  ...settings,
+                  ...(authResult.settings || {}),
+                  email: authResult.email,
+                  name: authResult.name || settings.name,
+                  avatar: authResult.picture || settings.avatar,
+                  googleId: authResult.googleId,
+                  isPro: authResult.isPro || settings.isPro
+              };
+
+              setSettings(newSettings);
+              StorageService.saveSettings(newSettings, false); // Don't push back immediately
+              setNameInput(authResult.name || settings.name);
+
+              // Refresh UI data
+              refreshData();
+
+              alert(t('welcomeBack') + `, ${authResult.name}!`);
+          } else {
+              // Fallback to client-only mode if backend fails
+              const payload = parseJwt(idToken);
+              if (payload) {
+                  const newSettings = {
+                      ...settings,
+                      email: payload.email,
+                      name: payload.name,
+                      avatar: payload.picture,
+                      googleId: payload.sub
+                  };
+                  setSettings(newSettings);
+                  StorageService.saveSettings(newSettings);
+                  setNameInput(payload.name);
+                  alert(`Welcome, ${payload.name}! (Offline mode)`);
+              }
+          }
+      } catch (e) {
+          console.error("Google Login Error:", e);
+          alert("Login failed. Please try again.");
+      } finally {
+          setIsLoggingIn(false);
       }
   };
 
   const handleGoogleLogout = () => {
-      const newSettings = { ...settings, email: undefined, googleId: undefined };
+      StorageService.logout();
+      const newSettings = StorageService.getSettings();
       setSettings(newSettings);
-      StorageService.saveSettings(newSettings);
-      
+
       // Re-initialize button after logout
       setTimeout(() => {
         if((window as any).google) {
             (window as any).google.accounts.id.disableAutoSelect();
         }
       }, 500);
+
+      alert(t('loggedOut'));
   };
 
   // Offline-First Initialization
