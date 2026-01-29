@@ -213,6 +213,10 @@ const translations = {
     disconnectScale: "Disconnect",
     scaleConnected: "Connected",
     stepOnScale: "Step on the scale to measure.",
+    noBodyCompositionData: "No Body Composition Data",
+    connectScaleToSeeData: "Connect your smart scale to see body composition trends.",
+    latestMeasurement: "Latest Measurement",
+    trends: "Trends",
 
     // Pro Features
     upgradeToPro: "Upgrade to Pro",
@@ -470,6 +474,10 @@ const translations = {
     disconnectScale: "Отключить",
     scaleConnected: "Подключено",
     stepOnScale: "Встаньте на весы для измерения.",
+    noBodyCompositionData: "Нет данных о составе тела",
+    connectScaleToSeeData: "Подключите умные весы, чтобы увидеть тренды состава тела.",
+    latestMeasurement: "Последнее измерение",
+    trends: "Тренды",
 
     // Pro Features
     upgradeToPro: "Перейти на Pro",

@@ -9,6 +9,7 @@ import { t } from '../services/i18n';
 import { syncQueue } from '../services/syncQueue';
 import { offlineStorage } from '../services/offlineStorage';
 import SmartScale from './SmartScale';
+import { BodyCompositionCharts } from './BodyCompositionCharts';
 import { Capacitor } from '@capacitor/core';
 
 interface WeightTrackerProps {
@@ -280,6 +281,14 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
            settings={settings}
            onWeightLogged={handleSmartScaleWeight}
            theme={settings.theme}
+         />
+       )}
+
+       {/* Body Composition Trends */}
+       {isNativePlatform && inputMode === 'smart_scale' && (
+         <BodyCompositionCharts
+           weights={StorageService.getWeights()}
+           isPro={settings.isPro}
          />
        )}
 
