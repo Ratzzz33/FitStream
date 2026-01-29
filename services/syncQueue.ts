@@ -420,6 +420,13 @@ class SyncQueueService {
   }
 
   /**
+   * Get pending count
+   */
+  async getPendingCount(): Promise<number> {
+    return offlineStorage.getPendingCount();
+  }
+
+  /**
    * Cleanup
    */
   destroy() {

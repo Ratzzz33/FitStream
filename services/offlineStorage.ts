@@ -218,7 +218,7 @@ class OfflineStorageService {
       const tx = db.transaction(STORES.PENDING_ITEMS, 'readonly');
       const store = tx.objectStore(STORES.PENDING_ITEMS);
       const index = store.index('needsAiAnalysis');
-      const request = index.getAll(true);
+      const request = index.getAll(IDBKeyRange.only(1));
 
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
