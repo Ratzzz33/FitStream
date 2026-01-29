@@ -132,3 +132,107 @@ export enum AppTab {
   SOCIAL = 'SOCIAL',
   SETTINGS = 'SETTINGS'
 }
+
+// === SMART KITCHEN TYPES ===
+
+export type StorageType = 'fridge' | 'cabinet' | 'freezer';
+
+export interface KitchenStorage {
+  id: string;
+  name: string;                    // "Холодильник", "Шкаф", "Морозилка"
+  type: StorageType;
+  photo?: string;                  // base64 или URL фото
+  lastUpdated: string;             // ISO date
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;                    // "Молоко 2.5%"
+  emoji?: string;                  // 🥛
+  quantity: number;
+  unit: string;                    // "мл", "г", "шт"
+  storageId: string;               // к какому хранилищу относится
+  expiresAt?: string;              // срок годности ISO date
+  addedAt: string;
+  source: 'photo' | 'receipt' | 'manual';
+  position?: { x: number; y: number };  // координаты на фото для overlay (0-100%)
+  caloriesPer100: number;          // ккал на 100г/мл
+  price?: number;                  // цена за единицу
+}
+
+export interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl?: string;               // сгенерированное Nana Banana
+  servings: number;
+  totalTime: number;               // минуты
+  caloriesPerServing: number;
+  ingredients: RecipeIngredient[];
+  steps: CookingStep[];
+  createdAt: string;
+}
+
+export interface RecipeIngredient {
+  inventoryItemId?: string;        // связь с инвентарём (если есть)
+  name: string;
+  emoji?: string;
+  quantity: number;
+  unit: string;
+  available: boolean;              // есть ли в инвентаре
+}
+
+export interface CookingStep {
+  id: string;
+  order: number;
+  instruction: string;
+  imageUrl?: string;               // фото "как должно выглядеть"
+  timerSeconds?: number;           // если нужен таймер
+  heatLevel?: 1 | 2 | 3;           // 🔥 🔥🔥 🔥🔥🔥
+  reminders: CookingReminder[];
+  tip?: string;                    // подсказка "почему так делаем"
+  troubleshoot?: TroubleshootOption[];
+  doneWhen?: string;               // "Готово когда: жёлтая корочка"
+}
+
+export type ReminderType = 'stir' | 'flip' | 'check' | 'add' | 'reduce_heat' | 'cover' | 'custom';
+
+export interface CookingReminder {
+  type: ReminderType;
+  intervalSeconds?: number;        // повторять каждые N сек
+  atSeconds?: number;              // один раз через N сек
+  message: string;
+  icon: string;                    // 🥄 🔄 👀 и т.д.
+}
+
+export interface TroubleshootOption {
+  problem: string;                 // "Пригорает"
+  solution: string;                // "Убавь огонь, добавь масла"
+  icon?: string;
+}
+
+export interface CookedMeal {
+  id: string;
+  recipeId: string;
+  recipeName: string;
+  photo?: string;
+  cookedAt: string;
+  servingsCooked: number;
+  servingsEaten: number;
+  caloriesEaten: number;
+  ingredientsUsed: { itemId: string; quantity: number; unit: string }[];
+}
+
+export interface Leftover {
+  id: string;
+  name: string;                    // "Куриное филе с овощами"
+  emoji?: string;
+  portions: number;
+  caloriesPerPortion: number;
+  cookedAt: string;
+  expiresAt: string;               // обычно +3 дня
+  photo?: string;
+  fromRecipeId?: string;
+}
+
+export type NutritionSubTab = 'food' | 'menu' | 'kitchen' | 'cooking';

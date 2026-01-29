@@ -4,6 +4,7 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
+import { InventoryItem, Recipe, CookingStep, CookingReminder, StorageType } from '../types';
 
 // Helper to get API Key (Env Only)
 const getApiKey = () => {
@@ -306,5 +307,424 @@ export const getMotivation = async (streak: number, repsToday: number): Promise<
         return response.text || t('defaultMotivation');
     } catch (e) {
         return t('defaultMotivation');
+    }
+};
+
+// ============================================
+// SMART KITCHEN AI FUNCTIONS
+// ============================================
+
+// 7. Scan Storage Photo (fridge/cabinet/freezer)
+export interface ScannedProduct {
+    name: string;
+    emoji: string;
+    quantity: number;
+    unit: string;
+    expiresInDays: number | null;
+    caloriesPer100: number;
+    positionX: number; // 0-100%
+    positionY: number; // 0-100%
+}
+
+export const scanStoragePhoto = async (
+    base64Image: string,
+    storageType: StorageType
+): Promise<ScannedProduct[]> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    const storageNames: Record<StorageType, string> = {
+        fridge: 'холодильника',
+        cabinet: 'кухонного шкафа',
+        freezer: 'морозилки'
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        {
+                            text: `Распознай ВСЕ продукты на фото ${storageNames[storageType]}.
+                            Для каждого продукта определи:
+                            - name: название на языке ${lang}
+                            - emoji: подходящий эмодзи
+                            - quantity: примерное количество (число)
+                            - unit: единица измерения (г, мл, шт)
+                            - expiresInDays: через сколько дней испортится (null если долгое хранение)
+                            - caloriesPer100: калорий на 100г/мл
+                            - positionX, positionY: позиция на фото в процентах (0-100)
+
+                            Верни JSON массив. Будь внимателен, не пропускай продукты.`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            emoji: { type: Type.STRING },
+                            quantity: { type: Type.NUMBER },
+                            unit: { type: Type.STRING },
+                            expiresInDays: { type: Type.NUMBER, nullable: true },
+                            caloriesPer100: { type: Type.NUMBER },
+                            positionX: { type: Type.NUMBER },
+                            positionY: { type: Type.NUMBER }
+                        },
+                        required: ["name", "emoji", "quantity", "unit", "caloriesPer100", "positionX", "positionY"]
+                    }
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        return [];
+    } catch (error) {
+        console.error("Error scanning storage:", error);
+        throw error;
+    }
+};
+
+// 8. Scan Receipt
+export interface ScannedReceiptItem {
+    name: string;
+    emoji: string;
+    quantity: number;
+    unit: string;
+    price: number;
+    storageType: StorageType;
+    expiresInDays: number | null;
+    caloriesPer100: number;
+}
+
+export interface ScannedReceipt {
+    store: string;
+    date: string;
+    totalPrice: number;
+    items: ScannedReceiptItem[];
+}
+
+export const scanReceipt = async (base64Image: string): Promise<ScannedReceipt> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        {
+                            text: `Извлеки все товары из чека. Язык: ${lang}.
+
+                            Для каждого товара определи:
+                            - name: название продукта (упрости если длинное)
+                            - emoji: подходящий эмодзи
+                            - quantity: количество
+                            - unit: единица (г, мл, шт, кг, л)
+                            - price: цена
+                            - storageType: куда класть (fridge/cabinet/freezer)
+                            - expiresInDays: через сколько дней испортится (null если долгое хранение)
+                            - caloriesPer100: примерные калории на 100г/мл
+
+                            Также определи магазин, дату и итоговую сумму.`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        store: { type: Type.STRING },
+                        date: { type: Type.STRING },
+                        totalPrice: { type: Type.NUMBER },
+                        items: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    emoji: { type: Type.STRING },
+                                    quantity: { type: Type.NUMBER },
+                                    unit: { type: Type.STRING },
+                                    price: { type: Type.NUMBER },
+                                    storageType: { type: Type.STRING, enum: ['fridge', 'cabinet', 'freezer'] },
+                                    expiresInDays: { type: Type.NUMBER, nullable: true },
+                                    caloriesPer100: { type: Type.NUMBER }
+                                },
+                                required: ["name", "emoji", "quantity", "unit", "price", "storageType", "caloriesPer100"]
+                            }
+                        }
+                    },
+                    required: ["store", "totalPrice", "items"]
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        return { store: '', date: '', totalPrice: 0, items: [] };
+    } catch (error) {
+        console.error("Error scanning receipt:", error);
+        throw error;
+    }
+};
+
+// 9. Generate Recipes from Inventory
+export interface RecipeGenerationContext {
+    timeOfDay: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    caloriesRemaining: number;
+    servingsNeeded: number;
+    maxCookingTime?: number; // minutes
+    excludeRecipeIds?: string[];
+    dietaryPreferences?: string[];
+}
+
+export interface GeneratedRecipe {
+    name: string;
+    description: string;
+    servings: number;
+    totalTimeMinutes: number;
+    caloriesPerServing: number;
+    ingredients: {
+        name: string;
+        emoji: string;
+        quantity: number;
+        unit: string;
+        isAvailable: boolean;
+        inventoryItemId?: string;
+    }[];
+    steps: {
+        order: number;
+        instruction: string;
+        timerSeconds?: number;
+        heatLevel?: 1 | 2 | 3;
+        tip?: string;
+        doneWhen?: string;
+        reminders: {
+            type: string;
+            intervalSeconds?: number;
+            atSeconds?: number;
+            message: string;
+            icon: string;
+        }[];
+        troubleshoot: {
+            problem: string;
+            solution: string;
+        }[];
+    }[];
+    priorityReason?: string; // Why this recipe is recommended (e.g., "Курица портится завтра")
+}
+
+export const generateRecipes = async (
+    inventory: InventoryItem[],
+    context: RecipeGenerationContext
+): Promise<GeneratedRecipe[]> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    // Format inventory for prompt
+    const inventoryList = inventory.map(item => {
+        const expiring = item.expiresAt
+            ? ` (годен до ${new Date(item.expiresAt).toLocaleDateString(lang)})`
+            : '';
+        return `- ${item.emoji || ''} ${item.name}: ${item.quantity}${item.unit}${expiring}`;
+    }).join('\n');
+
+    // Expiring items for priority
+    const expiringItems = inventory
+        .filter(i => i.expiresAt && new Date(i.expiresAt) <= new Date(Date.now() + 2 * 24 * 60 * 60 * 1000))
+        .map(i => i.name);
+
+    const mealTypeNames: Record<string, string> = {
+        breakfast: 'завтрак',
+        lunch: 'обед',
+        dinner: 'ужин',
+        snack: 'перекус'
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: `Ты кулинарный AI-помощник для новичков. Предложи 2-3 рецепта для ${mealTypeNames[context.timeOfDay]}.
+
+ДОСТУПНЫЕ ПРОДУКТЫ:
+${inventoryList}
+
+${expiringItems.length > 0 ? `⚠️ СКОРО ПОРТЯТСЯ (приоритет!): ${expiringItems.join(', ')}` : ''}
+
+ОГРАНИЧЕНИЯ:
+- Порций: ${context.servingsNeeded}
+- Осталось калорий на день: ${context.caloriesRemaining}
+- Максимум времени готовки: ${context.maxCookingTime || 60} минут
+${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferences.join(', ')}` : ''}
+
+ВАЖНО для шагов готовки:
+1. Пиши ПРОСТЫМ языком для новичков (не "обжарить до золотистой корочки", а "жарить пока не станет жёлтым")
+2. Указывай конкретное время и уровень огня (1=слабый, 2=средний, 3=сильный)
+3. Добавляй напоминания помешать (stir), перевернуть (flip), проверить (check)
+4. Объясняй "tip" почему делаем именно так
+5. Добавляй "doneWhen" — как понять что готово
+6. Добавляй troubleshoot — что делать если пригорает/не жарится
+
+Язык ответа: ${lang}`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            description: { type: Type.STRING },
+                            servings: { type: Type.NUMBER },
+                            totalTimeMinutes: { type: Type.NUMBER },
+                            caloriesPerServing: { type: Type.NUMBER },
+                            priorityReason: { type: Type.STRING },
+                            ingredients: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        name: { type: Type.STRING },
+                                        emoji: { type: Type.STRING },
+                                        quantity: { type: Type.NUMBER },
+                                        unit: { type: Type.STRING },
+                                        isAvailable: { type: Type.BOOLEAN }
+                                    },
+                                    required: ["name", "quantity", "unit", "isAvailable"]
+                                }
+                            },
+                            steps: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        order: { type: Type.NUMBER },
+                                        instruction: { type: Type.STRING },
+                                        timerSeconds: { type: Type.NUMBER },
+                                        heatLevel: { type: Type.NUMBER },
+                                        tip: { type: Type.STRING },
+                                        doneWhen: { type: Type.STRING },
+                                        reminders: {
+                                            type: Type.ARRAY,
+                                            items: {
+                                                type: Type.OBJECT,
+                                                properties: {
+                                                    type: { type: Type.STRING },
+                                                    intervalSeconds: { type: Type.NUMBER },
+                                                    atSeconds: { type: Type.NUMBER },
+                                                    message: { type: Type.STRING },
+                                                    icon: { type: Type.STRING }
+                                                },
+                                                required: ["type", "message", "icon"]
+                                            }
+                                        },
+                                        troubleshoot: {
+                                            type: Type.ARRAY,
+                                            items: {
+                                                type: Type.OBJECT,
+                                                properties: {
+                                                    problem: { type: Type.STRING },
+                                                    solution: { type: Type.STRING }
+                                                },
+                                                required: ["problem", "solution"]
+                                            }
+                                        }
+                                    },
+                                    required: ["order", "instruction"]
+                                }
+                            }
+                        },
+                        required: ["name", "description", "servings", "totalTimeMinutes", "caloriesPerServing", "ingredients", "steps"]
+                    }
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        return [];
+    } catch (error) {
+        console.error("Error generating recipes:", error);
+        throw error;
+    }
+};
+
+// 10. Get nutrition info for manual product entry
+export const getProductNutrition = async (productName: string): Promise<{
+    emoji: string;
+    caloriesPer100: number;
+    defaultUnit: string;
+    typicalQuantity: number;
+    storageType: StorageType;
+    shelfLifeDays: number | null;
+}> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: `Определи информацию о продукте "${productName}":
+                            - emoji: подходящий эмодзи
+                            - caloriesPer100: калорий на 100г/мл
+                            - defaultUnit: типичная единица измерения (г, мл, шт)
+                            - typicalQuantity: типичное количество при покупке
+                            - storageType: где хранить (fridge/cabinet/freezer)
+                            - shelfLifeDays: срок хранения в днях (null если очень долго)`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        emoji: { type: Type.STRING },
+                        caloriesPer100: { type: Type.NUMBER },
+                        defaultUnit: { type: Type.STRING },
+                        typicalQuantity: { type: Type.NUMBER },
+                        storageType: { type: Type.STRING, enum: ['fridge', 'cabinet', 'freezer'] },
+                        shelfLifeDays: { type: Type.NUMBER, nullable: true }
+                    },
+                    required: ["emoji", "caloriesPer100", "defaultUnit", "typicalQuantity", "storageType"]
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
+    } catch (error) {
+        console.error("Error getting product nutrition:", error);
+        throw error;
     }
 };
