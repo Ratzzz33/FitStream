@@ -1,14 +1,21 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { Camera, X, Play, Square, Mic, MicOff, AlertCircle } from 'lucide-react';
+import { Camera, X, Play, Square, Mic, MicOff, AlertCircle, Cpu, Sparkles, ChevronRight } from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
+import { PoseWorkout } from './PoseWorkout';
+import { TrackableExercise, isExerciseTrackable, getExerciseNameRu } from '../services/poseTracker';
 
 interface WorkoutSessionProps {
   onFinish: () => void;
 }
+
+// Workout modes
+type WorkoutMode = 'select' | 'local' | 'local_active' | 'ai';
+
+// Exercise selection for local mode
+const LOCAL_EXERCISES: TrackableExercise[] = ['SQUATS', 'PUSHUPS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'PLANK'];
 
 // Function declaration for the model
 const updateStatsTool: FunctionDeclaration = {
@@ -56,13 +63,20 @@ function encodeAudioChunk(inputData: Float32Array): string {
 export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Mode selection - skip to local mode (AI Coach disabled for now, will add for VIPs later)
+  const [mode, setMode] = useState<WorkoutMode>('local');
+  const [selectedExercise, setSelectedExercise] = useState<TrackableExercise>('SQUATS');
+  const [targetReps, setTargetReps] = useState(10);
+
+  // AI mode state
   const [isStreaming, setIsStreaming] = useState(false);
   const [repCount, setRepCount] = useState(0);
   const [exerciseName, setExerciseName] = useState(t('detecting'));
   const [feedback, setFeedback] = useState(t('getReady'));
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
-  
+
   // Use refs for values accessed inside closures/callbacks to avoid stale state
   const sessionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -126,7 +140,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
     }
   }, [repCount, isStreaming, playRepSound]);
 
-  const startSession = async () => {
+  // ========== AI MODE (Gemini Live) ==========
+  const startAiSession = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480 },
@@ -147,7 +162,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const lang = navigator.language;
       const voice = settings.coachVoice || 'Fenrir';
-      
+
       const systemInstruction = `
 You are an AI fitness coach powered by computer vision. Your task is to track repetitions via the \`updateWorkoutStats\` tool.
 
@@ -180,7 +195,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         config: {
           tools: [{ functionDeclarations: [updateStatsTool] }],
           systemInstruction: systemInstruction,
-          responseModalities: [Modality.AUDIO], 
+          responseModalities: [Modality.AUDIO],
           speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } }
           }
@@ -189,16 +204,16 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           onopen: () => {
             console.log("Gemini Live Connected");
             setIsStreaming(true);
-            
+
             // Audio Stream Setup (Input)
             inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             const source = inputAudioContextRef.current.createMediaStreamSource(stream);
             const processor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
-            
+
             processor.onaudioprocess = (e) => {
                const inputData = e.inputBuffer.getChannelData(0);
                const b64 = encodeAudioChunk(inputData);
-               
+
                sessionPromise.then(session => session.sendRealtimeInput({
                    media: { mimeType: 'audio/pcm;rate=16000', data: b64 }
                }));
@@ -214,7 +229,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                     canvasRef.current.height = videoRef.current.videoHeight * 0.5;
                     ctx?.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                     const base64 = canvasRef.current.toDataURL('image/jpeg', 0.6).split(',')[1];
-                    
+
                     sessionPromise.then(session => session.sendRealtimeInput({
                         media: { mimeType: 'image/jpeg', data: base64 }
                     }));
@@ -230,7 +245,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                         setRepCount(Number(args.count));
                         setExerciseName(args.exercise);
                         if (args.feedback) setFeedback(args.feedback);
-                        
+
                         // Respond to tool call
                         sessionPromise.then(session => session.sendToolResponse({
                             functionResponses: {
@@ -242,7 +257,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                     }
                 }
             }
-            
+
             // Handle Audio Response (Motivational Voice)
             if (!isMuted && msg.serverContent?.modelTurn?.parts?.[0]?.inlineData) {
                 const audioData = msg.serverContent.modelTurn.parts[0].inlineData.data;
@@ -276,7 +291,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         const floatData = pcmToFloat32(base64);
         const buffer = ctx.createBuffer(1, floatData.length, 24000);
         buffer.copyToChannel(floatData, 0);
-        
+
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.connect(ctx.destination);
@@ -289,7 +304,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         if (nextStartTimeRef.current < currentTime) {
             nextStartTimeRef.current = currentTime;
         }
-        
+
         source.start(nextStartTimeRef.current);
         nextStartTimeRef.current += buffer.duration;
         sourcesRef.current.add(source);
@@ -305,7 +320,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     if (intervalRef.current) {
         clearInterval(intervalRef.current);
     }
-    
+
     // Close audio contexts
     if (inputAudioContextRef.current) {
         inputAudioContextRef.current.close();
@@ -333,10 +348,26 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         };
         StorageService.saveExercise(log);
     }
-    
+
     onFinish();
   };
 
+  // ========== LOCAL MODE HANDLERS ==========
+  const handleLocalComplete = (reps: number, formScore: number) => {
+    // Save exercise log
+    const log: ExerciseLog = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split('T')[0],
+      timestamp: Date.now(),
+      exerciseName: getExerciseNameRu(selectedExercise),
+      reps: reps,
+      feedback: `Форма: ${formScore}%`
+    };
+    StorageService.saveExercise(log);
+    onFinish();
+  };
+
+  // Cleanup
   useEffect(() => {
     return () => {
         if (streamRef.current) {
@@ -357,17 +388,212 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ========== MODE SELECTION SCREEN ==========
+  if (mode === 'select') {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <button onClick={onFinish} className="p-2 text-gray-400">
+            <X size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-white">Тренировка</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Mode selection */}
+        <div className="flex-1 p-6 space-y-6">
+          <h2 className="text-xl font-semibold text-white text-center mb-8">
+            Выберите режим
+          </h2>
+
+          {/* Local Mode - Recommended */}
+          <button
+            onClick={() => setMode('local')}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-left relative overflow-hidden"
+          >
+            <div className="absolute top-3 right-3 bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+              Рекомендуем
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <Cpu className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-1">Локальный трекер</h3>
+                <p className="text-green-100 text-sm mb-3">
+                  Подсчёт повторений на устройстве через ML-модель
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                    ✓ Бесплатно
+                  </span>
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                    ✓ Работает офлайн
+                  </span>
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                    ✓ Быстрый отклик
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-white/60 mt-2" />
+            </div>
+          </button>
+
+          {/* AI Coach Mode */}
+          <button
+            onClick={() => {
+              setMode('ai');
+              startAiSession();
+            }}
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-left relative overflow-hidden"
+          >
+            <div className="absolute top-3 right-3 bg-amber-500 text-white text-xs px-2 py-1 rounded-full">
+              💰 Premium
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-white/20 rounded-xl">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-1">AI Коуч</h3>
+                <p className="text-purple-100 text-sm mb-3">
+                  Gemini Live с голосовыми подсказками и анализом формы
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                    🎤 Голосовой коуч
+                  </span>
+                  <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                    👁️ Любые упражнения
+                  </span>
+                  <span className="bg-amber-500/50 text-white text-xs px-2 py-1 rounded-full">
+                    ~$0.10/мин
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-white/60 mt-2" />
+            </div>
+          </button>
+
+          {/* Info */}
+          <div className="text-center text-gray-500 text-sm mt-8">
+            <p>Локальный режим использует MediaPipe для отслеживания позы.</p>
+            <p>AI Коуч подключается к Gemini Live API (тарифицируется).</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== LOCAL MODE: Exercise Selection ==========
+  if (mode === 'local') {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <button onClick={() => setMode('select')} className="p-2 text-gray-400">
+            <X size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-white">Выбор упражнения</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Exercise selection */}
+        <div className="flex-1 p-4 overflow-auto">
+          <div className="grid grid-cols-2 gap-3">
+            {LOCAL_EXERCISES.map(exercise => (
+              <button
+                key={exercise}
+                onClick={() => setSelectedExercise(exercise)}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  selectedExercise === exercise
+                    ? 'border-green-500 bg-green-500/20'
+                    : 'border-gray-700 bg-gray-800'
+                }`}
+              >
+                <div className="text-3xl mb-2">
+                  {exercise === 'SQUATS' && '🦵'}
+                  {exercise === 'PUSHUPS' && '💪'}
+                  {exercise === 'SITUPS' && '🏋️'}
+                  {exercise === 'JUMPING_JACKS' && '⭐'}
+                  {exercise === 'LUNGES' && '🚶'}
+                  {exercise === 'PLANK' && '🧘'}
+                </div>
+                <div className="text-white font-medium text-sm">
+                  {getExerciseNameRu(exercise)}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Target selector */}
+          <div className="mt-6 bg-gray-800 rounded-xl p-4">
+            <label className="text-gray-400 text-sm mb-2 block">
+              {selectedExercise === 'PLANK' ? 'Цель (секунды)' : 'Цель (повторения)'}
+            </label>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setTargetReps(Math.max(5, targetReps - 5))}
+                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold"
+              >
+                -
+              </button>
+              <div className="flex-1 text-center">
+                <span className="text-4xl font-bold text-white">{targetReps}</span>
+                <span className="text-gray-400 ml-2">
+                  {selectedExercise === 'PLANK' ? 'сек' : 'раз'}
+                </span>
+              </div>
+              <button
+                onClick={() => setTargetReps(Math.min(100, targetReps + 5))}
+                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Start button */}
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={() => setMode('local_active')}
+            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2"
+          >
+            <Play className="w-6 h-6" fill="white" />
+            Начать {getExerciseNameRu(selectedExercise)}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== LOCAL MODE: Active Workout ==========
+  if (mode === 'local_active') {
+    return (
+      <PoseWorkout
+        exercise={selectedExercise}
+        targetReps={selectedExercise === 'PLANK' ? undefined : targetReps}
+        targetSeconds={selectedExercise === 'PLANK' ? targetReps : undefined}
+        onComplete={handleLocalComplete}
+        onCancel={() => setMode('local')}
+      />
+    );
+  }
+
+  // ========== AI MODE (Gemini Live) ==========
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="relative flex-1 bg-gray-900 overflow-hidden">
-        <video 
-           ref={videoRef} 
+        <video
+           ref={videoRef}
            className="absolute inset-0 w-full h-full object-cover opacity-80"
-           muted 
-           playsInline 
+           muted
+           playsInline
         />
         <canvas ref={canvasRef} className="hidden" />
-        
+
         {/* HUD Overlay */}
         <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none">
             {/* Top Bar */}
@@ -375,7 +601,8 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 <button onClick={stopSession} className="bg-gray-800/50 p-2 rounded-full backdrop-blur text-white">
                     <X size={24} />
                 </button>
-                <div className="bg-red-500/80 px-3 py-1 rounded-full text-xs font-bold animate-pulse text-white uppercase">
+                <div className="bg-purple-500/80 px-3 py-1 rounded-full text-xs font-bold animate-pulse text-white uppercase flex items-center gap-1">
+                    <Sparkles size={12} />
                     {t('liveAiVision')}
                 </div>
             </div>
@@ -383,12 +610,10 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
             {/* Center Info */}
             <div className="flex flex-col items-center justify-center space-y-2">
                  {!isStreaming && !error && (
-                    <button 
-                        onClick={startSession}
-                        className="pointer-events-auto bg-blue-600 hover:bg-blue-500 text-white rounded-full p-6 shadow-xl transition-all transform hover:scale-105"
-                    >
-                        <Play size={48} fill="currentColor" />
-                    </button>
+                    <div className="text-white text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
+                      <p>Подключение к AI...</p>
+                    </div>
                  )}
             </div>
 
@@ -397,10 +622,10 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center space-y-2 pointer-events-auto">
                     <h2 className="text-gray-400 text-sm uppercase tracking-widest">{exerciseName}</h2>
                     <div className="text-7xl font-bold text-white font-mono">{repCount}</div>
-                    <p className="text-blue-400 font-medium">{feedback}</p>
-                    
+                    <p className="text-purple-400 font-medium">{feedback}</p>
+
                     <div className="flex justify-center gap-4 mt-4">
-                        <button 
+                        <button
                            onClick={stopSession}
                            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold"
                         >
@@ -416,7 +641,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 </div>
             )}
         </div>
-        
+
         {/* Error Modal Overlay */}
         {error && (
              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 pointer-events-auto animate-in fade-in duration-200">
@@ -426,8 +651,11 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                      </div>
                      <h3 className="text-xl font-bold text-white mb-2">Oops!</h3>
                      <p className="text-gray-300 mb-6">{error}</p>
-                     <button 
-                         onClick={() => setError(null)} 
+                     <button
+                         onClick={() => {
+                           setError(null);
+                           setMode('select');
+                         }}
                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition"
                      >
                          {t('dismiss')}
