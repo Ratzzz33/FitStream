@@ -30,7 +30,7 @@ jobs:
       # Глубокое сканирование Semgrep
       - name: Semgrep Full Scan
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/src:Z" \
             docker.io/returntocorp/semgrep:latest \
             semgrep scan \
@@ -58,7 +58,7 @@ jobs:
       # Trivy полное сканирование
       - name: Trivy Full Scan
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/src:Z" \
             docker.io/aquasec/trivy:latest \
             filesystem \

@@ -115,7 +115,7 @@ jobs:
 
       - name: Run Semgrep
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/src:Z" \
             -e SEMGREP_RULES="auto p/react p/typescript p/security-audit p/secrets" \
             docker.io/returntocorp/semgrep:latest \
@@ -173,7 +173,7 @@ jobs:
 
       - name: SonarQube Scan
         run: |
-          podman run --rm \
+          docker run --rm \
             -e SONAR_HOST_URL=${{ vars.SONAR_HOST_URL }} \
             -e SONAR_TOKEN=${{ secrets.SONAR_TOKEN }} \
             -v "${PWD}:/usr/src:Z" \
@@ -195,7 +195,7 @@ jobs:
 
       - name: Run Gitleaks
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/path:Z" \
             docker.io/zricethezav/gitleaks:latest \
             detect \
@@ -266,7 +266,7 @@ jobs:
 
       - name: Trivy filesystem scan
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/src:Z" \
             docker.io/aquasec/trivy:latest \
             filesystem \
@@ -278,7 +278,7 @@ jobs:
 
       - name: Generate SBOM (CycloneDX)
         run: |
-          podman run --rm \
+          docker run --rm \
             -v "${PWD}:/src:Z" \
             docker.io/aquasec/trivy:latest \
             filesystem \
@@ -342,12 +342,12 @@ jobs:
 
       - name: Build container image
         run: |
-          podman build -t fitstream:${{ github.sha }} -f Dockerfile .
+          docker build -t fitstream:${{ github.sha }} -f Dockerfile .
 
       - name: Trivy container scan
         run: |
-          podman run --rm \
-            -v /run/user/$(id -u)/podman/podman.sock:/var/run/docker.sock:ro \
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock:ro \
             docker.io/aquasec/trivy:latest \
             image \
             --severity HIGH,CRITICAL \
@@ -400,7 +400,7 @@ jobs:
 
       - name: ZAP Baseline Scan
         run: |
-          podman run --rm \
+          docker run --rm \
             --network host \
             -v "${PWD}:/zap/wrk:Z" \
             ghcr.io/zaproxy/zaproxy:stable \
