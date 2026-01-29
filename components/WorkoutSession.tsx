@@ -1,11 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { Camera, X, Play, Square, Mic, MicOff, AlertCircle, Cpu, Sparkles, ChevronRight } from 'lucide-react';
+import {
+  Camera, X, Play, Square, Mic, MicOff, AlertCircle, Cpu, Sparkles, ChevronRight,
+  Dumbbell, ArrowUp, Timer, Zap, Move, Footprints, Mountain,
+  TrendingUp, CircleDot, Armchair, ArrowLeftRight, Hand
+} from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
 import { PoseWorkout } from './PoseWorkout';
-import { TrackableExercise, isExerciseTrackable, getExerciseNameRu } from '../services/poseTracker';
+import { TrackableExercise, isExerciseTrackable, getExerciseNameRu, isTimeBased } from '../services/poseTracker';
 
 interface WorkoutSessionProps {
   onFinish: () => void;
@@ -14,8 +18,31 @@ interface WorkoutSessionProps {
 // Workout modes
 type WorkoutMode = 'select' | 'local' | 'local_active' | 'ai';
 
-// Exercise selection for local mode
-const LOCAL_EXERCISES: TrackableExercise[] = ['SQUATS', 'PUSHUPS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'PLANK'];
+// Exercise selection for local mode - ordered by popularity
+const LOCAL_EXERCISES: TrackableExercise[] = [
+  'SQUATS', 'PUSHUPS', 'PLANK', 'LUNGES', 'SITUPS', 'BURPEES',
+  'JUMPING_JACKS', 'HIGH_KNEES', 'MOUNTAIN_CLIMBERS', 'LEG_RAISES',
+  'GLUTE_BRIDGES', 'CALF_RAISES', 'WALL_SIT', 'SIDE_LUNGES', 'TRICEP_DIPS'
+];
+
+// Exercise icons mapping
+const EXERCISE_ICONS: Record<TrackableExercise, React.ReactNode> = {
+  SQUATS: <Dumbbell className="w-7 h-7" />,
+  PUSHUPS: <ArrowUp className="w-7 h-7" />,
+  PLANK: <Timer className="w-7 h-7" />,
+  LUNGES: <Footprints className="w-7 h-7" />,
+  SITUPS: <TrendingUp className="w-7 h-7" />,
+  BURPEES: <Zap className="w-7 h-7" />,
+  JUMPING_JACKS: <Move className="w-7 h-7" />,
+  HIGH_KNEES: <ArrowUp className="w-7 h-7" />,
+  MOUNTAIN_CLIMBERS: <Mountain className="w-7 h-7" />,
+  LEG_RAISES: <TrendingUp className="w-7 h-7" />,
+  GLUTE_BRIDGES: <CircleDot className="w-7 h-7" />,
+  CALF_RAISES: <Footprints className="w-7 h-7" />,
+  WALL_SIT: <Armchair className="w-7 h-7" />,
+  SIDE_LUNGES: <ArrowLeftRight className="w-7 h-7" />,
+  TRICEP_DIPS: <Hand className="w-7 h-7" />
+};
 
 // Function declaration for the model
 const updateStatsTool: FunctionDeclaration = {
@@ -492,7 +519,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
       <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <button onClick={() => setMode('select')} className="p-2 text-gray-400">
+          <button onClick={onFinish} className="p-2 text-gray-400">
             <X size={24} />
           </button>
           <h1 className="text-lg font-bold text-white">Выбор упражнения</h1>
@@ -501,53 +528,51 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
 
         {/* Exercise selection */}
         <div className="flex-1 p-4 overflow-auto">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {LOCAL_EXERCISES.map(exercise => (
               <button
                 key={exercise}
                 onClick={() => setSelectedExercise(exercise)}
-                className={`p-4 rounded-xl border-2 transition-all ${
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
                   selectedExercise === exercise
-                    ? 'border-green-500 bg-green-500/20'
-                    : 'border-gray-700 bg-gray-800'
+                    ? 'border-green-500 bg-green-500/20 text-green-400'
+                    : 'border-gray-700 bg-gray-800 text-gray-400'
                 }`}
               >
-                <div className="text-3xl mb-2">
-                  {exercise === 'SQUATS' && '🦵'}
-                  {exercise === 'PUSHUPS' && '💪'}
-                  {exercise === 'SITUPS' && '🏋️'}
-                  {exercise === 'JUMPING_JACKS' && '⭐'}
-                  {exercise === 'LUNGES' && '🚶'}
-                  {exercise === 'PLANK' && '🧘'}
+                <div className="mb-1">
+                  {EXERCISE_ICONS[exercise]}
                 </div>
-                <div className="text-white font-medium text-sm">
+                <div className="text-white font-medium text-xs text-center leading-tight">
                   {getExerciseNameRu(exercise)}
                 </div>
+                {isTimeBased(exercise) && (
+                  <div className="text-[10px] text-gray-500 mt-0.5">время</div>
+                )}
               </button>
             ))}
           </div>
 
           {/* Target selector */}
-          <div className="mt-6 bg-gray-800 rounded-xl p-4">
+          <div className="mt-4 bg-gray-800 rounded-xl p-4">
             <label className="text-gray-400 text-sm mb-2 block">
-              {selectedExercise === 'PLANK' ? 'Цель (секунды)' : 'Цель (повторения)'}
+              {isTimeBased(selectedExercise) ? 'Цель (секунды)' : 'Цель (повторения)'}
             </label>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setTargetReps(Math.max(5, targetReps - 5))}
-                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold"
+                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold active:bg-gray-600"
               >
                 -
               </button>
               <div className="flex-1 text-center">
                 <span className="text-4xl font-bold text-white">{targetReps}</span>
                 <span className="text-gray-400 ml-2">
-                  {selectedExercise === 'PLANK' ? 'сек' : 'раз'}
+                  {isTimeBased(selectedExercise) ? 'сек' : 'раз'}
                 </span>
               </div>
               <button
-                onClick={() => setTargetReps(Math.min(100, targetReps + 5))}
-                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold"
+                onClick={() => setTargetReps(Math.min(120, targetReps + 5))}
+                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold active:bg-gray-600"
               >
                 +
               </button>
@@ -559,10 +584,10 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         <div className="p-4 border-t border-gray-700">
           <button
             onClick={() => setMode('local_active')}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Play className="w-6 h-6" fill="white" />
-            Начать {getExerciseNameRu(selectedExercise)}
+            Начать
           </button>
         </div>
       </div>
@@ -574,8 +599,8 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     return (
       <PoseWorkout
         exercise={selectedExercise}
-        targetReps={selectedExercise === 'PLANK' ? undefined : targetReps}
-        targetSeconds={selectedExercise === 'PLANK' ? targetReps : undefined}
+        targetReps={isTimeBased(selectedExercise) ? undefined : targetReps}
+        targetSeconds={isTimeBased(selectedExercise) ? targetReps : undefined}
         onComplete={handleLocalComplete}
         onCancel={() => setMode('local')}
       />

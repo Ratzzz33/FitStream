@@ -22,7 +22,16 @@ export type TrackableExercise =
   | 'SITUPS'
   | 'JUMPING_JACKS'
   | 'LUNGES'
-  | 'PLANK'; // Plank tracks time, not reps
+  | 'PLANK'
+  | 'BURPEES'
+  | 'HIGH_KNEES'
+  | 'MOUNTAIN_CLIMBERS'
+  | 'LEG_RAISES'
+  | 'GLUTE_BRIDGES'
+  | 'CALF_RAISES'
+  | 'WALL_SIT'
+  | 'SIDE_LUNGES'
+  | 'TRICEP_DIPS';
 
 // Landmark indices (MediaPipe Pose has 33 landmarks)
 const LANDMARKS = {
@@ -156,6 +165,102 @@ const EXERCISE_CONFIG: Record<TrackableExercise, {
       }
       return feedback;
     }
+  },
+  BURPEES: {
+    upAngleMin: 160,    // Standing up
+    downAngleMax: 60,   // In squat/plank position
+    jointA: 'LEFT_HIP',
+    jointB: 'LEFT_KNEE',
+    jointC: 'LEFT_ANKLE',
+    formChecks: () => []
+  },
+  HIGH_KNEES: {
+    upAngleMin: 160,    // Leg down
+    downAngleMax: 70,   // Knee raised high
+    jointA: 'LEFT_HIP',
+    jointB: 'LEFT_KNEE',
+    jointC: 'LEFT_ANKLE',
+    formChecks: (landmarks) => {
+      const feedback: string[] = [];
+      const knee = landmarks[LANDMARKS.LEFT_KNEE];
+      const hip = landmarks[LANDMARKS.LEFT_HIP];
+      if (knee.y > hip.y + 0.1) {
+        feedback.push('Поднимай колени выше');
+      }
+      return feedback;
+    }
+  },
+  MOUNTAIN_CLIMBERS: {
+    upAngleMin: 160,    // Leg extended
+    downAngleMax: 80,   // Knee tucked
+    jointA: 'LEFT_HIP',
+    jointB: 'LEFT_KNEE',
+    jointC: 'LEFT_ANKLE',
+    formChecks: () => []
+  },
+  LEG_RAISES: {
+    upAngleMin: 160,    // Legs down
+    downAngleMax: 80,   // Legs raised
+    jointA: 'LEFT_SHOULDER',
+    jointB: 'LEFT_HIP',
+    jointC: 'LEFT_ANKLE',
+    formChecks: (landmarks) => {
+      const feedback: string[] = [];
+      const knee = landmarks[LANDMARKS.LEFT_KNEE];
+      const ankle = landmarks[LANDMARKS.LEFT_ANKLE];
+      if (Math.abs(knee.y - ankle.y) > 0.1) {
+        feedback.push('Держи ноги прямыми');
+      }
+      return feedback;
+    }
+  },
+  GLUTE_BRIDGES: {
+    upAngleMin: 160,    // Hips raised
+    downAngleMax: 100,  // Hips down
+    jointA: 'LEFT_SHOULDER',
+    jointB: 'LEFT_HIP',
+    jointC: 'LEFT_KNEE',
+    formChecks: () => []
+  },
+  CALF_RAISES: {
+    upAngleMin: 175,    // On tiptoes
+    downAngleMax: 160,  // Heels down
+    jointA: 'LEFT_KNEE',
+    jointB: 'LEFT_ANKLE',
+    jointC: 'LEFT_ANKLE', // Approximation
+    formChecks: () => []
+  },
+  WALL_SIT: {
+    upAngleMin: 100,    // Sitting position
+    downAngleMax: 80,   // Deep sit
+    jointA: 'LEFT_HIP',
+    jointB: 'LEFT_KNEE',
+    jointC: 'LEFT_ANKLE',
+    formChecks: (landmarks) => {
+      const feedback: string[] = [];
+      const hip = landmarks[LANDMARKS.LEFT_HIP];
+      const knee = landmarks[LANDMARKS.LEFT_KNEE];
+      if (Math.abs(hip.y - knee.y) > 0.15) {
+        feedback.push('Бёдра параллельно полу');
+      }
+      return feedback;
+    }
+  },
+  SIDE_LUNGES: {
+    upAngleMin: 160,    // Standing
+    downAngleMax: 100,  // Lunge position
+    jointA: 'LEFT_HIP',
+    jointB: 'LEFT_KNEE',
+    jointC: 'LEFT_ANKLE',
+    formChecks: () => []
+  },
+  TRICEP_DIPS: {
+    upAngleMin: 160,    // Arms extended
+    downAngleMax: 90,   // Arms bent
+    jointA: 'LEFT_SHOULDER',
+    jointB: 'LEFT_ELBOW',
+    jointC: 'LEFT_WRIST',
+    formChecks: () => []
   }
 };
 
@@ -374,9 +479,23 @@ export function getExerciseNameRu(exercise: TrackableExercise): string {
     SITUPS: 'Пресс',
     JUMPING_JACKS: 'Джампинг Джек',
     LUNGES: 'Выпады',
-    PLANK: 'Планка'
+    PLANK: 'Планка',
+    BURPEES: 'Бёрпи',
+    HIGH_KNEES: 'Высокие колени',
+    MOUNTAIN_CLIMBERS: 'Скалолаз',
+    LEG_RAISES: 'Подъём ног',
+    GLUTE_BRIDGES: 'Ягодичный мост',
+    CALF_RAISES: 'Подъём на носки',
+    WALL_SIT: 'Стульчик',
+    SIDE_LUNGES: 'Боковые выпады',
+    TRICEP_DIPS: 'Обратные отжимания'
   };
   return names[exercise];
+}
+
+// Utility: Check if exercise is time-based (not rep-based)
+export function isTimeBased(exercise: TrackableExercise): boolean {
+  return exercise === 'PLANK' || exercise === 'WALL_SIT';
 }
 
 export default PoseTracker;

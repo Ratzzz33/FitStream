@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap } from 'lucide-react';
-import { PoseTracker, TrackableExercise, getExerciseNameRu, isExerciseTrackable } from '../services/poseTracker';
+import { PoseTracker, TrackableExercise, getExerciseNameRu, isExerciseTrackable, isTimeBased } from '../services/poseTracker';
 import { NormalizedLandmark } from '@mediapipe/pose';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
@@ -152,7 +152,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     setCameraFacing(prev => prev === 'user' ? 'environment' : 'user');
   };
 
-  const progress = exercise === 'PLANK'
+  const progress = isTimeBased(exercise)
     ? (plankTime / targetSeconds) * 100
     : (repCount / targetReps) * 100;
 
@@ -210,7 +210,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
         {/* Rep counter overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-          {exercise === 'PLANK' ? (
+          {isTimeBased(exercise) ? (
             <div className="text-8xl font-bold text-white drop-shadow-lg">
               {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
             </div>
@@ -220,7 +220,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
             </div>
           )}
           <div className="text-xl text-white/80 mt-2">
-            {exercise === 'PLANK' ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
+            {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
           </div>
         </div>
 
