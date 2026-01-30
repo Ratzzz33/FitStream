@@ -188,9 +188,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             if (currentMode === 'CAMERA_FOOD') {
                 const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
 
-                // Check if reference object was detected
-                if (settings.referenceObject && !result.referenceDetected) {
-                    // Reference configured but not found in photo - show warning
+                // Check if ANY reference object was detected (only warn if LOW confidence)
+                if (settings.referenceObject && !result.referenceDetected && result.confidenceLevel === 'LOW') {
+                    // No reference object found at all - show warning
                     setPendingFoodResult(result);
                     setPendingPhotoBase64(base64);
                     setShowRefNotDetected(true);
