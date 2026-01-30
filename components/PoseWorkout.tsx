@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Check, Settings, Info, User, AlertCircle } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Check, Settings, Info, User, AlertCircle, Mic, MicOff, Vibrate, Eye, BarChart3, ChevronRight } from 'lucide-react';
 import {
   PoseTracker,
   TrackableExercise,
@@ -17,11 +17,147 @@ import { NormalizedLandmark } from '@mediapipe/pose';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
 
+// Russian number words for voice counting
+const RUSSIAN_NUMBERS = [
+  '', 'один', 'два', 'три', 'четыре', 'пять',
+  'шесть', 'семь', 'восемь', 'девять', 'десять',
+  'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать',
+  'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать', 'двадцать',
+  'двадцать один', 'двадцать два', 'двадцать три', 'двадцать четыре', 'двадцать пять',
+  'двадцать шесть', 'двадцать семь', 'двадцать восемь', 'двадцать девять', 'тридцать'
+];
+
+// Exercise demonstration data (key poses for preview)
+const EXERCISE_DEMOS: Record<TrackableExercise, {
+  description: string;
+  steps: string[];
+  keyPoints: string[];
+}> = {
+  SQUATS: {
+    description: 'Базовое упражнение для ног и ягодиц',
+    steps: [
+      'Встаньте прямо, ноги на ширине плеч',
+      'Медленно опускайтесь, сгибая колени',
+      'Опуститесь до угла 90° в коленях',
+      'Вернитесь в исходное положение'
+    ],
+    keyPoints: ['Спина прямая', 'Колени не выходят за носки', 'Пятки на полу']
+  },
+  PUSHUPS: {
+    description: 'Упражнение для груди, плеч и трицепсов',
+    steps: [
+      'Примите упор лёжа, руки на ширине плеч',
+      'Опуститесь, сгибая локти до 90°',
+      'Вернитесь в исходное положение'
+    ],
+    keyPoints: ['Тело прямое', 'Локти под углом 45°', 'Не прогибайте поясницу']
+  },
+  SITUPS: {
+    description: 'Упражнение для пресса',
+    steps: [
+      'Лягте на спину, ноги согнуты',
+      'Руки за головой или на груди',
+      'Поднимите корпус к коленям',
+      'Медленно опуститесь'
+    ],
+    keyPoints: ['Не тяните шею руками', 'Поясница прижата к полу', 'Дышите ровно']
+  },
+  JUMPING_JACKS: {
+    description: 'Кардио упражнение для всего тела',
+    steps: [
+      'Встаньте прямо, ноги вместе',
+      'Прыжком разведите ноги и поднимите руки',
+      'Прыжком вернитесь в исходное положение'
+    ],
+    keyPoints: ['Приземляйтесь мягко', 'Руки полностью вверх', 'Держите ритм']
+  },
+  LUNGES: {
+    description: 'Упражнение для ног и баланса',
+    steps: [
+      'Встаньте прямо',
+      'Сделайте широкий шаг вперёд',
+      'Опуститесь до 90° в колене',
+      'Вернитесь и повторите с другой ногой'
+    ],
+    keyPoints: ['Колено не выходит за носок', 'Спина прямая', 'Чередуйте ноги']
+  },
+  PLANK: {
+    description: 'Статическое упражнение для кора',
+    steps: [
+      'Примите упор на локтях',
+      'Тело прямое от головы до пяток',
+      'Удерживайте положение'
+    ],
+    keyPoints: ['Не прогибайте поясницу', 'Не поднимайте таз', 'Дышите ровно']
+  },
+  BURPEES: {
+    description: 'Комплексное кардио упражнение',
+    steps: ['Присед', 'Выпрыг в планку', 'Отжимание', 'Прыжок в присед', 'Выпрыг вверх'],
+    keyPoints: ['Быстрый темп', 'Полная амплитуда', 'Мягкое приземление']
+  },
+  HIGH_KNEES: {
+    description: 'Кардио упражнение с высоким подъёмом колен',
+    steps: ['Бег на месте', 'Колени поднимать до уровня бёдер'],
+    keyPoints: ['Быстрый темп', 'Колени высоко', 'Работайте руками']
+  },
+  MOUNTAIN_CLIMBERS: {
+    description: 'Динамическая планка',
+    steps: ['Упор лёжа', 'Поочерёдно подтягивайте колени к груди'],
+    keyPoints: ['Быстрый темп', 'Спина прямая', 'Бёдра не поднимать']
+  },
+  LEG_RAISES: {
+    description: 'Упражнение для нижнего пресса',
+    steps: ['Лягте на спину', 'Поднимите прямые ноги до 90°', 'Медленно опустите'],
+    keyPoints: ['Ноги прямые', 'Поясница прижата', 'Контролируйте опускание']
+  },
+  GLUTE_BRIDGES: {
+    description: 'Упражнение для ягодиц',
+    steps: ['Лягте на спину, ноги согнуты', 'Поднимите таз вверх', 'Опустите'],
+    keyPoints: ['Сжимайте ягодицы наверху', 'Не прогибайте поясницу']
+  },
+  CALF_RAISES: {
+    description: 'Упражнение для икр',
+    steps: ['Встаньте прямо', 'Поднимитесь на носки', 'Опуститесь'],
+    keyPoints: ['Полная амплитуда', 'Держите баланс', 'Медленный темп']
+  },
+  WALL_SIT: {
+    description: 'Статическое упражнение для ног',
+    steps: ['Прислонитесь к стене', 'Присядьте до 90° в коленях', 'Удерживайте'],
+    keyPoints: ['Бёдра параллельно полу', 'Спина прижата к стене']
+  },
+  SIDE_LUNGES: {
+    description: 'Боковые выпады',
+    steps: ['Широкий шаг в сторону', 'Присядьте на одну ногу', 'Вернитесь'],
+    keyPoints: ['Носки смотрят вперёд', 'Спина прямая']
+  },
+  TRICEP_DIPS: {
+    description: 'Обратные отжимания для трицепсов',
+    steps: ['Упор сзади на скамью/стул', 'Опуститесь, сгибая локти', 'Поднимитесь'],
+    keyPoints: ['Локти назад', 'Не разводите локти в стороны']
+  }
+};
+
+// Rep statistics for summary
+interface RepStat {
+  repNumber: number;
+  angle: number;
+  formScore: number;
+  timestamp: number;
+}
+
+interface WorkoutStats {
+  reps: RepStat[];
+  totalTime: number;
+  averageFormScore: number;
+  bestRep: number;
+  worstRep: number;
+}
+
 interface PoseWorkoutProps {
   exercise: TrackableExercise;
   targetReps?: number;
   targetSeconds?: number; // For plank
-  onComplete: (reps: number, formScore: number) => void;
+  onComplete: (reps: number, formScore: number, stats?: WorkoutStats) => void;
   onCancel: () => void;
   initialCameraPlacement?: CameraPlacement;
 }
@@ -68,13 +204,80 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [isPersonVisible, setIsPersonVisible] = useState(false);
   const [lastPoseTime, setLastPoseTime] = useState(0);
 
+  // New feature states
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [voiceCountEnabled, setVoiceCountEnabled] = useState(true);
+  const [coachModeEnabled, setCoachModeEnabled] = useState(true);
+  const [showPreview, setShowPreview] = useState(true); // Show exercise preview first
+  const [showSummary, setShowSummary] = useState(false);
+  const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({
+    reps: [],
+    totalTime: 0,
+    averageFormScore: 100,
+    bestRep: 0,
+    worstRep: 0
+  });
+  const [workoutStartTime, setWorkoutStartTime] = useState<number>(0);
+  const [lastCoachFeedbackTime, setLastCoachFeedbackTime] = useState(0);
+
   // Audio for rep counting
   const beepAudio = useRef<HTMLAudioElement | null>(null);
   const countdownAudio = useRef<HTMLAudioElement | null>(null);
   const calibrationInterval = useRef<NodeJS.Timeout | null>(null);
+  const speechSynthesis = useRef<SpeechSynthesis | null>(null);
 
   // Get camera tips for this exercise
   const cameraTips = getCameraPlacementTips(exercise);
+  const exerciseDemo = EXERCISE_DEMOS[exercise];
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      speechSynthesis.current = window.speechSynthesis;
+    }
+  }, []);
+
+  // Speak text using Web Speech API
+  const speak = useCallback((text: string, priority: boolean = false) => {
+    if (!speechSynthesis.current || !voiceCountEnabled) return;
+
+    if (priority) {
+      speechSynthesis.current.cancel(); // Cancel current speech for priority messages
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ru-RU';
+    utterance.rate = 1.1;
+    utterance.pitch = 1.0;
+
+    // Try to find Russian voice
+    const voices = speechSynthesis.current.getVoices();
+    const russianVoice = voices.find(v => v.lang.startsWith('ru'));
+    if (russianVoice) {
+      utterance.voice = russianVoice;
+    }
+
+    speechSynthesis.current.speak(utterance);
+  }, [voiceCountEnabled]);
+
+  // Vibrate device
+  const vibrate = useCallback((pattern: number | number[]) => {
+    if (vibrationEnabled && 'vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  }, [vibrationEnabled]);
+
+  // Coach feedback with voice
+  const coachFeedback = useCallback((message: string) => {
+    if (!coachModeEnabled) return;
+
+    const now = Date.now();
+    // Don't spam feedback - minimum 3 seconds between voice tips
+    if (now - lastCoachFeedbackTime < 3000) return;
+
+    setLastCoachFeedbackTime(now);
+    speak(message, false);
+  }, [coachModeEnabled, lastCoachFeedbackTime, speak]);
 
   useEffect(() => {
     // Create beep sound for reps
@@ -104,11 +307,46 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
         onRepComplete: (count, score) => {
           setRepCount(count);
           setFormScore(score);
+
           // Play beep
           if (soundEnabled && beepAudio.current) {
             beepAudio.current.currentTime = 0;
             beepAudio.current.play().catch(() => {});
           }
+
+          // Vibrate on rep
+          vibrate(score >= 80 ? 100 : [50, 50, 50]); // Short vibrate for good form, triple for bad
+
+          // Voice count
+          if (count <= 30) {
+            speak(RUSSIAN_NUMBERS[count], true);
+          } else {
+            speak(count.toString(), true);
+          }
+
+          // Record rep stats
+          setWorkoutStats(prev => {
+            const newRep: RepStat = {
+              repNumber: count,
+              angle: currentAngle,
+              formScore: score,
+              timestamp: Date.now()
+            };
+            const newReps = [...prev.reps, newRep];
+            const scores = newReps.map(r => r.formScore);
+            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+            const bestIdx = scores.indexOf(Math.max(...scores));
+            const worstIdx = scores.indexOf(Math.min(...scores));
+
+            return {
+              ...prev,
+              reps: newReps,
+              averageFormScore: Math.round(avgScore),
+              bestRep: bestIdx + 1,
+              worstRep: worstIdx + 1
+            };
+          });
+
           // Check if target reached
           if (!isTimeBased(exercise) && count >= targetReps) {
             handleComplete();
@@ -118,6 +356,11 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           setFeedback(fb);
           // Clear feedback after 3 seconds
           setTimeout(() => setFeedback([]), 3000);
+
+          // Coach voice feedback
+          if (fb.length > 0) {
+            coachFeedback(fb[0]);
+          }
         },
         onPoseUpdate: (landmarks, angle, left, right) => {
           setCurrentAngle(Math.round(angle));
@@ -267,8 +510,21 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
         // Actually start the workout
         trackerRef.current?.start();
         setIsRunning(true);
+        setWorkoutStartTime(Date.now());
+
+        // Announce start
+        speak('Начали!', true);
       }
     }, 1000);
+  };
+
+  // Start from preview screen
+  const handleStartFromPreview = () => {
+    setShowPreview(false);
+    // Small delay then start
+    setTimeout(() => {
+      handleStart();
+    }, 300);
   };
 
   const handlePause = () => {
@@ -303,7 +559,27 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     if (trackerRef.current) {
       trackerRef.current.stop();
     }
-    onComplete(repCount, formScore);
+
+    // Calculate final stats
+    const totalTime = workoutStartTime > 0 ? Math.round((Date.now() - workoutStartTime) / 1000) : 0;
+    const finalStats: WorkoutStats = {
+      ...workoutStats,
+      totalTime
+    };
+    setWorkoutStats(finalStats);
+
+    // Show summary instead of immediately completing
+    setShowSummary(true);
+    setIsRunning(false);
+
+    // Speak completion
+    speak('Отлично! Тренировка завершена', true);
+    vibrate([100, 50, 100, 50, 200]); // Victory vibration pattern
+  };
+
+  // Actually finish and return to parent
+  const handleFinishWorkout = () => {
+    onComplete(repCount, formScore, workoutStats);
   };
 
   const toggleCamera = async () => {
@@ -315,6 +591,257 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     ? (plankTime / targetSeconds) * 100
     : (repCount / targetReps) * 100;
 
+  // ==================== PREVIEW SCREEN ====================
+  if (showPreview) {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-900 to-black z-50 flex flex-col">
+        {/* Header */}
+        <div className="p-4 flex items-center justify-between">
+          <button
+            onClick={onCancel}
+            className="p-2 rounded-full bg-white/10"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <h2 className="text-white font-bold text-lg">Подготовка</h2>
+          <div className="w-10" />
+        </div>
+
+        {/* Exercise info */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          {/* Exercise name and icon */}
+          <div className="text-center mb-6">
+            <div className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <User className="w-12 h-12 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {getExerciseNameRu(exercise)}
+            </h1>
+            <p className="text-white/60">{exerciseDemo.description}</p>
+          </div>
+
+          {/* Target */}
+          <div className="bg-white/10 rounded-xl p-4 mb-4">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-green-400">
+                {isTimeBased(exercise) ? `${targetSeconds} сек` : `${targetReps} раз`}
+              </div>
+              <div className="text-white/60 text-sm">Цель</div>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="bg-white/10 rounded-xl p-4 mb-4">
+            <h3 className="text-white font-medium mb-3">Как выполнять:</h3>
+            <div className="space-y-2">
+              {exerciseDemo.steps.map((step, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm flex-shrink-0">
+                    {i + 1}
+                  </div>
+                  <p className="text-white/80 text-sm">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Key points */}
+          <div className="bg-amber-500/20 rounded-xl p-4 mb-4">
+            <h3 className="text-amber-400 font-medium mb-2">Важно:</h3>
+            <ul className="space-y-1">
+              {exerciseDemo.keyPoints.map((point, i) => (
+                <li key={i} className="text-white/80 text-sm flex gap-2">
+                  <span className="text-amber-400">•</span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Settings toggles */}
+          <div className="bg-white/10 rounded-xl p-4 space-y-3">
+            <h3 className="text-white font-medium mb-2">Настройки тренировки:</h3>
+
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Vibrate className="w-5 h-5 text-white/60" />
+                <span className="text-white/80">Вибрация</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={vibrationEnabled}
+                onChange={(e) => setVibrationEnabled(e.target.checked)}
+                className="w-5 h-5 accent-green-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mic className="w-5 h-5 text-white/60" />
+                <span className="text-white/80">Голосовой счёт</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={voiceCountEnabled}
+                onChange={(e) => setVoiceCountEnabled(e.target.checked)}
+                className="w-5 h-5 accent-green-500"
+              />
+            </label>
+
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 className="w-5 h-5 text-white/60" />
+                <span className="text-white/80">Голосовой тренер</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={coachModeEnabled}
+                onChange={(e) => setCoachModeEnabled(e.target.checked)}
+                className="w-5 h-5 accent-green-500"
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Start button */}
+        <div className="p-6 bg-gradient-to-t from-black to-transparent">
+          <button
+            onClick={handleStartFromPreview}
+            disabled={!isInitialized}
+            className="w-full py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors"
+          >
+            {isInitialized ? (
+              <>
+                <Play className="w-6 h-6" fill="white" />
+                Начать тренировку
+              </>
+            ) : (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Загрузка камеры...
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== SUMMARY SCREEN ====================
+  if (showSummary) {
+    const avgFormScore = workoutStats.reps.length > 0
+      ? Math.round(workoutStats.reps.reduce((a, b) => a + b.formScore, 0) / workoutStats.reps.length)
+      : formScore;
+
+    return (
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-900 to-black z-50 flex flex-col">
+        {/* Header */}
+        <div className="p-4 text-center">
+          <h2 className="text-white font-bold text-xl">Тренировка завершена!</h2>
+        </div>
+
+        {/* Stats */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          {/* Main result */}
+          <div className="text-center mb-6">
+            <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+              <div>
+                <div className="text-4xl font-bold text-white">
+                  {isTimeBased(exercise) ? `${Math.floor(plankTime / 60)}:${(plankTime % 60).toString().padStart(2, '0')}` : repCount}
+                </div>
+                <div className="text-white/80 text-sm">
+                  {isTimeBased(exercise) ? 'время' : 'повторов'}
+                </div>
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-1">
+              {getExerciseNameRu(exercise)}
+            </h1>
+          </div>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-green-400">{avgFormScore}%</div>
+              <div className="text-white/60 text-sm">Средняя форма</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-blue-400">
+                {Math.floor(workoutStats.totalTime / 60)}:{(workoutStats.totalTime % 60).toString().padStart(2, '0')}
+              </div>
+              <div className="text-white/60 text-sm">Время</div>
+            </div>
+            {workoutStats.reps.length > 0 && (
+              <>
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-emerald-400">
+                    #{workoutStats.bestRep}
+                  </div>
+                  <div className="text-white/60 text-sm">Лучший повтор</div>
+                </div>
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-amber-400">
+                    #{workoutStats.worstRep}
+                  </div>
+                  <div className="text-white/60 text-sm">Требует внимания</div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Form score chart */}
+          {workoutStats.reps.length > 1 && (
+            <div className="bg-white/10 rounded-xl p-4 mb-6">
+              <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Форма по повторам
+              </h3>
+              <div className="flex items-end gap-1 h-24">
+                {workoutStats.reps.map((rep, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t transition-all"
+                    style={{
+                      height: `${rep.formScore}%`,
+                      backgroundColor: rep.formScore >= 80 ? '#22c55e' :
+                                       rep.formScore >= 60 ? '#eab308' : '#ef4444'
+                    }}
+                    title={`Повтор ${rep.repNumber}: ${rep.formScore}%`}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between text-white/40 text-xs mt-1">
+                <span>1</span>
+                <span>{workoutStats.reps.length}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Feedback summary */}
+          <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl p-4">
+            <p className="text-white/90 text-center">
+              {avgFormScore >= 80 ? '🎉 Отличная работа! Продолжай в том же духе!' :
+               avgFormScore >= 60 ? '👍 Хорошо! Следи за техникой для лучших результатов.' :
+               '💪 Не сдавайся! Практика делает мастера.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Finish button */}
+        <div className="p-6 bg-gradient-to-t from-black to-transparent">
+          <button
+            onClick={handleFinishWorkout}
+            className="w-full py-4 bg-green-500 hover:bg-green-600 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors"
+          >
+            <Check className="w-6 h-6" />
+            Сохранить результат
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== MAIN WORKOUT SCREEN ====================
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -333,16 +860,16 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
           <div className="flex gap-2">
             <button
-              onClick={() => setShowTips(!showTips)}
-              className={`p-2 rounded-full backdrop-blur-sm ${showTips ? 'bg-blue-500' : 'bg-white/20'}`}
-              title="Подсказки"
+              onClick={() => setVoiceCountEnabled(!voiceCountEnabled)}
+              className={`p-2 rounded-full backdrop-blur-sm ${voiceCountEnabled ? 'bg-blue-500' : 'bg-white/20'}`}
+              title="Голосовой счёт"
             >
-              <Info className="w-5 h-5 text-white" />
+              {voiceCountEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
               className={`p-2 rounded-full backdrop-blur-sm ${showSettings ? 'bg-blue-500' : 'bg-white/20'}`}
-              title="Настройки камеры"
+              title="Настройки"
             >
               <Settings className="w-5 h-5 text-white" />
             </button>
