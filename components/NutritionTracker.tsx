@@ -1,10 +1,10 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
-import { NutritionLog, NutritionSubTab } from '../types';
+import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
 import { syncQueue } from '../services/syncQueue';
@@ -18,11 +18,12 @@ interface NutritionTrackerProps {
 }
 
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
+type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
-    const [activeSubTab, setActiveSubTab] = useState<NutritionSubTab>('diary');
+    const [activeToolSheet, setActiveToolSheet] = useState<ToolSheet>(null);
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
@@ -32,14 +33,14 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [pendingCount, setPendingCount] = useState(0);
     const [capturedPhotoBase64, setCapturedPhotoBase64] = useState<string | null>(null);
-    
+
     // UI Logic
     const [showRefWarning, setShowRefWarning] = useState(false);
-    
+
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    
+
     // Manual Entry State
     const [showManualEntry, setShowManualEntry] = useState(false);
     const [manualName, setManualName] = useState('');
@@ -127,8 +128,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const startCamera = async (targetMode: ScanMode) => {
         setMode(targetMode);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment' } 
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -205,15 +206,15 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             setNeedsUpdate(prev => prev + 1);
         }
     };
-    
+
     const selectMenuRecommendation = (dish: MenuRecommendation) => {
         setManualName(dish.dishName);
         setManualCals(dish.calories.toString());
         setManualProt(dish.protein.toString());
         // Simple heuristic for others as menu analysis is focused on main macros
-        setManualCarbs('0'); 
+        setManualCarbs('0');
         setManualFat('0');
-        
+
         setMode('IDLE');
         setShowManualEntry(true);
     };
@@ -357,61 +358,12 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
                         />
                     </div>
-                    {/* Goal explanation */}
-                    {dailyNeeds.deficit > 0 && (
-                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            {t('tdeeInfo') || `TDEE: ${dailyNeeds.tdee} ккал`} · {t('deficitInfo') || `Дефицит: -${dailyNeeds.deficit} ккал`}
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Sub-Tab Navigation - PRD: Дневник | Кухня | Рецепты | Финансы */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700 px-2">
-                {([
-                    { id: 'diary' as const, label: t('diary') || 'Дневник', icon: <Camera className="w-4 h-4" />, color: 'orange' },
-                    { id: 'kitchen' as const, label: t('kitchen') || 'Кухня', icon: <Package className="w-4 h-4" />, color: 'blue' },
-                    { id: 'recipes' as const, label: t('recipes') || 'Рецепты', icon: <ChefHat className="w-4 h-4" />, color: 'green' },
-                    { id: 'finance' as const, label: t('finance') || 'Финансы', icon: <Wallet className="w-4 h-4" />, color: 'purple' }
-                ]).map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveSubTab(tab.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors
-                            ${activeSubTab === tab.id
-                                ? `text-${tab.color}-600 dark:text-${tab.color}-400 border-b-2 border-${tab.color}-600 dark:border-${tab.color}-400`
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                            }`}
-                    >
-                        {tab.icon}
-                        <span className="hidden sm:inline">{tab.label}</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* Tab Content */}
+            {/* Main Content - Diary */}
             <div className="flex-1 overflow-auto">
-                {/* Kitchen Tab - PRD: Инвентарь продуктов */}
-                {activeSubTab === 'kitchen' && (
-                    <Kitchen />
-                )}
-
-                {/* Recipes Tab - PRD: Рецепты + Таймеры (includes cooking mode) */}
-                {activeSubTab === 'recipes' && (
-                    <Cooking
-                        caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
-                        onCaloriesLogged={handleCaloriesLogged}
-                    />
-                )}
-
-                {/* Finance Tab - PRD: Контроль затрат на еду */}
-                {activeSubTab === 'finance' && (
-                    <FoodFinance />
-                )}
-
-                {/* Diary Tab - PRD: Дневник питания (food log + water + menu scan) */}
-                {activeSubTab === 'diary' && (
-                    <div className="p-4 space-y-6 pb-24">
+                <div className="p-4 space-y-6 pb-24">
                         {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
                 <div className="flex flex-col items-center">
@@ -420,9 +372,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         stroke={8}
                         progress={todayStats.calories}
                         total={dailyNeeds.calories}
-                        color="#f59e0b"
-                        label={t('unitKcal')}
-                        compact
+                        color="#f59e0b" // Amber for Cals
+                        label={t('calories')}
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.calories} / {dailyNeeds.calories}</span>
                 </div>
@@ -433,9 +384,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         stroke={8}
                         progress={todayStats.water}
                         total={dailyNeeds.water}
-                        color="#3b82f6"
-                        label={t('unitMl')}
-                        compact
+                        color="#3b82f6" // Blue for Water
+                        label={t('water')}
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
                 </div>
@@ -452,7 +402,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{t('waterGoal')}: {dailyNeeds.water}{t('unitMl')}</p>
                     </div>
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-3">
                     <button onClick={() => addWater(150, 'Glass')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
                         <GlassWater size={20} className="text-blue-400" />
@@ -479,7 +429,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 {/* --- 1. IDLE STATE: Dual Buttons --- */}
                 {mode === 'IDLE' && (
                     <div className="grid grid-cols-1 gap-4">
-                        <button 
+                        <button
                             onClick={handleScanFoodClick}
                             className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-6 rounded-2xl shadow-lg transition transform active:scale-[0.98] group"
                         >
@@ -492,7 +442,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 </div>
                                 <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
                             </div>
-                            
+
                             {!isScannerUnlocked && (
                                 <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
                                     <div className="bg-black/50 px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
@@ -502,7 +452,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             )}
                         </button>
 
-                        <button 
+                        <button
                             onClick={handleScanMenuClick}
                             className="relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition transform active:scale-[0.98] group"
                         >
@@ -515,7 +465,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 </div>
                                 <ChevronRight className="text-gray-400 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1" />
                             </div>
-                            
+
                             {!isScannerUnlocked && (
                                 <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
                                     <div className="bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
@@ -541,7 +491,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-black shadow-2xl animate-in fade-in zoom-in-95 duration-300">
                         <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                         <canvas ref={canvasRef} className="hidden" />
-                        
+
                         <div className="absolute top-4 right-4 z-10">
                             <button onClick={() => {
                                 // Stop tracks
@@ -556,13 +506,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <div className={`w-64 h-64 border-2 border-white/50 border-dashed rounded-lg mb-4 ${mode === 'CAMERA_MENU' ? 'w-3/4 h-3/4' : ''}`}></div>
                             <div className="bg-black/60 px-3 py-1 rounded text-white text-xs backdrop-blur text-center max-w-[80%]">
-                                {mode === 'CAMERA_FOOD' 
-                                    ? <>{t('placeObjectInfo')} <span className="font-bold text-yellow-400">({settings.referenceObject || 'Hand'})</span></> 
+                                {mode === 'CAMERA_FOOD'
+                                    ? <>{t('placeObjectInfo')} <span className="font-bold text-yellow-400">({settings.referenceObject || 'Hand'})</span></>
                                     : t('analyzingMenu')}
                             </div>
                         </div>
                         <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-auto">
-                            <button 
+                            <button
                                 onClick={captureAndAnalyze}
                                 className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95 border-4 border-gray-300/50"
                             >
@@ -679,11 +629,11 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                              <h4 className="font-bold text-gray-900 dark:text-white">{t('menuRecs')}</h4>
                              <button onClick={() => setMode('IDLE')} className="text-gray-500"><X size={20}/></button>
                         </div>
-                        
+
                         <div className="grid gap-3">
                             {menuRecommendations.map((dish, idx) => (
-                                <div 
-                                    key={idx} 
+                                <div
+                                    key={idx}
                                     onClick={() => selectMenuRecommendation(dish)}
                                     className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer transition shadow-sm"
                                 >
@@ -694,8 +644,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                             dish.category === 'HIGH_PROTEIN' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                                             'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
                                         }`}>
-                                            {dish.category === 'BEST_CHOICE' ? t('bestChoice') : 
-                                             dish.category === 'HIGH_PROTEIN' ? t('highProtein') : 
+                                            {dish.category === 'BEST_CHOICE' ? t('bestChoice') :
+                                             dish.category === 'HIGH_PROTEIN' ? t('highProtein') :
                                              t('lesserEvil')}
                                         </span>
                                     </div>
@@ -729,15 +679,15 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
                                 {t('missingRefWarningBody')}
                             </p>
-                            
+
                             <div className="flex flex-col gap-3">
-                                <button 
+                                <button
                                     onClick={confirmRefWarning}
                                     className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition"
                                 >
                                     {t('continueAnyway')}
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setShowRefWarning(false)}
                                     className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white py-2"
                                 >
@@ -765,15 +715,15 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <div>
                                 <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('foodName')}</label>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={manualName}
                                         onChange={(e) => setManualName(e.target.value)}
                                         placeholder={t('foodPlaceholder')}
                                         className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500"
                                         autoFocus
                                     />
-                                    <button 
+                                    <button
                                         onClick={handleAiLookup}
                                         disabled={!manualName || isCalculatingManual}
                                         className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2.5 rounded-lg border border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"
@@ -782,11 +732,11 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('weightG')} ({t('unitG')})</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={manualAmount}
                                     onChange={(e) => setManualAmount(e.target.value)}
                                     placeholder={t('weightPlaceholder')}
@@ -797,8 +747,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('calories')}</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={manualCals}
                                         onChange={(e) => setManualCals(e.target.value)}
                                         placeholder="0"
@@ -807,8 +757,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('protein')} ({t('unitG')})</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={manualProt}
                                         onChange={(e) => setManualProt(e.target.value)}
                                         placeholder="0"
@@ -817,8 +767,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('carbs')} ({t('unitG')})</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={manualCarbs}
                                         onChange={(e) => setManualCarbs(e.target.value)}
                                         placeholder="0"
@@ -827,8 +777,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t('fat')} ({t('unitG')})</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={manualFat}
                                         onChange={(e) => setManualFat(e.target.value)}
                                         placeholder="0"
@@ -847,9 +797,95 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     </div>
                 </div>
             )}
-                    </div>
-                )}
+
+            {/* Tools Section */}
+            <div className="mt-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                    <Wrench size={20} className="text-gray-500" />
+                    {t('tools') || 'Инструменты'}
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Kitchen Card */}
+                    <button
+                        onClick={() => setActiveToolSheet('kitchen')}
+                        className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.02] transition-all active:scale-[0.98] group"
+                    >
+                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <Package size={20} className="text-white" />
+                        </div>
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('kitchen') || 'Кухня'}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {t('kitchenDesc') || 'Что есть в холодильнике'}
+                        </p>
+                    </button>
+
+                    {/* Recipes Card */}
+                    <button
+                        onClick={() => setActiveToolSheet('recipes')}
+                        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 border border-green-200 dark:border-green-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.02] transition-all active:scale-[0.98] group"
+                    >
+                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <ChefHat size={20} className="text-white" />
+                        </div>
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('recipes') || 'Рецепты'}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {t('recipesDesc') || 'Готовь с учётом КБЖУ'}
+                        </p>
+                    </button>
+
+                    {/* Finance Card - Full Width */}
+                    <button
+                        onClick={() => setActiveToolSheet('finance')}
+                        className="col-span-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.01] transition-all active:scale-[0.99] group flex items-center gap-4"
+                    >
+                        <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            <Wallet size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5">{t('finance') || 'Финансы'}</h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {t('financeDesc') || 'Сколько тратишь на еду'}
+                            </p>
+                        </div>
+                        <ChevronRight size={20} className="text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </div>
             </div>
+                    </div>
+            </div>
+
+            {/* Tool Sheets (Fullscreen Overlays) */}
+            {activeToolSheet && (
+                <div className="fixed inset-0 bg-white dark:bg-gray-950 z-[60] flex flex-col animate-in slide-in-from-right duration-200">
+                    {/* Sheet Header */}
+                    <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10">
+                        <button
+                            onClick={() => setActiveToolSheet(null)}
+                            className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                        >
+                            <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
+                        </button>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                            {activeToolSheet === 'kitchen' && (t('kitchen') || 'Кухня')}
+                            {activeToolSheet === 'recipes' && (t('recipes') || 'Рецепты')}
+                            {activeToolSheet === 'finance' && (t('finance') || 'Финансы')}
+                        </h2>
+                    </div>
+
+                    {/* Sheet Content */}
+                    <div className="flex-1 overflow-auto">
+                        {activeToolSheet === 'kitchen' && <Kitchen />}
+                        {activeToolSheet === 'recipes' && (
+                            <Cooking
+                                caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
+                                onCaloriesLogged={handleCaloriesLogged}
+                            />
+                        )}
+                        {activeToolSheet === 'finance' && <FoodFinance />}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
