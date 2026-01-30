@@ -1,7 +1,7 @@
 
 
 import {
-  ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel,
+  ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel, WeightGoal,
   KitchenStorage, InventoryItem, Recipe, CookedMeal, Leftover, StorageType, StoragePhoto
 } from '../types';
 import { ApiService } from './api';
@@ -353,11 +353,13 @@ export const StorageService = {
       ApiService.pushLog(StorageService.getUserId(), 'NUTRITION', log, s.backendUrl);
   },
 
-  calculateDailyNeeds: (): { calories: number, water: number } => {
+  calculateDailyNeeds: (): { calories: number, water: number, tdee: number, deficit: number, weightGoal: WeightGoal } => {
       const s = StorageService.getSettings();
-      const weight = StorageService.getLastWeight() || s.targetWeight || 70;
-      
-      let bmr = (10 * weight) + (6.25 * s.height) - (5 * s.age);
+      const currentWeight = StorageService.getLastWeight() || s.targetWeight || 70;
+      const targetWeight = s.targetWeight || currentWeight;
+
+      // Calculate BMR using Mifflin-St Jeor formula
+      let bmr = (10 * currentWeight) + (6.25 * s.height) - (5 * s.age);
       bmr += s.gender === 'MALE' ? 5 : -161;
 
       const activityMultipliers: Record<ActivityLevel, number> = {
@@ -367,10 +369,66 @@ export const StorageService = {
           'VERY_ACTIVE': 1.725
       };
 
-      const calories = Math.round(bmr * (activityMultipliers[s.activityLevel] || 1.2));
-      const water = Math.round(weight * 35); 
+      // TDEE = Total Daily Energy Expenditure (maintenance calories)
+      const tdee = Math.round(bmr * (activityMultipliers[s.activityLevel] || 1.2));
 
-      return { calories, water };
+      // Determine weight goal from settings or auto-detect
+      let weightGoal: WeightGoal = s.weightGoal || 'MAINTAIN';
+      const weightDifference = currentWeight - targetWeight;
+
+      // Auto-detect goal if not explicitly set
+      if (!s.weightGoal) {
+          if (weightDifference > 2) {
+              weightGoal = 'LOSE';
+          } else if (weightDifference < -2) {
+              weightGoal = 'GAIN';
+          } else {
+              weightGoal = 'MAINTAIN';
+          }
+      }
+
+      // Calculate calorie adjustment based on goal
+      // 500 kcal deficit/surplus = ~0.5 kg/week
+      // Scale deficit based on how much weight to lose (more aggressive for obesity)
+      let deficit = 0;
+      if (weightGoal === 'LOSE') {
+          // Calculate BMI to determine safe deficit
+          const heightM = s.height / 100;
+          const bmi = currentWeight / (heightM * heightM);
+
+          if (bmi >= 35) {
+              // Severe obesity: can safely have larger deficit (750-1000 kcal)
+              deficit = 750;
+          } else if (bmi >= 30) {
+              // Obesity: moderate deficit (600-750 kcal)
+              deficit = 600;
+          } else if (bmi >= 25) {
+              // Overweight: standard deficit (500 kcal)
+              deficit = 500;
+          } else {
+              // Normal weight: smaller deficit (300-400 kcal)
+              deficit = 400;
+          }
+      } else if (weightGoal === 'GAIN') {
+          deficit = -300; // Surplus for gaining
+      }
+
+      let calories = tdee - deficit;
+
+      // Ensure minimum safe calories
+      const minCalories = s.gender === 'MALE' ? 1500 : 1200;
+      calories = Math.max(calories, minCalories);
+
+      // Water needs (ml per day)
+      const water = Math.round(currentWeight * 35);
+
+      return {
+          calories: Math.round(calories),
+          water,
+          tdee,
+          deficit,
+          weightGoal
+      };
   },
 
   // --- Weights ---
