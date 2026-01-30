@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Lightbulb, Loader2 } from 'lucide-react';
 import { InventoryItem, StorageType } from '../../types';
 import { StorageService } from '../../services/storageService';
@@ -6,10 +6,80 @@ import { getProductNutrition } from '../../services/geminiService';
 import { georgiaPrices } from '../../services/georgiaPricesService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
+// Auto-emoji mapping based on product name patterns
+const EMOJI_MAP: Record<string, string> = {
+  // Молочные продукты
+  'молоко': '🥛', 'кефир': '🥛', 'йогурт': '🥛', 'сметан': '🥛', 'творог': '🧀',
+  'сыр': '🧀', 'масло': '🧈', 'сливк': '🥛',
+  // Яйца
+  'яйц': '🥚', 'яиц': '🥚',
+  // Мясо
+  'курица': '🍗', 'куриц': '🍗', 'курин': '🍗', 'филе': '🍗', 'грудк': '🍗',
+  'говядин': '🥩', 'свинин': '🥩', 'мясо': '🥩', 'фарш': '🥩', 'стейк': '🥩',
+  'бекон': '🥓', 'колбас': '🥓', 'сосиск': '🌭', 'ветчин': '🥓',
+  // Рыба
+  'рыб': '🐟', 'лосось': '🐟', 'сёмг': '🐟', 'семг': '🐟', 'тунец': '🐟',
+  'креветк': '🦐', 'морепродукт': '🦐',
+  // Овощи
+  'помидор': '🍅', 'томат': '🍅', 'огурец': '🥒', 'огурц': '🥒',
+  'морков': '🥕', 'картоф': '🥔', 'картош': '🥔', 'лук': '🧅', 'чеснок': '🧄',
+  'капуст': '🥬', 'салат': '🥗', 'перец': '🌶️', 'баклажан': '🍆',
+  'кабачок': '🥒', 'кабачк': '🥒', 'брокколи': '🥦', 'цветн': '🥦',
+  'горох': '🫛', 'фасол': '🫘', 'кукуруз': '🌽', 'грибы': '🍄', 'гриб': '🍄',
+  'авокадо': '🥑', 'шпинат': '🥬', 'зелен': '🌿',
+  // Фрукты
+  'яблок': '🍎', 'банан': '🍌', 'апельсин': '🍊', 'лимон': '🍋',
+  'виноград': '🍇', 'клубник': '🍓', 'малин': '🍓', 'черник': '🫐',
+  'арбуз': '🍉', 'дын': '🍈', 'персик': '🍑', 'груш': '🍐',
+  'манго': '🥭', 'ананас': '🍍', 'киви': '🥝', 'слив': '🍑',
+  'гранат': '🍎', 'хурма': '🍊',
+  // Хлеб и выпечка
+  'хлеб': '🍞', 'батон': '🥖', 'булк': '🥐', 'багет': '🥖',
+  'круассан': '🥐', 'торт': '🎂', 'пирог': '🥧', 'печень': '🍪',
+  'кекс': '🧁', 'пончик': '🍩',
+  // Крупы и макароны
+  'рис': '🍚', 'греч': '🌾', 'овсян': '🥣', 'каш': '🥣',
+  'макарон': '🍝', 'паста': '🍝', 'спагетти': '🍝', 'лапш': '🍜',
+  'крупа': '🌾', 'пшен': '🌾', 'манк': '🌾', 'перловк': '🌾',
+  // Напитки
+  'вода': '💧', 'сок': '🧃', 'чай': '🍵', 'кофе': '☕',
+  'компот': '🍹', 'морс': '🍹', 'лимонад': '🥤', 'кола': '🥤',
+  // Сладости
+  'шоколад': '🍫', 'конфет': '🍬', 'мёд': '🍯', 'мед': '🍯',
+  'варень': '🍓', 'джем': '🍓', 'сахар': '🍬',
+  // Орехи
+  'орех': '🥜', 'миндаль': '🥜', 'фундук': '🥜', 'кешью': '🥜',
+  'арахис': '🥜', 'семечк': '🌻',
+  // Соусы
+  'кетчуп': '🍅', 'майонез': '🥫', 'соус': '🥫', 'горчиц': '🥫',
+  // Готовая еда
+  'пицц': '🍕', 'бургер': '🍔', 'сэндвич': '🥪', 'суши': '🍣',
+  'суп': '🍲', 'борщ': '🍲', 'пельмен': '🥟', 'вареник': '🥟',
+};
+
+const getEmojiForProduct = (name: string): string => {
+  const lowerName = name.toLowerCase();
+  for (const [pattern, emoji] of Object.entries(EMOJI_MAP)) {
+    if (lowerName.includes(pattern)) {
+      return emoji;
+    }
+  }
+  return '🍽️';
+};
+
 interface AddProductModalProps {
   storageId: StorageType;
   onClose: () => void;
   onAdded: () => void;
+}
+
+interface RecentProduct {
+  name: string;
+  emoji: string;
+  unit: string;
+  caloriesPer100: number;
+  typicalQuantity: number;
+  storageId: StorageType;
 }
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({
@@ -27,6 +97,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [price, setPrice] = useState<number | null>(null);
   const [priceSuggested, setPriceSuggested] = useState(false);
   const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<RecentProduct[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const settings = StorageService.getSettings();
   const currency = (settings?.currency || 'GEL') as CurrencyCode;
@@ -47,6 +123,62 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       }
     }
   }, [name, quantity, unit]);
+
+  // Auto-emoji and autocomplete when name changes
+  useEffect(() => {
+    if (name.trim().length >= 2) {
+      // Auto-suggest emoji
+      const autoEmoji = getEmojiForProduct(name);
+      if (autoEmoji !== '🍽️') {
+        setEmoji(autoEmoji);
+      }
+      // Search recent products for autocomplete
+      if (typeof StorageService.searchRecentProducts === 'function') {
+        const results = StorageService.searchRecentProducts(name.trim());
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+        setSelectedIndex(-1);
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [name]);
+
+  // Handle keyboard navigation in autocomplete
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev =>
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev =>
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      );
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }
+  };
+
+  // Select a suggestion from autocomplete
+  const selectSuggestion = (suggestion: RecentProduct) => {
+    setName(suggestion.name);
+    setEmoji(suggestion.emoji);
+    setUnit(suggestion.unit);
+    setCaloriesPer100(suggestion.caloriesPer100.toString());
+    setQuantity(suggestion.typicalQuantity.toString());
+    setStorage(suggestion.storageId);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+  };
 
   const handleGetNutrition = async () => {
     if (!name.trim()) return;
@@ -92,6 +224,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     };
 
     StorageService.saveInventoryItem(item);
+    // Track product usage for future quick-add
+    if (typeof StorageService.trackProductUsage === 'function') {
+      StorageService.trackProductUsage(item);
+    }
     onAdded();
   };
 
@@ -113,8 +249,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Name with AI suggestion */}
-          <div>
+          {/* Name with AI suggestion and autocomplete */}
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Название
             </label>
@@ -124,12 +260,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   {emoji}
                 </span>
                 <input
+                  ref={inputRef}
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                   placeholder="Гречневая крупа"
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-r-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
+                  autoComplete="off"
                 />
               </div>
               <button
@@ -146,6 +287,28 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 )}
               </button>
             </div>
+
+            {/* Autocomplete dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.name}
+                    type="button"
+                    onClick={() => selectSuggestion(suggestion)}
+                    className={`w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      index === selectedIndex ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{suggestion.emoji}</span>
+                    <span className="flex-1 dark:text-white">{suggestion.name}</span>
+                    <span className="text-xs text-gray-400">
+                      {suggestion.caloriesPer100} ккал/{suggestion.unit === 'мл' ? '100мл' : '100г'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quantity and Unit */}

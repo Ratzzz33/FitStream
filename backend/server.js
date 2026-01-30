@@ -1174,7 +1174,191 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
-// --- 7. STARTUP & SHUTDOWN ---
+// --- 7. RECIPES API ---
+const recipeImporter = require('./services/recipeImporter');
+
+// Get recipes with filters
+app.get('/api/recipes', async (req, res) => {
+    try {
+        const {
+            search, category, area, healthy, vegetarian, vegan,
+            maxCalories, minProtein, maxTime, difficulty,
+            limit = 50, offset = 0
+        } = req.query;
+
+        let query = `
+            SELECT r.*,
+                   json_agg(json_build_object(
+                       'id', ri.id,
+                       'name', ri.name,
+                       'name_ru', ri.name_ru,
+                       'amount', ri.amount
+                   ) ORDER BY ri.sort_order) as ingredients
+            FROM recipes r
+            LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+            WHERE 1=1
+        `;
+        const params = [];
+        let paramIndex = 1;
+
+        if (search) {
+            query += ` AND (r.name_en ILIKE $${paramIndex} OR r.name_ru ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+        if (category) {
+            query += ` AND r.category = $${paramIndex}`;
+            params.push(category);
+            paramIndex++;
+        }
+        if (area) {
+            query += ` AND r.area = $${paramIndex}`;
+            params.push(area);
+            paramIndex++;
+        }
+        if (healthy === 'true') {
+            query += ` AND r.is_healthy = true`;
+        }
+        if (vegetarian === 'true') {
+            query += ` AND r.is_vegetarian = true`;
+        }
+        if (vegan === 'true') {
+            query += ` AND r.is_vegan = true`;
+        }
+        if (maxCalories) {
+            query += ` AND r.calories <= $${paramIndex}`;
+            params.push(parseInt(maxCalories));
+            paramIndex++;
+        }
+        if (minProtein) {
+            query += ` AND r.protein >= $${paramIndex}`;
+            params.push(parseInt(minProtein));
+            paramIndex++;
+        }
+        if (maxTime) {
+            query += ` AND r.cooking_time <= $${paramIndex}`;
+            params.push(parseInt(maxTime));
+            paramIndex++;
+        }
+        if (difficulty) {
+            query += ` AND r.difficulty = $${paramIndex}`;
+            params.push(difficulty);
+            paramIndex++;
+        }
+
+        query += ` GROUP BY r.id ORDER BY r.name_en LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+        params.push(parseInt(limit), parseInt(offset));
+
+        const result = await pool.query(query, params);
+
+        // Clean up null ingredients
+        const recipes = result.rows.map(r => ({
+            ...r,
+            ingredients: r.ingredients.filter(i => i.id !== null)
+        }));
+
+        res.json(recipes);
+    } catch (e) {
+        console.error('Recipes error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get single recipe
+app.get('/api/recipes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const recipeResult = await pool.query('SELECT * FROM recipes WHERE id = $1', [id]);
+        if (recipeResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+
+        const ingredientsResult = await pool.query(
+            'SELECT * FROM recipe_ingredients WHERE recipe_id = $1 ORDER BY sort_order',
+            [id]
+        );
+
+        res.json({
+            ...recipeResult.rows[0],
+            ingredients: ingredientsResult.rows
+        });
+    } catch (e) {
+        console.error('Recipe error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get categories
+app.get('/api/recipes/meta/categories', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT DISTINCT category FROM recipes WHERE category IS NOT NULL ORDER BY category'
+        );
+        res.json(result.rows.map(r => r.category));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get random recipes
+app.get('/api/recipes/random/:count', async (req, res) => {
+    try {
+        const count = Math.min(parseInt(req.params.count) || 5, 20);
+
+        const result = await pool.query(`
+            SELECT r.*,
+                   json_agg(json_build_object(
+                       'id', ri.id,
+                       'name', ri.name,
+                       'name_ru', ri.name_ru,
+                       'amount', ri.amount
+                   ) ORDER BY ri.sort_order) as ingredients
+            FROM recipes r
+            LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+            WHERE r.calories IS NOT NULL
+            GROUP BY r.id
+            ORDER BY RANDOM()
+            LIMIT $1
+        `, [count]);
+
+        const recipes = result.rows.map(r => ({
+            ...r,
+            ingredients: r.ingredients.filter(i => i.id !== null)
+        }));
+
+        res.json(recipes);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Import recipes from MealDB
+app.post('/api/recipes/import/mealdb', async (req, res) => {
+    try {
+        const result = await recipeImporter.importFromMealDB(pool);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Enrich recipes with AI
+app.post('/api/recipes/enrich', async (req, res) => {
+    try {
+        const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ error: 'API key not configured' });
+        }
+        const batchSize = parseInt(req.body.batchSize) || 50;
+        const result = await recipeImporter.enrichRecipesWithAI(pool, apiKey, batchSize);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- 8. STARTUP & SHUTDOWN ---
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0'; 
 

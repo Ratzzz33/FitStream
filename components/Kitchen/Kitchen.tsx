@@ -528,14 +528,14 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     setShowAddModal(true);
   };
 
-  // Quick-add frequent product with one click
+  // Quick-add a frequent product with 1 click
   const handleQuickAdd = (product: {
     name: string;
     emoji: string;
     unit: string;
     caloriesPer100: number;
     typicalQuantity: number;
-    storageId: string;
+    storageId: StorageType;
   }) => {
     const item: InventoryItem = {
       id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -543,10 +543,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
       emoji: product.emoji,
       quantity: product.typicalQuantity,
       unit: product.unit,
-      storageId: product.storageId as StorageType,
+      storageId: activeStorage,
       addedAt: new Date().toISOString(),
       source: 'manual',
-      caloriesPer100: product.caloriesPer100 || 0
+      caloriesPer100: product.caloriesPer100
     };
     StorageService.saveInventoryItem(item);
     StorageService.trackProductUsage(item);
@@ -610,6 +610,28 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
 
           {addMenuOpen && (
             <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[200px]">
+              {/* Quick-add section */}
+              {frequentProducts.length > 0 && (
+                <>
+                  <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Быстрое добавление
+                  </div>
+                  <div className="px-3 pb-2 flex flex-wrap gap-1">
+                    {frequentProducts.map((product) => (
+                      <button
+                        key={product.name}
+                        onClick={() => handleQuickAdd(product)}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        <span>{product.emoji}</span>
+                        <span>{product.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                </>
+              )}
               <button
                 onClick={() => handleTakePhoto(false)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
@@ -662,30 +684,6 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                   <div className="text-xs text-gray-500">Если AI пропустил</div>
                 </div>
               </button>
-
-              {/* Quick-add frequent products */}
-              {frequentProducts.length > 0 && (
-                <>
-                  <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
-                  <div className="px-4 py-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <Zap className="w-3 h-3" />
-                    <span>Быстрое добавление</span>
-                  </div>
-                  <div className="px-3 pb-2 flex flex-wrap gap-2">
-                    {frequentProducts.map(p => (
-                      <button
-                        key={p.name}
-                        onClick={() => handleQuickAdd(p)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full text-sm transition-colors"
-                        title={`${p.typicalQuantity} ${p.unit}`}
-                      >
-                        <span>{p.emoji}</span>
-                        <span className="dark:text-white">{p.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           )}
         </div>
