@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Clock, Flame, ChefHat, AlertTriangle } from 'lucide-react';
-import { Recipe, InventoryItem } from '../../types';
+import { RefreshCw, Flame, ChefHat, AlertTriangle } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
-import { generateRecipes, GeneratedRecipe, RecipeGenerationContext } from '../../services/geminiService';
+import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
-import { RecipeCard } from './RecipeCard';
+import { RecipeCarousel } from './RecipeCarousel';
+import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
 
 interface CookingProps {
@@ -13,7 +13,7 @@ interface CookingProps {
   onCaloriesLogged?: (calories: number) => void;
 }
 
-type ViewState = 'loading' | 'recommendation' | 'cooking' | 'error';
+type ViewState = 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
 
 export const Cooking: React.FC<CookingProps> = ({
   caloriesRemaining,
@@ -22,9 +22,9 @@ export const Cooking: React.FC<CookingProps> = ({
 }) => {
   const [state, setState] = useState<ViewState>('loading');
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
-  const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
-  const [selectedRecipe, setSelectedRecipe] = useState<GeneratedRecipe | null>(null);
-  const [recipeImage, setRecipeImage] = useState<string>('');
+  const [selectedRecipeIndex, setSelectedRecipeIndex] = useState<number | undefined>();
+  const [recipeImages, setRecipeImages] = useState<Record<number, string>>({});
+  const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
 
   // Determine time of day for meal type
@@ -34,6 +34,10 @@ export const Cooking: React.FC<CookingProps> = ({
     if (hour >= 11 && hour < 15) return 'lunch';
     if (hour >= 15 && hour < 18) return 'snack';
     return 'dinner';
+  };
+
+  const getCurrentTime = (): string => {
+    return new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
   const getMealEmoji = () => {
@@ -56,17 +60,64 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
+  // Get today's meals for context
+  const getTodayMealsContext = (): { meals: TodayMealContext[], macros: { protein: number, carbs: number, fat: number } } => {
+    const today = new Date().toISOString().split('T')[0];
+    const nutritionLogs = StorageService.getNutritionLogs();
+    const todayLogs = nutritionLogs.filter(log => log.date === today && log.type === 'FOOD');
+
+    const meals: TodayMealContext[] = todayLogs.map(log => ({
+      time: new Date(log.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      name: log.name,
+      calories: log.calories,
+      protein: log.protein,
+      carbs: log.carbs,
+      fat: log.fat
+    }));
+
+    const macros = todayLogs.reduce((acc, log) => ({
+      protein: acc.protein + (log.protein || 0),
+      carbs: acc.carbs + (log.carbs || 0),
+      fat: acc.fat + (log.fat || 0)
+    }), { protein: 0, carbs: 0, fat: 0 });
+
+    return { meals, macros };
+  };
+
   // Load recipes on mount
   useEffect(() => {
     loadRecipes();
   }, []);
 
+  // Generate image for a recipe (parallel)
+  const generateImageForRecipe = async (recipe: GeneratedRecipe, index: number) => {
+    setLoadingImages(prev => new Set(prev).add(index));
+
+    try {
+      const image = await generateDishImage({
+        dishName: recipe.name,
+        ingredients: recipe.ingredients.map(i => i.name)
+      });
+      setRecipeImages(prev => ({ ...prev, [index]: image.url }));
+    } catch (err) {
+      console.error(`Error generating image for recipe ${index}:`, err);
+    } finally {
+      setLoadingImages(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  };
+
   const loadRecipes = async () => {
     setState('loading');
     setError('');
+    setRecipeImages({});
+    setSelectedRecipeIndex(undefined);
 
     try {
-      const inventory = StorageService.getInventory();
+      const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
 
       if (inventory.length === 0) {
         setError('Добавьте продукты в Кухню, чтобы получить рекомендации рецептов.');
@@ -74,12 +125,17 @@ export const Cooking: React.FC<CookingProps> = ({
         return;
       }
 
+      const { meals, macros } = getTodayMealsContext();
+
       const context: RecipeGenerationContext = {
         timeOfDay: getTimeOfDay(),
+        currentTime: getCurrentTime(),
         caloriesRemaining,
         servingsNeeded,
-        maxCookingTime: 45, // Default max time
-        excludeRecipeIds: StorageService.getRecentRecipeIds(3)
+        maxCookingTime: 45,
+        excludeRecipeIds: StorageService.getRecentRecipeIds(3),
+        todayMeals: meals.length > 0 ? meals : undefined,
+        todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
       };
 
       const generatedRecipes = await generateRecipes(inventory, context);
@@ -91,17 +147,13 @@ export const Cooking: React.FC<CookingProps> = ({
       }
 
       setRecipes(generatedRecipes);
-      setCurrentRecipeIndex(0);
+      setState('menu');
 
-      // Generate image for first recipe
-      const firstRecipe = generatedRecipes[0];
-      const image = await generateDishImage({
-        dishName: firstRecipe.name,
-        ingredients: firstRecipe.ingredients.map(i => i.name)
+      // Generate images for ALL recipes in parallel
+      generatedRecipes.forEach((recipe, index) => {
+        generateImageForRecipe(recipe, index);
       });
-      setRecipeImage(image.url);
 
-      setState('recommendation');
     } catch (err) {
       console.error('Error loading recipes:', err);
       setError('Не удалось загрузить рецепты. Проверьте подключение к интернету.');
@@ -109,37 +161,35 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
-  const handleNextRecipe = async () => {
-    const nextIndex = (currentRecipeIndex + 1) % recipes.length;
-    setCurrentRecipeIndex(nextIndex);
+  const handleSelectRecipe = (index: number) => {
+    setSelectedRecipeIndex(index);
+    setState('expanded');
+  };
 
-    // Generate image for next recipe
-    const nextRecipe = recipes[nextIndex];
-    const image = await generateDishImage({
-      dishName: nextRecipe.name,
-      ingredients: nextRecipe.ingredients.map(i => i.name)
-    });
-    setRecipeImage(image.url);
+  const handleCloseExpanded = () => {
+    setState('menu');
   };
 
   const handleStartCooking = () => {
-    setSelectedRecipe(recipes[currentRecipeIndex]);
-    setState('cooking');
+    if (selectedRecipeIndex !== undefined) {
+      setState('cooking');
+    }
   };
 
   const handleCookingComplete = (caloriesEaten: number) => {
     onCaloriesLogged?.(caloriesEaten);
-    setSelectedRecipe(null);
-    setState('recommendation');
+    setSelectedRecipeIndex(undefined);
+    setState('menu');
     loadRecipes(); // Refresh recommendations
   };
 
   const handleCookingCancel = () => {
-    setSelectedRecipe(null);
-    setState('recommendation');
+    setSelectedRecipeIndex(undefined);
+    setState('menu');
   };
 
-  const currentRecipe = recipes[currentRecipeIndex];
+  const selectedRecipe = selectedRecipeIndex !== undefined ? recipes[selectedRecipeIndex] : null;
+  const { meals: todayMeals } = getTodayMealsContext();
 
   return (
     <div className="flex flex-col h-full">
@@ -150,7 +200,10 @@ export const Cooking: React.FC<CookingProps> = ({
             <ChefHat className="w-16 h-16 text-orange-500 animate-bounce" />
           </div>
           <p className="mt-4 text-gray-600 dark:text-gray-400 text-center">
-            Подбираем рецепт для вас...
+            Подбираем меню для вас...
+          </p>
+          <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
+            {getMealEmoji()} {getMealName()} • {getCurrentTime()}
           </p>
         </div>
       )}
@@ -170,33 +223,73 @@ export const Cooking: React.FC<CookingProps> = ({
         </div>
       )}
 
-      {/* Recommendation state - zero-click UI */}
-      {state === 'recommendation' && currentRecipe && (
+      {/* Menu state - Restaurant-style carousel */}
+      {state === 'menu' && recipes.length > 0 && (
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="p-4 text-center">
-            <span className="text-2xl mr-2">{getMealEmoji()}</span>
-            <span className="text-xl font-semibold dark:text-white">
-              {getMealName()} готов к старту
-            </span>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{getMealEmoji()}</span>
+                <h2 className="text-xl font-bold dark:text-white">{getMealName()}</h2>
+              </div>
+              <button
+                onClick={loadRecipes}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Выберите блюдо • {recipes.length} варианта
+            </p>
           </div>
 
-          {/* Recipe card - main focus */}
-          <div className="flex-1 px-4 pb-4">
-            <RecipeCard
-              recipe={currentRecipe}
-              imageUrl={recipeImage}
-              onStartCooking={handleStartCooking}
-              onNextRecipe={handleNextRecipe}
-              hasMoreRecipes={recipes.length > 1}
+          {/* Today's context */}
+          {todayMeals.length > 0 && (
+            <div className="px-4 mb-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
+                  📊 Сегодня вы уже ели:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {todayMeals.slice(-3).map((meal, idx) => (
+                    <span key={idx} className="text-xs text-blue-600 dark:text-blue-400">
+                      {meal.time} {meal.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recipe carousel */}
+          <div className="flex-1 px-4">
+            <RecipeCarousel
+              recipes={recipes}
+              images={recipeImages}
+              loadingImages={loadingImages}
+              onSelectRecipe={handleSelectRecipe}
+              selectedIndex={selectedRecipeIndex}
             />
           </div>
 
-          {/* Calories info */}
-          <div className="px-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            Осталось на сегодня: {caloriesRemaining} ккал
+          {/* Calories remaining */}
+          <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+            <Flame className="w-4 h-4 inline mr-1 text-orange-500" />
+            Осталось на сегодня: <span className="font-medium">{caloriesRemaining} ккал</span>
           </div>
         </div>
+      )}
+
+      {/* Expanded recipe view */}
+      {state === 'expanded' && selectedRecipe && (
+        <RecipeCardExpanded
+          recipe={selectedRecipe}
+          imageUrl={selectedRecipeIndex !== undefined ? recipeImages[selectedRecipeIndex] : undefined}
+          onClose={handleCloseExpanded}
+          onStartCooking={handleStartCooking}
+        />
       )}
 
       {/* Cooking mode */}
