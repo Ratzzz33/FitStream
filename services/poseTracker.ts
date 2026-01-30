@@ -866,10 +866,8 @@ export class PoseTracker {
         return;
       }
 
-      // Temporarily store original callback
-      const originalOnResults = this.pose.onResults.bind(this.pose);
-
-      this.pose.onResults = (results: Results) => {
+      // Register temporary callback for calibration
+      this.pose.onResults((results: Results) => {
         if (results.poseLandmarks) {
           // Update calibration
           this.updateCalibration(results.poseLandmarks);
@@ -888,11 +886,11 @@ export class PoseTracker {
           this.callbacks.onPoseUpdate(results.poseLandmarks, 0, 0, 0);
         }
         resolve();
-      };
+      });
 
       this.pose.send({ image: videoElement }).then(() => {
         // Restore original callback
-        this.pose!.onResults = (results: Results) => this.processResults(results);
+        this.pose!.onResults((results: Results) => this.processResults(results));
       });
     });
   }
@@ -1145,7 +1143,7 @@ export class PoseTracker {
       const now = Date.now();
       if (now - this.lastFormCheck > this.formCheckInterval) {
         this.lastFormCheck = now;
-        const feedback = config.formChecks(landmarks);
+        const feedback = config.formChecks(landmarks, this.state.bodyOrientation);
         if (feedback.length > 0) {
           this.callbacks.onFormFeedback(feedback);
         }

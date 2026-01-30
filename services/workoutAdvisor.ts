@@ -188,6 +188,9 @@ export interface OfficeBreakRecommendation extends Omit<WorkoutRecommendation, '
   exercises: OfficeBreakExercise[];
 }
 
+// Union type for all recommendations
+export type AnyRecommendation = WorkoutRecommendation | OfficeBreakRecommendation;
+
 // Mapping exercises to muscle groups
 const EXERCISE_MUSCLE_GROUPS: Record<TrackableExercise, MuscleGroup[]> = {
   SQUATS: ['legs', 'glutes', 'core'],
@@ -456,8 +459,8 @@ export class WorkoutAdvisor {
     return streak;
   }
 
-  getRecommendations(): WorkoutRecommendation[] {
-    const recommendations: WorkoutRecommendation[] = [];
+  getRecommendations(): AnyRecommendation[] {
+    const recommendations: AnyRecommendation[] = [];
     const hour = new Date().getHours();
     const todayWorkout = this.getTodayWorkout();
     const needsWarmup = !todayWorkout?.includesWarmup;
@@ -542,7 +545,7 @@ export class WorkoutAdvisor {
 
     // Calculate total duration
     const totalDuration = exercises.reduce((sum, e) => {
-      if (e.type === 'simple') {
+      if ('type' in e && e.type === 'simple') {
         return sum + SIMPLE_EXERCISE_INFO[e.exercise].duration;
       }
       return sum + 30;
