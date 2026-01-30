@@ -484,14 +484,36 @@ export const scanReceipt = async (base64Image: string): Promise<ScannedReceipt> 
 };
 
 // 9. Generate Recipes from Inventory
+
+// История питания за сегодня для контекста
+export interface TodayMealContext {
+    time: string;        // "08:30"
+    name: string;        // "Овсянка с бананом"
+    calories: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+}
+
 export interface RecipeGenerationContext {
     timeOfDay: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    currentTime: string; // "12:30" — точное время
     caloriesRemaining: number;
     servingsNeeded: number;
     maxCookingTime?: number; // minutes
     excludeRecipeIds?: string[];
     dietaryPreferences?: string[];
+    // История питания сегодня
+    todayMeals?: TodayMealContext[];
+    // БЖУ съеденное сегодня
+    todayMacros?: {
+        protein: number;
+        carbs: number;
+        fat: number;
+    };
 }
+
+export type RecipeDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface GeneratedRecipe {
     name: string;
@@ -499,6 +521,13 @@ export interface GeneratedRecipe {
     servings: number;
     totalTimeMinutes: number;
     caloriesPerServing: number;
+    // БЖУ на порцию
+    proteinPerServing: number;
+    carbsPerServing: number;
+    fatPerServing: number;
+    // Сложность
+    difficulty: RecipeDifficulty;
+    difficultyReason?: string; // "Много шагов" / "Нужен опыт" / "Простые ингредиенты"
     ingredients: {
         name: string;
         emoji: string;
@@ -527,6 +556,7 @@ export interface GeneratedRecipe {
         }[];
     }[];
     priorityReason?: string; // Why this recipe is recommended (e.g., "Курица портится завтра")
+    nutritionNote?: string;  // "Белковое блюдо — идеально после углеводного завтрака"
     // PRD: Economic calculations
     costEstimate?: number;    // Себестоимость блюда в рублях
     restaurantPrice?: number; // Примерная цена в ресторане
@@ -561,6 +591,18 @@ export const generateRecipes = async (
         snack: 'перекус'
     };
 
+    // История питания сегодня
+    const todayMealsInfo = context.todayMeals?.length
+        ? `\nСЕГОДНЯ УЖЕ ЕЛ:\n${context.todayMeals.map(m =>
+            `- ${m.time}: ${m.name} (${m.calories} ккал${m.protein ? `, Б:${m.protein}г` : ''}${m.carbs ? `, У:${m.carbs}г` : ''})`
+        ).join('\n')}`
+        : '';
+
+    // БЖУ баланс
+    const macrosInfo = context.todayMacros
+        ? `\nСЪЕДЕНО БЖУ СЕГОДНЯ: Белки ${context.todayMacros.protein}г, Углеводы ${context.todayMacros.carbs}г, Жиры ${context.todayMacros.fat}г`
+        : '';
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -568,12 +610,15 @@ export const generateRecipes = async (
                 {
                     parts: [
                         {
-                            text: `Ты кулинарный AI-помощник для новичков. Предложи 2-3 рецепта для ${mealTypeNames[context.timeOfDay]}.
+                            text: `Ты кулинарный AI-помощник как в ресторане. Сейчас ${context.currentTime || new Date().toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}.
+Предложи 3-4 блюда для ${mealTypeNames[context.timeOfDay]} как меню ресторана.
 
 ДОСТУПНЫЕ ПРОДУКТЫ:
 ${inventoryList}
 
 ${expiringItems.length > 0 ? `⚠️ СКОРО ПОРТЯТСЯ (приоритет!): ${expiringItems.join(', ')}` : ''}
+${todayMealsInfo}
+${macrosInfo}
 
 ОГРАНИЧЕНИЯ:
 - Порций: ${context.servingsNeeded}
@@ -581,17 +626,20 @@ ${expiringItems.length > 0 ? `⚠️ СКОРО ПОРТЯТСЯ (приорит
 - Максимум времени готовки: ${context.maxCookingTime || 60} минут
 ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferences.join(', ')}` : ''}
 
-ВАЖНО для шагов готовки:
-1. Пиши ПРОСТЫМ языком для новичков (не "обжарить до золотистой корочки", а "жарить пока не станет жёлтым")
-2. Указывай конкретное время и уровень огня (1=слабый, 2=средний, 3=сильный)
-3. Добавляй напоминания помешать (stir), перевернуть (flip), проверить (check)
-4. Объясняй "tip" почему делаем именно так
-5. Добавляй "doneWhen" — как понять что готово
-6. Добавляй troubleshoot — что делать если пригорает/не жарится
+ОБЯЗАТЕЛЬНЫЕ ПОЛЯ для каждого рецепта:
+1. proteinPerServing, carbsPerServing, fatPerServing — БЖУ на порцию в граммах
+2. difficulty: "easy" / "medium" / "hard"
+3. difficultyReason: почему такая сложность (1-2 слова)
+4. nutritionNote: если утром ел углеводы — порекомендуй белковое, и наоборот
 
-ЭКОНОМИКА (обязательно):
-- costEstimate: примерная себестоимость блюда в рублях (сумма стоимости ингредиентов)
-- restaurantPrice: сколько стоило бы это блюдо в кафе/ресторане
+ВАЖНО для шагов готовки:
+1. Пиши ПРОСТЫМ языком для новичков
+2. Указывай время и уровень огня (1=слабый, 2=средний, 3=сильный)
+3. Добавляй tip, doneWhen, troubleshoot
+
+ЭКОНОМИКА:
+- costEstimate: себестоимость в рублях
+- restaurantPrice: цена в кафе
 
 Язык ответа: ${lang}`
                         }
@@ -610,8 +658,14 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                             servings: { type: Type.NUMBER },
                             totalTimeMinutes: { type: Type.NUMBER },
                             caloriesPerServing: { type: Type.NUMBER },
-                            costEstimate: { type: Type.NUMBER },      // PRD: себестоимость
-                            restaurantPrice: { type: Type.NUMBER },   // PRD: цена в ресторане
+                            proteinPerServing: { type: Type.NUMBER },
+                            carbsPerServing: { type: Type.NUMBER },
+                            fatPerServing: { type: Type.NUMBER },
+                            difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] },
+                            difficultyReason: { type: Type.STRING },
+                            nutritionNote: { type: Type.STRING },
+                            costEstimate: { type: Type.NUMBER },
+                            restaurantPrice: { type: Type.NUMBER },
                             priorityReason: { type: Type.STRING },
                             ingredients: {
                                 type: Type.ARRAY,
@@ -668,7 +722,7 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                                 }
                             }
                         },
-                        required: ["name", "description", "servings", "totalTimeMinutes", "caloriesPerServing", "ingredients", "steps"]
+                        required: ["name", "description", "servings", "totalTimeMinutes", "caloriesPerServing", "proteinPerServing", "carbsPerServing", "fatPerServing", "difficulty", "ingredients", "steps"]
                     }
                 }
             }
