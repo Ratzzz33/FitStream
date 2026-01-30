@@ -415,25 +415,27 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
                 <div className="flex flex-col items-center">
-                    <AchievementRing 
-                        radius={50} 
-                        stroke={8} 
-                        progress={todayStats.calories} 
-                        total={dailyNeeds.calories} 
-                        color="#f59e0b" // Amber for Cals
-                        label={t('calories')}
+                    <AchievementRing
+                        radius={50}
+                        stroke={8}
+                        progress={todayStats.calories}
+                        total={dailyNeeds.calories}
+                        color="#f59e0b"
+                        label={t('unitKcal')}
+                        compact
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.calories} / {dailyNeeds.calories}</span>
                 </div>
                 <div className="h-20 w-px bg-gray-200 dark:bg-gray-700"></div>
                 <div className="flex flex-col items-center">
-                    <AchievementRing 
-                        radius={50} 
-                        stroke={8} 
-                        progress={todayStats.water} 
-                        total={dailyNeeds.water} 
-                        color="#3b82f6" // Blue for Water
-                        label={t('water')}
+                    <AchievementRing
+                        radius={50}
+                        stroke={8}
+                        progress={todayStats.water}
+                        total={dailyNeeds.water}
+                        color="#3b82f6"
+                        label={t('unitMl')}
+                        compact
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
                 </div>
