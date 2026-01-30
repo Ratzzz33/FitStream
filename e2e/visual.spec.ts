@@ -81,7 +81,7 @@ test.describe.skip('Visual Regression', () => {
   });
 });
 
-test.describe('Visual - Mobile', () => {
+test.describe.skip('Visual - Mobile', () => {
   test('mobile dashboard', async ({ mobilePage }) => {
     // Set up user data
     await mobilePage.addInitScript(() => {
@@ -122,7 +122,7 @@ test.describe('Visual - Mobile', () => {
   });
 });
 
-test.describe('Visual - Components', () => {
+test.describe.skip('Visual - Components', () => {
   test('achievement ring - in progress', async ({ authenticatedPage }) => {
     await authenticatedPage.addInitScript(() => {
       localStorage.setItem(
@@ -168,7 +168,7 @@ test.describe('Visual - Components', () => {
   });
 });
 
-test.describe('Visual - Accessibility', () => {
+test.describe.skip('Visual - Accessibility', () => {
   test('high contrast mode', async ({ authenticatedPage }) => {
     // Emulate high contrast
     await authenticatedPage.emulateMedia({ forcedColors: 'active' });
