@@ -1,6 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap } from 'lucide-react';
-import { PoseTracker, TrackableExercise, getExerciseNameRu, isExerciseTrackable, isTimeBased } from '../services/poseTracker';
+import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap, Settings, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  PoseTracker,
+  TrackableExercise,
+  getExerciseNameRu,
+  isExerciseTrackable,
+  isTimeBased,
+  getCameraPlacementTips,
+  getCameraPlacementNameRu,
+  CameraPlacement,
+  CameraCalibration,
+  BodyOrientation
+} from '../services/poseTracker';
 import { NormalizedLandmark } from '@mediapipe/pose';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
@@ -11,6 +22,7 @@ interface PoseWorkoutProps {
   targetSeconds?: number; // For plank
   onComplete: (reps: number, formScore: number) => void;
   onCancel: () => void;
+  initialCameraPlacement?: CameraPlacement;
 }
 
 export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
@@ -18,7 +30,8 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   targetReps = 10,
   targetSeconds = 60,
   onComplete,
-  onCancel
+  onCancel,
+  initialCameraPlacement = 'auto'
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,13 +42,26 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [repCount, setRepCount] = useState(0);
   const [formScore, setFormScore] = useState(100);
   const [currentAngle, setCurrentAngle] = useState(0);
+  const [leftAngle, setLeftAngle] = useState(0);
+  const [rightAngle, setRightAngle] = useState(0);
   const [feedback, setFeedback] = useState<string[]>([]);
   const [plankTime, setPlankTime] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
 
+  // New states for improved tracking
+  const [cameraPlacement, setCameraPlacement] = useState<CameraPlacement>(initialCameraPlacement);
+  const [calibration, setCalibration] = useState<CameraCalibration | null>(null);
+  const [bodyOrientation, setBodyOrientation] = useState<BodyOrientation>('unknown');
+  const [activeSide, setActiveSide] = useState<'left' | 'right' | 'both'>('both');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTips, setShowTips] = useState(true);
+
   // Audio for rep counting
   const beepAudio = useRef<HTMLAudioElement | null>(null);
+
+  // Get camera tips for this exercise
+  const cameraTips = getCameraPlacementTips(exercise);
 
   useEffect(() => {
     // Create beep sound
@@ -46,36 +72,57 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   useEffect(() => {
     if (!videoRef.current) return;
 
-    const tracker = new PoseTracker(exercise, {
-      onRepComplete: (count, score) => {
-        setRepCount(count);
-        setFormScore(score);
-        // Play beep
-        if (soundEnabled && beepAudio.current) {
-          beepAudio.current.currentTime = 0;
-          beepAudio.current.play().catch(() => {});
-        }
-        // Check if target reached
-        if (exercise !== 'PLANK' && count >= targetReps) {
-          handleComplete();
+    const tracker = new PoseTracker(
+      exercise,
+      {
+        onRepComplete: (count, score) => {
+          setRepCount(count);
+          setFormScore(score);
+          // Play beep
+          if (soundEnabled && beepAudio.current) {
+            beepAudio.current.currentTime = 0;
+            beepAudio.current.play().catch(() => {});
+          }
+          // Check if target reached
+          if (!isTimeBased(exercise) && count >= targetReps) {
+            handleComplete();
+          }
+        },
+        onFormFeedback: (fb) => {
+          setFeedback(fb);
+          // Clear feedback after 3 seconds
+          setTimeout(() => setFeedback([]), 3000);
+        },
+        onPoseUpdate: (landmarks, angle, left, right) => {
+          setCurrentAngle(Math.round(angle));
+          if (left !== undefined) setLeftAngle(Math.round(left));
+          if (right !== undefined) setRightAngle(Math.round(right));
+          drawPose(landmarks);
+        },
+        onPlankTime: (seconds) => {
+          setPlankTime(seconds);
+          if (seconds >= targetSeconds) {
+            handleComplete();
+          }
+        },
+        onCalibrationUpdate: (cal) => {
+          setCalibration(cal);
+          // Hide tips once calibrated
+          if (cal.isCalibrated) {
+            setShowTips(false);
+          }
+        },
+        onOrientationDetected: (orientation, side) => {
+          setBodyOrientation(orientation);
+          setActiveSide(side);
         }
       },
-      onFormFeedback: (fb) => {
-        setFeedback(fb);
-        // Clear feedback after 3 seconds
-        setTimeout(() => setFeedback([]), 3000);
-      },
-      onPoseUpdate: (landmarks, angle) => {
-        setCurrentAngle(Math.round(angle));
-        drawPose(landmarks);
-      },
-      onPlankTime: (seconds) => {
-        setPlankTime(seconds);
-        if (seconds >= targetSeconds) {
-          handleComplete();
-        }
+      {
+        cameraPlacement: cameraPlacement,
+        useCalibration: cameraPlacement === 'auto',
+        smoothingFactor: 0.3
       }
-    });
+    );
 
     trackerRef.current = tracker;
 
@@ -88,7 +135,15 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     return () => {
       tracker.stop();
     };
-  }, [exercise, cameraFacing]);
+  }, [exercise, cameraFacing, cameraPlacement]);
+
+  // Update camera placement on tracker when changed
+  const handleCameraPlacementChange = (placement: CameraPlacement) => {
+    setCameraPlacement(placement);
+    if (trackerRef.current) {
+      trackerRef.current.setCameraPlacement(placement);
+    }
+  };
 
   const drawPose = useCallback((landmarks: NormalizedLandmark[]) => {
     const canvas = canvasRef.current;
@@ -174,6 +229,20 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
           <div className="flex gap-2">
             <button
+              onClick={() => setShowTips(!showTips)}
+              className={`p-2 rounded-full backdrop-blur-sm ${showTips ? 'bg-blue-500' : 'bg-white/20'}`}
+              title="Подсказки"
+            >
+              <Info className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-full backdrop-blur-sm ${showSettings ? 'bg-blue-500' : 'bg-white/20'}`}
+              title="Настройки камеры"
+            >
+              <Settings className="w-5 h-5 text-white" />
+            </button>
+            <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="p-2 rounded-full bg-white/20 backdrop-blur-sm"
             >
@@ -224,11 +293,111 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           </div>
         </div>
 
-        {/* Angle indicator (debug) */}
-        <div className="absolute top-20 right-4 bg-black/50 rounded-lg px-3 py-2">
-          <div className="text-white text-sm">Угол: {currentAngle}°</div>
-          <div className="text-green-400 text-sm">Форма: {formScore}%</div>
+        {/* Angle indicator with bilateral info */}
+        <div className="absolute top-20 right-4 bg-black/60 rounded-lg px-3 py-2 backdrop-blur-sm">
+          <div className="text-white text-sm font-medium">Угол: {currentAngle}°</div>
+          {activeSide === 'both' && (
+            <div className="flex gap-2 text-xs mt-1">
+              <span className={`${Math.abs(leftAngle - rightAngle) > 15 ? 'text-amber-400' : 'text-white/70'}`}>
+                Л: {leftAngle}°
+              </span>
+              <span className={`${Math.abs(leftAngle - rightAngle) > 15 ? 'text-amber-400' : 'text-white/70'}`}>
+                П: {rightAngle}°
+              </span>
+            </div>
+          )}
+          <div className="text-green-400 text-sm mt-1">Форма: {formScore}%</div>
+          {calibration && (
+            <div className="text-blue-300 text-xs mt-1">
+              📷 {getCameraPlacementNameRu(calibration.placement)}
+            </div>
+          )}
+          {bodyOrientation !== 'unknown' && (
+            <div className="text-purple-300 text-xs">
+              {bodyOrientation === 'front' ? '👤 Спереди' :
+               bodyOrientation === 'back' ? '🔙 Сзади' :
+               bodyOrientation === 'left_side' ? '◀️ Левый бок' :
+               bodyOrientation === 'right_side' ? '▶️ Правый бок' : ''}
+            </div>
+          )}
         </div>
+
+        {/* Camera tips panel (collapsible) */}
+        {showTips && !isRunning && (
+          <div className="absolute top-20 left-4 right-20 bg-blue-900/80 rounded-lg p-3 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-300" />
+                <span className="text-white text-sm font-medium">Как расположить камеру</span>
+              </div>
+              <button
+                onClick={() => setShowTips(false)}
+                className="text-white/60 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="text-white/80 text-xs space-y-1">
+              {cameraTips.tips.slice(0, 2).map((tip, i) => (
+                <p key={i}>• {tip}</p>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {cameraTips.recommended.map(placement => (
+                <button
+                  key={placement}
+                  onClick={() => handleCameraPlacementChange(placement)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    cameraPlacement === placement
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white/20 text-white/80'
+                  }`}
+                >
+                  {getCameraPlacementNameRu(placement)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Settings panel */}
+        {showSettings && (
+          <div className="absolute top-20 left-4 right-4 bg-gray-900/90 rounded-lg p-4 backdrop-blur-sm z-20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white font-medium">Настройки камеры</span>
+              <button onClick={() => setShowSettings(false)}>
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-white/70 text-sm block mb-2">Расположение камеры</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['auto', 'floor_front', 'floor_side', 'chest_front', 'chest_side'] as CameraPlacement[]).map(placement => (
+                    <button
+                      key={placement}
+                      onClick={() => handleCameraPlacementChange(placement)}
+                      className={`text-sm px-3 py-2 rounded ${
+                        cameraPlacement === placement
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white/10 text-white/80'
+                      }`}
+                    >
+                      {getCameraPlacementNameRu(placement)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {calibration && (
+                <div className="text-white/60 text-xs">
+                  Статус: {calibration.isCalibrated ? '✓ Откалибровано' : 'Калибровка...'}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Form feedback */}
         {feedback.length > 0 && (
