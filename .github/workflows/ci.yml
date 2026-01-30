@@ -46,8 +46,8 @@ jobs:
 
       - name: ESLint
         run: |
-          npm run lint -- --format json --output-file eslint-report.json || true
-        continue-on-error: true
+          npm run lint -- --format json --output-file eslint-report.json
+          npm run lint
 
       - name: Build
         run: npm run build
@@ -126,7 +126,8 @@ jobs:
             --config p/secrets \
             --json \
             --output /src/semgrep-results.json \
-            /src || true
+            --error \
+            /src
 
       - name: Process Semgrep results
         run: |
@@ -193,7 +194,6 @@ jobs:
           fetch-depth: 0
 
       - name: Run Gitleaks
-        continue-on-error: true
         run: |
           docker run --rm \
             -v "${PWD}:/path" \
@@ -203,7 +203,7 @@ jobs:
             --config="/path/.gitleaks.toml" \
             --report-format=json \
             --report-path=/path/gitleaks-report.json \
-            --exit-code=0
+            --exit-code=1
 
       - name: Check for secrets
         id: secrets-check
