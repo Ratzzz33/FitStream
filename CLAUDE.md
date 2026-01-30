@@ -1,5 +1,10 @@
 # FitStream AI
 
+> **⚠️ STOP: Before making ANY code changes, you MUST be in a git worktree.**
+> Run `git rev-parse --git-dir` - if it shows `.git` (not a path), you're in the main repo.
+> Create a worktree first: `git worktree add ../FitStream-<feature> -b feature/<feature>`
+> See "Git Workflow" section below. This is enforced by hooks.
+
 AI-powered fitness tracking app with React + Capacitor for iOS/Android.
 
 ## Tech Stack
@@ -89,19 +94,53 @@ Main interfaces in `types.ts`:
 - Icons from `lucide-react`
 - Named exports for services, default export for components
 
-## Git Workflow
+## Git Workflow (MANDATORY - ENFORCED BY HOOKS)
 
-IMPORTANT: Все новые фичи и правки делать в отдельном git worktree:
+**BLOCKING REQUIREMENT**: All code changes MUST be made in a git worktree. Direct edits to main branch are BLOCKED by pre-edit hooks.
+
+### Before ANY Code Changes
 
 ```bash
-# Создать worktree для новой фичи
+# 1. FIRST: Create a worktree for the feature
 git worktree add ../FitStream-<feature-name> -b feature/<feature-name>
 
-# После завершения — merge и удалить
+# 2. THEN: cd into the worktree and start Claude Code there
+cd ../FitStream-<feature-name>
+claude
+```
+
+### After Completing Work
+
+```bash
+# 1. Commit and push
+git add . && git commit -m "feat: description"
+git push -u origin feature/<feature-name>
+
+# 2. Create PR and wait for CI
+gh pr create --fill
+# WAIT for CI to pass - do NOT proceed until green
+
+# 3. Merge to main
+gh pr merge --merge
+
+# 4. Return to main and cleanup
+cd ../FitStream
+git pull
 git worktree remove ../FitStream-<feature-name>
 ```
 
-Никогда не коммитить напрямую в main без worktree!
+### Rules (Enforced by `.claude/hooks/`)
+
+1. **NO direct edits in main** - Hook blocks Edit/Write on source files in main repo
+2. **NO worktree removal before merge** - Hook warns if branch not merged
+3. **WAIT for CI** - Hook checks CI status before allowing cleanup
+
+### If Hook Blocks You
+
+If you see "BLOCKED: Editing source files directly in main branch":
+1. Stop immediately
+2. Create a worktree (command above)
+3. Restart Claude Code in the worktree directory
 
 ## Documentation Sync
 
