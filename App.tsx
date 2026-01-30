@@ -893,15 +893,15 @@ const App = () => {
                 >
                     <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
                         {/* Pot and Pan Icon */}
-                        <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
+                        <svg width="40" height="32" viewBox="0 0 42 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
                             {/* Pot */}
                             <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
                             <line x1="4" y1="10" x2="2" y2="10" />
                             <line x1="14" y1="10" x2="16" y2="10" />
                             <path d="M6 10V8a3 3 0 016 0v2" />
                             {/* Pan */}
-                            <ellipse cx="25" cy="16" rx="6" ry="3" />
-                            <line x1="31" y1="15" x2="36" y2="14" />
+                            <ellipse cx="24" cy="16" rx="6" ry="3" />
+                            <line x1="30" y1="15" x2="40" y2="13" />
                         </svg>
                     </div>
                     <div className="text-center">
