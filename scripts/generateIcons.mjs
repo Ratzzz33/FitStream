@@ -12,7 +12,7 @@ async function generateIcon(prompt, filename) {
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     console.log(`\n🎨 Generating: ${filename}`);
-    console.log(`📝 Prompt: ${prompt.substring(0, 80)}...`);
+    console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
 
     try {
         const response = await ai.models.generateImages({
@@ -47,21 +47,21 @@ async function generateIcon(prompt, filename) {
 }
 
 async function main() {
-    console.log("🚀 Generating Liquid Style Icons for FitStream\n");
+    console.log("🚀 Generating Icons v2 - Dark theme compatible\n");
 
-    // Icon 1: Refrigerator for "Кухня" (Kitchen)
+    // Icon 1: Refrigerator - flat design, dark background friendly
     await generateIcon(
-        "A modern refrigerator icon in liquid glass morphism style, translucent glossy surface with soft gradient blue and cyan colors, minimalist design, app icon style, clean white background, 3D render, smooth reflections, no text, centered composition",
-        "kitchen-liquid.png"
+        "Minimal flat vector icon of a modern refrigerator, soft cyan and blue gradient colors, simple geometric shapes, no background, isolated object, app icon style, clean design, no shadows, no text, centered",
+        "kitchen-v2.png"
     );
 
-    // Icon 2: Cooking pot on stove for "Что готовим?"
+    // Icon 2: Cooking pot on stove - flat design
     await generateIcon(
-        "A cooking pot on a gas stove burner with steam rising, liquid glass morphism style, translucent glossy surface with warm orange and red gradient colors, minimalist app icon design, clean white background, 3D render, smooth reflections, no text, centered composition",
-        "cooking-liquid.png"
+        "Minimal flat vector icon of a cooking pot with steam on a gas stove flame, warm orange red gradient colors, simple geometric shapes, no background, isolated object, app icon style, clean design, no shadows, no text, centered",
+        "cooking-v2.png"
     );
 
-    console.log("\n✨ Done! Check public/icons/ folder");
+    console.log("\n✨ Done!");
 }
 
 main();

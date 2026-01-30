@@ -875,7 +875,7 @@ const App = () => {
                 >
                     <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
                         <img
-                            src="/icons/kitchen-liquid.png"
+                            src="/icons/kitchen-v2.png"
                             alt="Kitchen"
                             className="w-14 h-14 object-contain"
                             onError={(e) => {
@@ -895,7 +895,7 @@ const App = () => {
                 >
                     <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
                         <img
-                            src="/icons/cooking-liquid.png"
+                            src="/icons/cooking-v2.png"
                             alt="Cooking"
                             className="w-14 h-14 object-contain"
                             onError={(e) => {
