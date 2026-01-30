@@ -8,6 +8,7 @@ import { AddProductModal } from './AddProductModal';
 import { ScanReceiptModal } from './ScanReceiptModal';
 import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhotoId } from '../../services/geminiService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
+import { georgiaPrices } from '../../services/georgiaPricesService';
 
 interface KitchenProps {
   onClose?: () => void;
@@ -48,24 +49,25 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const expiringItems = StorageService.getExpiringItems(3);
   const totalItems = inventory.length;
 
-  // PRD: Financial tracking of inventory
+  // PRD: Financial tracking of inventory using Georgia prices database
   const calculateInventoryValue = () => {
-    const avgPrices: Record<string, number> = {
-      'мл': 0.08, 'л': 80, 'г': 0.3, 'кг': 300, 'шт': 50
-    };
     return inventory.reduce((sum, item) => {
-      const pricePerUnit = item.price || avgPrices[item.unit] || 50;
-      return sum + (item.quantity * pricePerUnit);
+      // Use item's stored price, or lookup from Georgia prices database
+      if (item.price) {
+        return sum + item.price;
+      }
+      const dbPrice = georgiaPrices.getPrice(item.name, item.quantity, item.unit);
+      return sum + (dbPrice || item.quantity * 2); // fallback: 2 GEL per unit
     }, 0);
   };
 
   const calculateExpiringValue = () => {
-    const avgPrices: Record<string, number> = {
-      'мл': 0.08, 'л': 80, 'г': 0.3, 'кг': 300, 'шт': 50
-    };
     return expiringItems.reduce((sum, item) => {
-      const pricePerUnit = item.price || avgPrices[item.unit] || 50;
-      return sum + (item.quantity * pricePerUnit);
+      if (item.price) {
+        return sum + item.price;
+      }
+      const dbPrice = georgiaPrices.getPrice(item.name, item.quantity, item.unit);
+      return sum + (dbPrice || item.quantity * 2);
     }, 0);
   };
 
@@ -209,7 +211,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             position: { x: primaryPosition.x, y: primaryPosition.y },
             photoId: primaryPosition.photoId,
             mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
-            caloriesPer100: p.caloriesPer100
+            caloriesPer100: p.caloriesPer100,
+          price: p.price
           };
         });
 
@@ -232,7 +235,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           source: 'photo' as const,
           position: { x: p.positionX, y: p.positionY },
           photoId: p.photoId,
-          caloriesPer100: p.caloriesPer100
+          caloriesPer100: p.caloriesPer100,
+          price: p.price
         }));
 
         StorageService.saveInventoryBulk(newItems);
@@ -319,7 +323,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             position: { x: primaryPosition.x, y: primaryPosition.y },
             photoId: primaryPosition.photoId,
             mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
-            caloriesPer100: p.caloriesPer100
+            caloriesPer100: p.caloriesPer100,
+          price: p.price
           };
         });
 
@@ -344,7 +349,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           source: 'photo' as const,
           position: { x: p.positionX, y: p.positionY },
           photoId: p.photoId,
-          caloriesPer100: p.caloriesPer100
+          caloriesPer100: p.caloriesPer100,
+          price: p.price
         }));
 
         localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
@@ -444,7 +450,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             position: { x: primaryPosition.x, y: primaryPosition.y },
             photoId: primaryPosition.photoId,
             mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
-            caloriesPer100: p.caloriesPer100
+            caloriesPer100: p.caloriesPer100,
+          price: p.price
           };
         });
 
@@ -469,7 +476,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           source: 'photo' as const,
           position: { x: p.positionX, y: p.positionY },
           photoId: p.photoId,
-          caloriesPer100: p.caloriesPer100
+          caloriesPer100: p.caloriesPer100,
+          price: p.price
         }));
 
         localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
