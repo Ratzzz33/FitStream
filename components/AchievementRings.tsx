@@ -7,9 +7,10 @@ interface RingProps {
   color: string;
   total: number;
   label?: string;
+  compact?: boolean; // Hide "/ total" inside ring (use when showing progress below)
 }
 
-export const AchievementRing: React.FC<RingProps> = ({ radius, stroke, progress, color, total, label }) => {
+export const AchievementRing: React.FC<RingProps> = ({ radius, stroke, progress, color, total, label, compact = false }) => {
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   
@@ -60,8 +61,8 @@ export const AchievementRing: React.FC<RingProps> = ({ radius, stroke, progress,
              <span className={`text-xl font-bold transition-colors duration-300 ${isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
                 {progress}
              </span>
-             <span className="text-xs text-gray-400">/ {total}</span>
-             <span className="text-[10px] uppercase tracking-wider text-gray-500 mt-1">{label}</span>
+             {!compact && <span className="text-xs text-gray-400">/ {total}</span>}
+             <span className={`uppercase tracking-wider text-gray-500 ${compact ? 'text-xs' : 'text-[10px] mt-1'}`}>{label}</span>
         </div>
       )}
     </div>
