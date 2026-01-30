@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, Package, Thermometer, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image } from 'lucide-react';
+import { Camera, Plus, Package, Thermometer, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap } from 'lucide-react';
 import { KitchenStorage, InventoryItem, StorageType, StoragePhoto as StoragePhotoType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { StoragePhoto } from './StoragePhoto';
@@ -528,6 +528,34 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     setShowAddModal(true);
   };
 
+  // Quick-add frequent product with one click
+  const handleQuickAdd = (product: {
+    name: string;
+    emoji: string;
+    unit: string;
+    caloriesPer100: number;
+    typicalQuantity: number;
+    storageId: string;
+  }) => {
+    const item: InventoryItem = {
+      id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: product.name,
+      emoji: product.emoji,
+      quantity: product.typicalQuantity,
+      unit: product.unit,
+      storageId: product.storageId as StorageType,
+      addedAt: new Date().toISOString(),
+      source: 'manual',
+      caloriesPer100: product.caloriesPer100 || 0
+    };
+    StorageService.saveInventoryItem(item);
+    StorageService.trackProductUsage(item);
+    setInventory(StorageService.getInventory());
+    setAddMenuOpen(null);
+  };
+
+  const frequentProducts = StorageService.getFrequentProducts(4);
+
   const handleScanReceipt = () => {
     setAddMenuOpen(null);
     setShowReceiptModal(true);
@@ -634,6 +662,30 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                   <div className="text-xs text-gray-500">Если AI пропустил</div>
                 </div>
               </button>
+
+              {/* Quick-add frequent products */}
+              {frequentProducts.length > 0 && (
+                <>
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                  <div className="px-4 py-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Zap className="w-3 h-3" />
+                    <span>Быстрое добавление</span>
+                  </div>
+                  <div className="px-3 pb-2 flex flex-wrap gap-2">
+                    {frequentProducts.map(p => (
+                      <button
+                        key={p.name}
+                        onClick={() => handleQuickAdd(p)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full text-sm transition-colors"
+                        title={`${p.typicalQuantity} ${p.unit}`}
+                      >
+                        <span>{p.emoji}</span>
+                        <span className="dark:text-white">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

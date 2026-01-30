@@ -1116,5 +1116,84 @@ export const StorageService = {
     // Sync saved recipes
     const savedRecipes = StorageService.getSavedRecipes();
     ApiService.pushLog(userId, 'SAVED_RECIPES' as any, { recipes: savedRecipes }, s.backendUrl);
+  },
+
+  // === RECENT/FREQUENT PRODUCTS FOR QUICK ADD ===
+  RECENT_PRODUCTS_KEY: 'fitstream_recent_products',
+
+  getRecentProducts: (): Array<{
+    name: string;
+    emoji: string;
+    unit: string;
+    caloriesPer100: number;
+    typicalQuantity: number;
+    storageId: string;
+    lastUsed: number;
+    useCount: number;
+  }> => {
+    try {
+      const data = localStorage.getItem(StorageService.RECENT_PRODUCTS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  trackProductUsage: (item: InventoryItem): void => {
+    const recent = StorageService.getRecentProducts();
+    const existing = recent.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+
+    if (existing) {
+      existing.lastUsed = Date.now();
+      existing.useCount += 1;
+      existing.typicalQuantity = item.quantity;
+      existing.unit = item.unit;
+      existing.storageId = item.storageId;
+      if (item.emoji) existing.emoji = item.emoji;
+      if (item.caloriesPer100) existing.caloriesPer100 = item.caloriesPer100;
+    } else {
+      recent.push({
+        name: item.name,
+        emoji: item.emoji || '🍽️',
+        unit: item.unit,
+        caloriesPer100: item.caloriesPer100 || 0,
+        typicalQuantity: item.quantity,
+        storageId: item.storageId,
+        lastUsed: Date.now(),
+        useCount: 1
+      });
+    }
+
+    recent.sort((a, b) => b.lastUsed - a.lastUsed);
+    const trimmed = recent.slice(0, 20);
+    localStorage.setItem(StorageService.RECENT_PRODUCTS_KEY, JSON.stringify(trimmed));
+  },
+
+  getFrequentProducts: (limit: number = 5): Array<{
+    name: string;
+    emoji: string;
+    unit: string;
+    caloriesPer100: number;
+    typicalQuantity: number;
+    storageId: string;
+  }> => {
+    const recent = StorageService.getRecentProducts();
+    return recent
+      .sort((a, b) => b.useCount - a.useCount || b.lastUsed - a.lastUsed)
+      .slice(0, limit);
+  },
+
+  searchRecentProducts: (query: string): Array<{
+    name: string;
+    emoji: string;
+    unit: string;
+    caloriesPer100: number;
+    typicalQuantity: number;
+    storageId: string;
+  }> => {
+    if (!query || query.length < 2) return [];
+    const q = query.toLowerCase();
+    const recent = StorageService.getRecentProducts();
+    return recent.filter(p => p.name.toLowerCase().includes(q)).slice(0, 5);
   }
 };
