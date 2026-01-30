@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Plus, Package, Thermometer, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Plus, Package, Thermometer, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image } from 'lucide-react';
 import { KitchenStorage, InventoryItem, StorageType, StoragePhoto as StoragePhotoType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { StoragePhoto } from './StoragePhoto';
@@ -14,6 +14,7 @@ interface KitchenProps {
 }
 
 type AddMenuOption = 'photo' | 'receipt' | 'manual' | null;
+type CameraMode = 'IDLE' | 'CAMERA' | 'CAMERA_REPLACE';
 
 export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const [storages, setStorages] = useState<KitchenStorage[]>([]);
@@ -26,6 +27,12 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showLabelModal, setShowLabelModal] = useState<string | null>(null);
   const [labelInput, setLabelInput] = useState('');
+
+  // Camera state
+  const [cameraMode, setCameraMode] = useState<CameraMode>('IDLE');
+  const [replacePhotoId, setReplacePhotoId] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const settings = StorageService.getSettings();
 
@@ -75,104 +82,119 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     }));
   };
 
-  // Handle taking photo of storage (add to existing photos)
-  const handleTakePhoto = async (isAddingMore = false) => {
+  // Start camera stream
+  const startCamera = async (mode: CameraMode = 'CAMERA') => {
     setAddMenuOpen(null);
+    setCameraMode(mode);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (e) {
+      console.error('Camera access denied:', e);
+      setCameraMode('IDLE');
+      alert('Не удалось получить доступ к камере. Проверьте разрешения.');
+    }
+  };
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
+  // Stop camera stream
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraMode('IDLE');
+    setReplacePhotoId(null);
+  };
 
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+  // Capture photo from video and process
+  const captureAndProcess = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
 
-      setIsScanning(true);
-      setScanProgress('Сохраняем фото...');
+    const context = canvasRef.current.getContext('2d');
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+    context?.drawImage(videoRef.current, 0, 0);
 
-      try {
-        const base64 = await fileToBase64(file);
+    const base64 = canvasRef.current.toDataURL('image/jpeg');
 
-        // Добавляем фото в хранилище
-        const photoId = StorageService.addStoragePhoto(activeStorage, base64);
-        setScanProgress('Распознаём продукты...');
+    // Stop camera stream
+    stopCamera();
 
-        // Сканируем новое фото
-        const newProducts = await scanSinglePhoto(base64, photoId);
+    // Process the captured image
+    if (cameraMode === 'CAMERA_REPLACE' && replacePhotoId) {
+      await processReplacePhoto(base64, replacePhotoId);
+    } else {
+      await processNewPhoto(base64);
+    }
+  };
 
-        // Получаем все фото хранилища
-        const allPhotos = StorageService.getStoragePhotos(activeStorage);
+  // Process new photo (original handleTakePhoto logic)
+  const processNewPhoto = async (base64: string) => {
+    setIsScanning(true);
+    setScanProgress('Сохраняем фото...');
 
-        if (allPhotos.length > 1) {
-          // Мультифото режим — нужна дедупликация
-          setScanProgress('Объединяем продукты с разных фото...');
+    try {
+      // Добавляем фото в хранилище
+      const photoId = StorageService.addStoragePhoto(activeStorage, base64);
+      setScanProgress('Распознаём продукты...');
 
-          // Собираем продукты со всех фото
-          const existingInventory = StorageService.getInventoryByStorage(activeStorage)
-            .filter(i => i.source === 'photo');
+      // Сканируем новое фото
+      const newProducts = await scanSinglePhoto(base64, photoId);
 
-          // Конвертируем существующие items обратно в ProductWithPhotoId для дедупликации
-          const existingProducts: ProductWithPhotoId[] = existingInventory.flatMap(item => {
-            const positions = item.mergedFromPhotoIds?.length
-              ? item.mergedFromPhotoIds.map(pid => ({ photoId: pid, x: 0, y: 0 }))
-              : item.photoId
-                ? [{ photoId: item.photoId, x: item.position?.x || 0, y: item.position?.y || 0 }]
-                : [];
+      // Получаем все фото хранилища
+      const allPhotos = StorageService.getStoragePhotos(activeStorage);
 
-            return positions.map(pos => ({
-              name: item.name,
-              emoji: item.emoji || '',
-              quantity: item.quantity,
-              unit: item.unit,
-              expiresInDays: item.expiresAt
-                ? Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-                : null,
-              caloriesPer100: item.caloriesPer100,
-              positionX: pos.x,
-              positionY: pos.y,
-              photoId: pos.photoId
-            }));
-          });
+      if (allPhotos.length > 1) {
+        // Мультифото режим — нужна дедупликация
+        setScanProgress('Объединяем продукты с разных фото...');
 
-          // Объединяем и дедуплицируем
-          const allProducts = [...existingProducts, ...newProducts];
-          const deduplicated = await deduplicateProducts(allProducts);
+        // Собираем продукты со всех фото
+        const existingInventory = StorageService.getInventoryByStorage(activeStorage)
+          .filter(i => i.source === 'photo');
 
-          // Удаляем старые photo-items для этого хранилища
-          const nonPhotoItems = StorageService.getInventory().filter(
-            i => i.storageId !== activeStorage || i.source !== 'photo'
-          );
+        // Конвертируем существующие items обратно в ProductWithPhotoId для дедупликации
+        const existingProducts: ProductWithPhotoId[] = existingInventory.flatMap(item => {
+          const positions = item.mergedFromPhotoIds?.length
+            ? item.mergedFromPhotoIds.map(pid => ({ photoId: pid, x: 0, y: 0 }))
+            : item.photoId
+              ? [{ photoId: item.photoId, x: item.position?.x || 0, y: item.position?.y || 0 }]
+              : [];
 
-          // Создаём новые items из дедуплицированных
-          const newItems: InventoryItem[] = deduplicated.map(p => {
-            // Находим позицию для первого фото
-            const primaryPosition = p.positions[0];
-            return {
-              id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              name: p.name,
-              emoji: p.emoji,
-              quantity: p.quantity,
-              unit: p.unit,
-              storageId: activeStorage,
-              expiresAt: p.expiresInDays
-                ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-                : undefined,
-              addedAt: new Date().toISOString(),
-              source: 'photo' as const,
-              position: { x: primaryPosition.x, y: primaryPosition.y },
-              photoId: primaryPosition.photoId,
-              mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
-              caloriesPer100: p.caloriesPer100
-            };
-          });
+          return positions.map(pos => ({
+            name: item.name,
+            emoji: item.emoji || '',
+            quantity: item.quantity,
+            unit: item.unit,
+            expiresInDays: item.expiresAt
+              ? Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+              : null,
+            caloriesPer100: item.caloriesPer100,
+            positionX: pos.x,
+            positionY: pos.y,
+            photoId: pos.photoId
+          }));
+        });
 
-          // Сохраняем
-          localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
+        // Объединяем и дедуплицируем
+        const allProducts = [...existingProducts, ...newProducts];
+        const deduplicated = await deduplicateProducts(allProducts);
 
-        } else {
-          // Первое фото — просто добавляем без дедупликации
-          const newItems: InventoryItem[] = newProducts.map((p: ProductWithPhotoId) => ({
+        // Удаляем старые photo-items для этого хранилища
+        const nonPhotoItems = StorageService.getInventory().filter(
+          i => i.storageId !== activeStorage || i.source !== 'photo'
+        );
+
+        // Создаём новые items из дедуплицированных
+        const newItems: InventoryItem[] = deduplicated.map(p => {
+          // Находим позицию для первого фото
+          const primaryPosition = p.positions[0];
+          return {
             id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: p.name,
             emoji: p.emoji,
@@ -184,24 +206,68 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               : undefined,
             addedAt: new Date().toISOString(),
             source: 'photo' as const,
-            position: { x: p.positionX, y: p.positionY },
-            photoId: p.photoId,
+            position: { x: primaryPosition.x, y: primaryPosition.y },
+            photoId: primaryPosition.photoId,
+            mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
             caloriesPer100: p.caloriesPer100
-          }));
+          };
+        });
 
-          StorageService.saveInventoryBulk(newItems);
-        }
+        // Сохраняем
+        localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
 
-        // Update state
-        setStorages(StorageService.getStorages());
-        setInventory(StorageService.getInventory());
-      } catch (error) {
-        console.error('Error scanning storage:', error);
-        alert('Не удалось распознать продукты. Попробуйте ещё раз.');
-      } finally {
-        setIsScanning(false);
-        setScanProgress('');
+      } else {
+        // Первое фото — просто добавляем без дедупликации
+        const newItems: InventoryItem[] = newProducts.map((p: ProductWithPhotoId) => ({
+          id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: p.name,
+          emoji: p.emoji,
+          quantity: p.quantity,
+          unit: p.unit,
+          storageId: activeStorage,
+          expiresAt: p.expiresInDays
+            ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+            : undefined,
+          addedAt: new Date().toISOString(),
+          source: 'photo' as const,
+          position: { x: p.positionX, y: p.positionY },
+          photoId: p.photoId,
+          caloriesPer100: p.caloriesPer100
+        }));
+
+        StorageService.saveInventoryBulk(newItems);
       }
+
+      // Update state
+      setStorages(StorageService.getStorages());
+      setInventory(StorageService.getInventory());
+    } catch (error) {
+      console.error('Error scanning storage:', error);
+      alert('Не удалось распознать продукты. Попробуйте ещё раз.');
+    } finally {
+      setIsScanning(false);
+      setScanProgress('');
+    }
+  };
+
+  // Handle taking photo - now opens camera UI
+  const handleTakePhoto = async (isAddingMore = false) => {
+    startCamera('CAMERA');
+  };
+
+  // Handle picking from gallery (fallback option)
+  const handlePickFromGallery = () => {
+    setAddMenuOpen(null);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const base64 = await fileToBase64(file);
+      await processNewPhoto(base64);
     };
 
     input.click();
@@ -303,104 +369,67 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     }
   };
 
-  // Заменить фото (тот же ракурс — убирает X-маркеры и пересканирует)
-  const handleReplacePhoto = async (oldPhotoId: string) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
+  // Process replace photo (original handleReplacePhoto logic)
+  const processReplacePhoto = async (base64: string, oldPhotoId: string) => {
+    setIsScanning(true);
+    setScanProgress('Заменяем фото...');
 
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+    try {
+      // Удаляем depleted items для этого фото
+      StorageService.clearDepletedForPhoto(oldPhotoId);
 
-      setIsScanning(true);
-      setScanProgress('Заменяем фото...');
+      // Заменяем фото
+      const newPhotoId = StorageService.replaceStoragePhoto(activeStorage, oldPhotoId, base64);
 
-      try {
-        const base64 = await fileToBase64(file);
+      setScanProgress('Распознаём продукты...');
 
-        // Удаляем depleted items для этого фото
-        StorageService.clearDepletedForPhoto(oldPhotoId);
+      // Сканируем новое фото
+      const newProducts = await scanSinglePhoto(base64, newPhotoId);
 
-        // Заменяем фото
-        const newPhotoId = StorageService.replaceStoragePhoto(activeStorage, oldPhotoId, base64);
+      // Получаем все фото хранилища
+      const allPhotos = StorageService.getStoragePhotos(activeStorage);
 
-        setScanProgress('Распознаём продукты...');
+      if (allPhotos.length > 1) {
+        // Мультифото режим — дедупликация
+        setScanProgress('Объединяем продукты...');
 
-        // Сканируем новое фото
-        const newProducts = await scanSinglePhoto(base64, newPhotoId);
+        const existingInventory = StorageService.getInventoryByStorage(activeStorage)
+          .filter(i => i.source === 'photo' && !i.depleted);
 
-        // Получаем все фото хранилища
-        const allPhotos = StorageService.getStoragePhotos(activeStorage);
+        const existingProducts: ProductWithPhotoId[] = existingInventory
+          .filter(item => item.photoId !== newPhotoId) // Исключаем старые items с этого фото
+          .flatMap(item => {
+            const positions = item.mergedFromPhotoIds?.length
+              ? item.mergedFromPhotoIds.map(pid => ({ photoId: pid, x: 0, y: 0 }))
+              : item.photoId
+                ? [{ photoId: item.photoId, x: item.position?.x || 0, y: item.position?.y || 0 }]
+                : [];
 
-        if (allPhotos.length > 1) {
-          // Мультифото режим — дедупликация
-          setScanProgress('Объединяем продукты...');
-
-          const existingInventory = StorageService.getInventoryByStorage(activeStorage)
-            .filter(i => i.source === 'photo' && !i.depleted);
-
-          const existingProducts: ProductWithPhotoId[] = existingInventory
-            .filter(item => item.photoId !== newPhotoId) // Исключаем старые items с этого фото
-            .flatMap(item => {
-              const positions = item.mergedFromPhotoIds?.length
-                ? item.mergedFromPhotoIds.map(pid => ({ photoId: pid, x: 0, y: 0 }))
-                : item.photoId
-                  ? [{ photoId: item.photoId, x: item.position?.x || 0, y: item.position?.y || 0 }]
-                  : [];
-
-              return positions.map(pos => ({
-                name: item.name,
-                emoji: item.emoji || '',
-                quantity: item.quantity,
-                unit: item.unit,
-                expiresInDays: item.expiresAt
-                  ? Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-                  : null,
-                caloriesPer100: item.caloriesPer100,
-                positionX: pos.x,
-                positionY: pos.y,
-                photoId: pos.photoId
-              }));
-            });
-
-          const allProducts = [...existingProducts, ...newProducts];
-          const deduplicated = await deduplicateProducts(allProducts);
-
-          const nonPhotoItems = StorageService.getInventory().filter(
-            i => i.storageId !== activeStorage || i.source !== 'photo'
-          );
-
-          const newItems: InventoryItem[] = deduplicated.map(p => {
-            const primaryPosition = p.positions[0];
-            return {
-              id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              name: p.name,
-              emoji: p.emoji,
-              quantity: p.quantity,
-              unit: p.unit,
-              storageId: activeStorage,
-              expiresAt: p.expiresInDays
-                ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-                : undefined,
-              addedAt: new Date().toISOString(),
-              source: 'photo' as const,
-              position: { x: primaryPosition.x, y: primaryPosition.y },
-              photoId: primaryPosition.photoId,
-              mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
-              caloriesPer100: p.caloriesPer100
-            };
+            return positions.map(pos => ({
+              name: item.name,
+              emoji: item.emoji || '',
+              quantity: item.quantity,
+              unit: item.unit,
+              expiresInDays: item.expiresAt
+                ? Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                : null,
+              caloriesPer100: item.caloriesPer100,
+              positionX: pos.x,
+              positionY: pos.y,
+              photoId: pos.photoId
+            }));
           });
 
-          localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
-        } else {
-          // Одно фото — просто заменяем items
-          const nonPhotoItems = StorageService.getInventory().filter(
-            i => i.storageId !== activeStorage || i.source !== 'photo'
-          );
+        const allProducts = [...existingProducts, ...newProducts];
+        const deduplicated = await deduplicateProducts(allProducts);
 
-          const newItems: InventoryItem[] = newProducts.map(p => ({
+        const nonPhotoItems = StorageService.getInventory().filter(
+          i => i.storageId !== activeStorage || i.source !== 'photo'
+        );
+
+        const newItems: InventoryItem[] = deduplicated.map(p => {
+          const primaryPosition = p.positions[0];
+          return {
             id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: p.name,
             emoji: p.emoji,
@@ -412,26 +441,55 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               : undefined,
             addedAt: new Date().toISOString(),
             source: 'photo' as const,
-            position: { x: p.positionX, y: p.positionY },
-            photoId: p.photoId,
+            position: { x: primaryPosition.x, y: primaryPosition.y },
+            photoId: primaryPosition.photoId,
+            mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
             caloriesPer100: p.caloriesPer100
-          }));
+          };
+        });
 
-          localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
-        }
+        localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
+      } else {
+        // Одно фото — просто заменяем items
+        const nonPhotoItems = StorageService.getInventory().filter(
+          i => i.storageId !== activeStorage || i.source !== 'photo'
+        );
 
-        setStorages(StorageService.getStorages());
-        setInventory(StorageService.getInventory());
-      } catch (error) {
-        console.error('Error replacing photo:', error);
-        alert('Ошибка при замене фото.');
-      } finally {
-        setIsScanning(false);
-        setScanProgress('');
+        const newItems: InventoryItem[] = newProducts.map(p => ({
+          id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: p.name,
+          emoji: p.emoji,
+          quantity: p.quantity,
+          unit: p.unit,
+          storageId: activeStorage,
+          expiresAt: p.expiresInDays
+            ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+            : undefined,
+          addedAt: new Date().toISOString(),
+          source: 'photo' as const,
+          position: { x: p.positionX, y: p.positionY },
+          photoId: p.photoId,
+          caloriesPer100: p.caloriesPer100
+        }));
+
+        localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
       }
-    };
 
-    input.click();
+      setStorages(StorageService.getStorages());
+      setInventory(StorageService.getInventory());
+    } catch (error) {
+      console.error('Error replacing photo:', error);
+      alert('Ошибка при замене фото.');
+    } finally {
+      setIsScanning(false);
+      setScanProgress('');
+    }
+  };
+
+  // Заменить фото - открывает камеру
+  const handleReplacePhoto = async (oldPhotoId: string) => {
+    setReplacePhotoId(oldPhotoId);
+    startCamera('CAMERA_REPLACE');
   };
 
   const handleLabelPhoto = (photoId: string) => {
@@ -516,7 +574,17 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                 <Camera className="w-5 h-5 text-blue-500" />
                 <div>
                   <div className="font-medium dark:text-white">Сфотографировать</div>
-                  <div className="text-xs text-gray-500">Холодильник или шкаф</div>
+                  <div className="text-xs text-gray-500">Открыть камеру</div>
+                </div>
+              </button>
+              <button
+                onClick={handlePickFromGallery}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+              >
+                <Image className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <div className="font-medium dark:text-white">Выбрать из галереи</div>
+                  <div className="text-xs text-gray-500">Загрузить готовое фото</div>
                 </div>
               </button>
               {currentPhotos.length > 0 && (
@@ -673,6 +741,71 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           </>
         )}
       </div>
+
+      {/* Camera UI */}
+      {cameraMode !== 'IDLE' && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          {/* Camera header */}
+          <div className="flex items-center justify-between p-4 bg-black/80">
+            <button
+              onClick={stopCamera}
+              className="p-2 text-white hover:bg-white/20 rounded-full"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <span className="text-white font-medium">
+              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : 'Сфотографируйте ' + storageLabels[activeStorage].toLowerCase()}
+            </span>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
+
+          {/* Video preview */}
+          <div className="flex-1 relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+            {/* Overlay grid */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="w-full h-full grid grid-cols-3 grid-rows-3">
+                {[...Array(9)].map((_, i) => (
+                  <div key={i} className="border border-white/20" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Camera controls */}
+          <div className="p-6 bg-black/80 flex items-center justify-center gap-6">
+            {/* Gallery button */}
+            <button
+              onClick={() => {
+                stopCamera();
+                handlePickFromGallery();
+              }}
+              className="p-3 text-white hover:bg-white/20 rounded-full"
+            >
+              <Image className="w-6 h-6" />
+            </button>
+
+            {/* Capture button */}
+            <button
+              onClick={captureAndProcess}
+              className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <div className="w-12 h-12 rounded-full bg-white" />
+            </button>
+
+            <div className="w-12" /> {/* Spacer */}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden canvas for capture */}
+      <canvas ref={canvasRef} className="hidden" />
 
       {/* Modals */}
       {showAddModal && (
