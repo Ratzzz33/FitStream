@@ -271,5 +271,4 @@ export const CookingStep: React.FC<CookingStepProps> = ({
   );
 };
 
-export { CookingStep };
 export default CookingStep;
