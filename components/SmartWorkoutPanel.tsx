@@ -198,9 +198,9 @@ export const WorkoutFeedback: React.FC<WorkoutFeedbackProps> = ({
   };
 
   const options = [
-    { value: 'easy' as const, icon: <Smile className="w-8 h-8" />, label: t('easy'), desc: t('canDoMore'), color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50' },
-    { value: 'normal' as const, icon: <Meh className="w-8 h-8" />, label: t('normal'), desc: t('justRight'), color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50' },
-    { value: 'hard' as const, icon: <Frown className="w-8 h-8" />, label: t('hard'), desc: t('barelyMadeIt'), color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50' }
+    { value: 'easy' as const, icon: <Smile className="w-8 h-8" />, label: t('feedbackEasy'), desc: t('canDoMore'), color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50' },
+    { value: 'normal' as const, icon: <Meh className="w-8 h-8" />, label: t('feedbackNormal'), desc: t('justRight'), color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50' },
+    { value: 'hard' as const, icon: <Frown className="w-8 h-8" />, label: t('feedbackHard'), desc: t('barelyMadeIt'), color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50' }
   ];
 
   return (
