@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe } from 'lucide-react';
-import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal } from './types';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk } from 'lucide-react';
+import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal, NutritionLog } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
 import { getMotivation, getPhoneSpecs, scanScaleDisplay } from './services/geminiService';
@@ -63,6 +63,9 @@ const App = () => {
   // Food Photo from Dashboard
   const [openFoodCameraOnMount, setOpenFoodCameraOnMount] = useState(false);
 
+  // Water tracking
+  const [todayWater, setTodayWater] = useState(0);
+
   // Telegram Mini App Detection
   const [isTelegramApp, setIsTelegramApp] = useState(false);
   
@@ -105,6 +108,15 @@ const App = () => {
       };
       loadIcons();
   }, [settings.backendUrl]);
+
+  // Load today's water on mount
+  useEffect(() => {
+      const today = new Date().toISOString().split('T')[0];
+      const nutrition = StorageService.getNutritionLogs();
+      const todayWaterLogs = nutrition.filter((n: NutritionLog) => n.date === today && n.type === 'WATER');
+      const totalWater = todayWaterLogs.reduce((sum: number, n: NutritionLog) => sum + (n.amount || 0), 0);
+      setTodayWater(totalWater);
+  }, []);
 
   // Initialize Telegram Mini App
   useEffect(() => {
@@ -534,6 +546,23 @@ const App = () => {
       setShowProModal(false);
   };
 
+  const addWater = (amount: number) => {
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'light');
+      }
+      const log: NutritionLog = {
+          id: Date.now().toString(),
+          date: new Date().toISOString().split('T')[0],
+          timestamp: Date.now(),
+          type: 'WATER',
+          name: `+${amount}ml`,
+          calories: 0,
+          amount: amount
+      };
+      StorageService.saveNutrition(log);
+      setTodayWater(prev => prev + amount);
+  };
+
   const getIconForType = (type: GoalType, size: number = 16) => {
       // Check for Custom Icon first
       if (customIcons[type]) {
@@ -802,7 +831,54 @@ const App = () => {
                     <span className="font-bold">{t('photoFood')}</span>
                 </button>
             </div>
-            
+
+            {/* Quick Water Buttons */}
+            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-1.5 px-2">
+                    <Droplets size={16} className="text-blue-500" />
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{todayWater}/2000</span>
+                </div>
+                <div className="flex-1 flex gap-1.5">
+                    <button onClick={() => addWater(150)} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-1.5 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                        <GlassWater size={12} />+150
+                    </button>
+                    <button onClick={() => addWater(250)} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-1.5 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                        <Coffee size={12} />+250
+                    </button>
+                    <button onClick={() => addWater(500)} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-1.5 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                        <Milk size={12} />+500
+                    </button>
+                </div>
+            </div>
+
+            {/* Kitchen & Cooking Quick Access */}
+            <div className="grid grid-cols-2 gap-3">
+                <button
+                    onClick={() => setActiveTab(AppTab.NUTRITION)}
+                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition active:scale-[0.98]"
+                >
+                    <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                        <span className="text-xl">🧊</span>
+                    </div>
+                    <div className="text-left">
+                        <span className="font-bold text-gray-900 dark:text-white text-sm">{t('kitchen') || 'Кухня'}</span>
+                        <p className="text-[10px] text-gray-500">{t('inventory') || 'Продукты'}</p>
+                    </div>
+                </button>
+                <button
+                    onClick={() => setActiveTab(AppTab.NUTRITION)}
+                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition active:scale-[0.98]"
+                >
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                        <span className="text-xl">🍳</span>
+                    </div>
+                    <div className="text-left">
+                        <span className="font-bold text-gray-900 dark:text-white text-sm">{t('cooking') || 'Готовка'}</span>
+                        <p className="text-[10px] text-gray-500">{t('recipes') || 'Рецепты'}</p>
+                    </div>
+                </button>
+            </div>
+
             {!settings.isPro && (
                 <div 
                     onClick={() => setShowProModal(true)}
