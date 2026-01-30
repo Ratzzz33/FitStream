@@ -19,7 +19,8 @@ const KEYS = {
   INVENTORY: 'fitstream_inventory',
   COOKING_HISTORY: 'fitstream_cooking_history',
   LEFTOVERS: 'fitstream_leftovers',
-  RECENT_RECIPES: 'fitstream_recent_recipes'
+  RECENT_RECIPES: 'fitstream_recent_recipes',
+  SAVED_RECIPES: 'fitstream_saved_recipes'
 };
 
 // Default kitchen storages
@@ -964,5 +965,26 @@ export const StorageService = {
       };
       StorageService.saveNutrition(nutritionLog);
     }
+  },
+
+  // --- Saved Recipes (Favorites) ---
+  getSavedRecipes: (): Recipe[] => {
+    const data = localStorage.getItem(KEYS.SAVED_RECIPES);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveSavedRecipes: (recipes: Recipe[]) => {
+    localStorage.setItem(KEYS.SAVED_RECIPES, JSON.stringify(recipes));
+  },
+
+  addSavedRecipe: (recipe: Recipe) => {
+    const recipes = StorageService.getSavedRecipes();
+    recipes.push(recipe);
+    StorageService.saveSavedRecipes(recipes);
+  },
+
+  removeSavedRecipe: (recipeId: string) => {
+    const recipes = StorageService.getSavedRecipes().filter(r => r.id !== recipeId);
+    StorageService.saveSavedRecipes(recipes);
   }
 };

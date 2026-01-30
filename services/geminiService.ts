@@ -61,9 +61,9 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
   }
 };
 
-// 2. Nutrition Analysis
+// 2. Nutrition Analysis (basic)
 export const analyzeFood = async (
-    base64Image: string, 
+    base64Image: string,
     referenceObject: string,
     referenceDimensions?: string
 ): Promise<{ name: string, calories: number, protein: number, carbs: number, fat: number }> => {
@@ -72,7 +72,7 @@ export const analyzeFood = async (
     const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
 
-    const refContext = referenceDimensions 
+    const refContext = referenceDimensions
         ? `User is using a "${referenceObject}" (${referenceDimensions}) for scale.`
         : `A "${referenceObject}" is used for scale.`;
 
@@ -102,11 +102,125 @@ export const analyzeFood = async (
                 }
             }
         });
-        
+
         if (response.text) return JSON.parse(response.text);
         throw new Error("Empty AI response");
     } catch (error) {
         console.error("Error analyzing food:", error);
+        throw error;
+    }
+};
+
+// 2.2 Supported currencies for cost estimation
+export const SUPPORTED_COST_CURRENCIES = ['RUB', 'USD', 'EUR', 'GBP', 'KZT', 'UAH', 'GEL'] as const;
+export type SupportedCostCurrency = typeof SUPPORTED_COST_CURRENCIES[number];
+
+export const isCostSupported = (currency?: string): currency is SupportedCostCurrency => {
+    return !!currency && SUPPORTED_COST_CURRENCIES.includes(currency as SupportedCostCurrency);
+};
+
+// 2.3 Nutrition Analysis with Cost Breakdown
+export interface FoodIngredient {
+    name: string;
+    emoji: string;
+    quantity: number;
+    unit: string;
+    pricePerUnit: number;
+    totalPrice: number;
+}
+
+export interface FoodAnalysisWithCost {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    ingredients: FoodIngredient[];
+    totalCost: number;
+    cookingTimeMinutes: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+    briefRecipe: string;
+}
+
+export const analyzeFoodWithCost = async (
+    base64Image: string,
+    referenceObject: string,
+    referenceDimensions?: string,
+    currency: string = 'RUB'
+): Promise<FoodAnalysisWithCost> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    const refContext = referenceDimensions
+        ? `Для масштаба: "${referenceObject}" (${referenceDimensions}).`
+        : `Для масштаба: "${referenceObject}".`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        {
+                            text: `Проанализируй блюдо на фото. ${refContext}
+
+ЗАДАЧА:
+1. Определи название блюда
+2. Оцени КБЖУ
+3. Разбей на ингредиенты с количествами
+4. Укажи среднюю цену каждого ингредиента в ${currency}
+5. Посчитай общую себестоимость
+6. Оцени время готовки в минутах
+7. Сложность: easy/medium/hard
+8. Кратко (1-2 предложения) как приготовить
+
+Язык: ${lang}`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        calories: { type: Type.NUMBER },
+                        protein: { type: Type.NUMBER },
+                        carbs: { type: Type.NUMBER },
+                        fat: { type: Type.NUMBER },
+                        ingredients: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    emoji: { type: Type.STRING },
+                                    quantity: { type: Type.NUMBER },
+                                    unit: { type: Type.STRING },
+                                    pricePerUnit: { type: Type.NUMBER },
+                                    totalPrice: { type: Type.NUMBER }
+                                },
+                                required: ["name", "emoji", "quantity", "unit", "pricePerUnit", "totalPrice"]
+                            }
+                        },
+                        totalCost: { type: Type.NUMBER },
+                        cookingTimeMinutes: { type: Type.NUMBER },
+                        difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] },
+                        briefRecipe: { type: Type.STRING }
+                    },
+                    required: ["name", "calories", "protein", "carbs", "fat", "ingredients", "totalCost", "cookingTimeMinutes", "difficulty", "briefRecipe"]
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
+    } catch (error) {
+        console.error("Error analyzing food with cost:", error);
         throw error;
     }
 };
