@@ -4,6 +4,7 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
+import { georgiaPrices } from './georgiaPricesService';
 import {
     InventoryItem, Recipe, CookingStep, CookingReminder, StorageType,
     ShoppingPreferences, PlannedMeal, ShoppingListItem, ProductVerification, ShoppingCategory
@@ -327,6 +328,7 @@ export interface ScannedProduct {
     caloriesPer100: number;
     positionX: number; // 0-100%
     positionY: number; // 0-100%
+    price?: number; // Estimated price from Georgia prices DB
 }
 
 export const scanStoragePhoto = async (
@@ -389,7 +391,14 @@ export const scanStoragePhoto = async (
             }
         });
 
-        if (response.text) return JSON.parse(response.text);
+        if (response.text) {
+            const products: ScannedProduct[] = JSON.parse(response.text);
+            // Enrich with prices from Georgia prices database
+            return products.map(p => ({
+                ...p,
+                price: georgiaPrices.getPrice(p.name, p.quantity, p.unit) || undefined
+            }));
+        }
         return [];
     } catch (error) {
         console.error("Error scanning storage:", error);
@@ -781,6 +790,7 @@ export interface DeduplicatedProduct {
     unit: string;
     expiresInDays: number | null;
     caloriesPer100: number;
+    price?: number; // Estimated price from Georgia prices DB
     // Позиция на каждом фото где виден продукт
     positions: { photoId: string; x: number; y: number }[];
     // ID фото где виден продукт
@@ -868,7 +878,14 @@ ${productsJson}
             }
         });
 
-        if (response.text) return JSON.parse(response.text);
+        if (response.text) {
+            const dedupedProducts: DeduplicatedProduct[] = JSON.parse(response.text);
+            // Enrich with prices from Georgia prices database
+            return dedupedProducts.map(p => ({
+                ...p,
+                price: georgiaPrices.getPrice(p.name, p.quantity, p.unit) || undefined
+            }));
+        }
         return [];
     } catch (error) {
         console.error("Error deduplicating products:", error);
@@ -880,6 +897,7 @@ ${productsJson}
             unit: p.unit,
             expiresInDays: p.expiresInDays,
             caloriesPer100: p.caloriesPer100,
+            price: p.price, // Keep price from scanned product
             positions: [{ photoId: p.photoId, x: p.positionX, y: p.positionY }],
             photoIds: [p.photoId]
         }));
