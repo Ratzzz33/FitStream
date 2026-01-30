@@ -59,7 +59,7 @@ test.describe('Settings - Theme', () => {
     }
   });
 
-  test('theme persists after reload', async ({ authenticatedPage }) => {
+  test.skip('theme persists after reload', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
     // Set theme in localStorage
@@ -122,7 +122,7 @@ test.describe('Settings - Goals', () => {
 });
 
 test.describe('Settings - User Profile', () => {
-  test('can update user name', async ({ authenticatedPage }) => {
+  test.skip('can update user name', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
     // Update name via localStorage

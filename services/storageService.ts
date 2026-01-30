@@ -826,6 +826,9 @@ export const StorageService = {
       inventory.push(item);
     }
     localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'INVENTORY' as any, { inventory }, s.backendUrl);
   },
 
   saveInventoryBulk: (items: InventoryItem[]): void => {
@@ -999,5 +1002,31 @@ export const StorageService = {
   removeSavedRecipe: (recipeId: string) => {
     const recipes = StorageService.getSavedRecipes().filter(r => r.id !== recipeId);
     StorageService.saveSavedRecipes(recipes);
+  },
+
+  // === SYNC ALL KITCHEN DATA TO BACKEND ===
+  syncKitchenData: () => {
+    const s = StorageService.getSettings();
+    const userId = StorageService.getUserId();
+
+    // Sync inventory
+    const inventory = StorageService.getInventory();
+    ApiService.pushLog(userId, 'INVENTORY' as any, { items: inventory }, s.backendUrl);
+
+    // Sync kitchen storages (with photos)
+    const storages = StorageService.getStorages();
+    ApiService.pushLog(userId, 'KITCHEN_STORAGES' as any, { storages }, s.backendUrl);
+
+    // Sync cooking history
+    const cookingHistory = StorageService.getCookingHistory();
+    ApiService.pushLog(userId, 'COOKING_HISTORY' as any, { history: cookingHistory }, s.backendUrl);
+
+    // Sync leftovers
+    const leftovers = StorageService.getLeftovers();
+    ApiService.pushLog(userId, 'LEFTOVERS' as any, { items: leftovers }, s.backendUrl);
+
+    // Sync saved recipes
+    const savedRecipes = StorageService.getSavedRecipes();
+    ApiService.pushLog(userId, 'SAVED_RECIPES' as any, { recipes: savedRecipes }, s.backendUrl);
   }
 };

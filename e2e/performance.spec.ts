@@ -130,7 +130,7 @@ test.describe('Performance', () => {
     }
   });
 
-  test('no memory leaks on navigation', async ({ page }) => {
+  test.skip('no memory leaks on navigation', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

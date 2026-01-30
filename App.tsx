@@ -854,27 +854,43 @@ const App = () => {
             {/* Kitchen & Cooking Quick Access */}
             <div className="grid grid-cols-2 gap-3">
                 <button
-                    onClick={() => setActiveTab(AppTab.NUTRITION)}
-                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition active:scale-[0.98]"
+                    onClick={handleKitchenClick}
+                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                 >
-                    <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                        <span className="text-xl">🧊</span>
+                    <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
+                        <img
+                            src="/icons/kitchen-liquid.png"
+                            alt="Kitchen"
+                            className="w-14 h-14 object-contain"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-4xl">🧊</span>';
+                            }}
+                        />
                     </div>
-                    <div className="text-left">
-                        <span className="font-bold text-gray-900 dark:text-white text-sm">{t('kitchen') || 'Кухня'}</span>
-                        <p className="text-[10px] text-gray-500">{t('inventory') || 'Продукты'}</p>
+                    <div className="text-center">
+                        <span className="font-bold text-gray-900 dark:text-white">{t('kitchen')}</span>
+                        <p className="text-xs text-gray-500">{t('inventory')}</p>
                     </div>
                 </button>
                 <button
-                    onClick={() => setActiveTab(AppTab.NUTRITION)}
-                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex items-center gap-3 shadow-sm hover:shadow-md transition active:scale-[0.98]"
+                    onClick={handleCookingClick}
+                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                 >
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                        <span className="text-xl">🍳</span>
+                    <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
+                        <img
+                            src="/icons/cooking-liquid.png"
+                            alt="Cooking"
+                            className="w-14 h-14 object-contain"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-4xl">🍳</span>';
+                            }}
+                        />
                     </div>
-                    <div className="text-left">
-                        <span className="font-bold text-gray-900 dark:text-white text-sm">{t('cooking') || 'Готовка'}</span>
-                        <p className="text-[10px] text-gray-500">{t('recipes') || 'Рецепты'}</p>
+                    <div className="text-center">
+                        <span className="font-bold text-gray-900 dark:text-white">{t('whatToCook')}</span>
+                        <p className="text-xs text-gray-500">{t('recipesAndTips')}</p>
                     </div>
                 </button>
             </div>
@@ -1348,23 +1364,24 @@ const App = () => {
           <LayoutDashboard size={20} />
           <span className="text-[10px] font-medium">{t('dashboard')}</span>
         </button>
-        <button onClick={() => setActiveTab(AppTab.NUTRITION)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
-          <Utensils size={20} />
-          <span className="text-[10px] font-medium">{t('nutrition')}</span>
-        </button>
-
         {/* Shopping Button */}
         <button onClick={() => setActiveTab(AppTab.SHOPPING)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
           <ShoppingCart size={20} />
           <span className="text-[10px] font-medium">{t('shopping')}</span>
         </button>
 
-        {/* Main Workout Button */}
-        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
-            <div className="bg-blue-600 text-white p-3 rounded-full -mt-8 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 hover:bg-blue-500 transition border-4 border-white dark:border-slate-950">
-                <Dumbbell size={24} />
+        {/* Main Nutrition Button - выделенная */}
+        <button onClick={() => setActiveTab(AppTab.NUTRITION)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
+            <div className="bg-orange-500 text-white p-3 rounded-full -mt-8 shadow-lg shadow-orange-500/30 dark:shadow-orange-900/50 hover:bg-orange-400 transition border-4 border-white dark:border-slate-950">
+                <Utensils size={24} />
             </div>
-            <span className="text-[10px] font-medium">{t('workout')}</span>
+            <span className="text-[10px] font-medium">{t('nutrition')}</span>
+        </button>
+
+        {/* Workout Button */}
+        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+          <Dumbbell size={20} />
+          <span className="text-[10px] font-medium">{t('workout')}</span>
         </button>
 
         <button onClick={() => setActiveTab(AppTab.SETTINGS)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>

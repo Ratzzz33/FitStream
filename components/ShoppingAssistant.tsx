@@ -83,14 +83,25 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Planning state
-    const [preferences, setPreferences] = useState<ShoppingPreferences>({
-        daysCount: 3,
-        peopleCount: 2,
-        cookingDifficulty: 'easy',
-        maxCookingTime: 'quick',
-        budget: undefined
+    // Planning state - load from settings
+    const [preferences, setPreferences] = useState<ShoppingPreferences>(() => {
+        const settings = StorageService.getSettings();
+        return settings.shoppingPreferences || {
+            daysCount: 3,
+            peopleCount: 2,
+            cookingDifficulty: 'easy',
+            maxCookingTime: 'quick',
+            budget: undefined
+        };
     });
+
+    // Save preferences to settings when changed
+    useEffect(() => {
+        const settings = StorageService.getSettings();
+        if (JSON.stringify(settings.shoppingPreferences) !== JSON.stringify(preferences)) {
+            StorageService.saveSettings({ ...settings, shoppingPreferences: preferences });
+        }
+    }, [preferences]);
 
     // Verification state
     const [currentItem, setCurrentItem] = useState<ShoppingListItem | null>(null);

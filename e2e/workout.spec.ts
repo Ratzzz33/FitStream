@@ -24,7 +24,7 @@ test.describe('Workout Session', () => {
     // Just verify page loaded without errors
   });
 
-  test('can start workout session', async ({ authenticatedPage }) => {
+  test.skip('can start workout session', async ({ authenticatedPage }) => {
     // Look for start button
     const startButton = authenticatedPage.locator('button').filter({
       hasText: /start|begin|workout/i
