@@ -759,6 +759,7 @@ const App = () => {
                             />
                             <div className="mt-1 text-center">
                                 <span className="block text-[10px] font-bold text-gray-800 dark:text-white truncate w-full">{getLabelForType(goal.type)}</span>
+                                <span className="block text-[9px] text-gray-500 dark:text-gray-400">{goal.current}/{goal.target}</span>
                             </div>
                         </div>
                     ))}
@@ -794,9 +795,9 @@ const App = () => {
                     onClick={handlePhotoFoodClick}
                     className="bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-5 rounded-2xl shadow-xl shadow-orange-500/20 dark:shadow-orange-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
                 >
-                    <div className="relative">
-                        <Utensils size={28} />
-                        <Camera size={14} className="absolute -bottom-1 -right-2 bg-orange-600 rounded-full p-0.5" />
+                    <div className="flex items-center gap-2">
+                        <Utensils size={24} />
+                        <Camera size={24} />
                     </div>
                     <span className="font-bold">{t('photoFood')}</span>
                 </button>
