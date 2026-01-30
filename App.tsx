@@ -13,6 +13,7 @@ import { StatsCharts } from './components/Charts';
 import { GoalSettings } from './components/GoalSettings';
 import { AvatarSelector } from './components/AvatarSelector';
 import { HealthConnect } from './components/HealthConnect';
+import { DeviceSettings } from './components/DeviceSettings';
 import { ProUpgradeModal } from './components/ProUpgradeModal';
 import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
@@ -1120,8 +1121,8 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Health Connect */}
-                <HealthConnect settings={settings} onUpdate={refreshData} />
+                {/* Device Connections (Scales, Health Connect, Watches) */}
+                <DeviceSettings settings={settings} onUpdate={refreshData} />
             </div>
         )}
       </main>
