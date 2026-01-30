@@ -354,19 +354,34 @@ function populateLangDropdown() {
                 <span class="gradient-text" data-t="download.title2">Your Fitness?</span>
             </h2>
             <p class="text-xl text-slate-400 mb-10" data-t="download.desc">Download FitStream now and start your AI-powered fitness journey</p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="#" class="w-full sm:w-auto bg-white text-black px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
-                    <span class="text-3xl"></span>
-                    <div class="text-left"><p class="text-xs" data-t="download.on">Download on the</p><p class="text-lg font-semibold" data-t="download.appStore">App Store</p></div>
+            <!-- Primary Downloads -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                <a href="FitStream.apk" download class="w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:from-green-500 hover:to-emerald-500 transition shadow-lg shadow-green-900/30">
+                    <span class="text-3xl">📦</span>
+                    <div class="text-left"><p class="text-xs" data-t="download.directDownload">Direct Download</p><p class="text-lg font-semibold">Android APK</p></div>
                 </a>
-                <a href="#" class="w-full sm:w-auto bg-white text-black px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
-                    <span class="text-3xl">▶️</span>
-                    <div class="text-left"><p class="text-xs" data-t="download.get">Get it on</p><p class="text-lg font-semibold" data-t="download.googlePlay">Google Play</p></div>
+                <a href="https://t.me/FitStreamBot" target="_blank" class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:from-blue-400 hover:to-blue-500 transition shadow-lg shadow-blue-900/30">
+                    <span class="text-3xl">✈️</span>
+                    <div class="text-left"><p class="text-xs" data-t="download.openIn">Open in</p><p class="text-lg font-semibold">Telegram</p></div>
                 </a>
                 <a href="#" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-emerald-600 px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:from-blue-500 hover:to-emerald-500 transition">
                     <span class="text-3xl">🌐</span>
                     <div class="text-left"><p class="text-xs" data-t="download.use">Use in</p><p class="text-lg font-semibold" data-t="download.web">Web Browser</p></div>
                 </a>
+            </div>
+            <p class="text-sm text-slate-500 mb-8" data-t="download.tgNote">* Telegram mini-app has workout session limits for free users</p>
+
+            <!-- Coming Soon -->
+            <p class="text-xs text-slate-600 uppercase tracking-wider mb-3" data-t="download.comingSoon">Coming Soon</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-50">
+                <div class="w-full sm:w-auto bg-slate-800 text-slate-400 px-6 py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
+                    <span class="text-3xl"></span>
+                    <div class="text-left"><p class="text-xs" data-t="download.on">Download on the</p><p class="text-lg font-semibold" data-t="download.appStore">App Store</p></div>
+                </div>
+                <div class="w-full sm:w-auto bg-slate-800 text-slate-400 px-6 py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
+                    <span class="text-3xl">▶️</span>
+                    <div class="text-left"><p class="text-xs" data-t="download.get">Get it on</p><p class="text-lg font-semibold" data-t="download.googlePlay">Google Play</p></div>
+                </div>
             </div>
         </div>
     </section>

@@ -48,7 +48,10 @@ const i18n = {
             title1: "Ready to Transform", title2: "Your Fitness?",
             desc: "Download FitStream now and start your AI-powered fitness journey",
             appStore: "App Store", googlePlay: "Google Play", web: "Web Browser",
-            on: "Download on the", get: "Get it on", use: "Use in"
+            on: "Download on the", get: "Get it on", use: "Use in",
+            directDownload: "Direct Download", openIn: "Open in",
+            tgNote: "* Telegram mini-app has workout session limits for free users",
+            comingSoon: "Coming Soon"
         },
         footer: { privacy: "Privacy Policy", terms: "Terms of Service", contact: "Contact", rights: "All rights reserved." },
         phone: {
@@ -124,7 +127,10 @@ const i18n = {
             title1: "Готовы изменить", title2: "свой фитнес?",
             desc: "Скачайте FitStream и начните путь с ИИ-помощником",
             appStore: "App Store", googlePlay: "Google Play", web: "браузере",
-            on: "Скачать в", get: "Доступно в", use: "Открыть в"
+            on: "Скачать в", get: "Доступно в", use: "Открыть в",
+            directDownload: "Скачать напрямую", openIn: "Открыть в",
+            tgNote: "* В Telegram мини-приложении ограничены тренировки для бесплатных пользователей",
+            comingSoon: "Скоро"
         },
         footer: { privacy: "Конфиденциальность", terms: "Условия", contact: "Контакты", rights: "Все права защищены." },
         phone: {
@@ -200,7 +206,10 @@ const i18n = {
             title1: "Bereit deine", title2: "Fitness zu transformieren?",
             desc: "Lade FitStream jetzt herunter und starte deine KI-gestützte Fitness-Reise",
             appStore: "App Store", googlePlay: "Google Play", web: "Web Browser",
-            on: "Laden im", get: "Jetzt bei", use: "Nutzen im"
+            on: "Laden im", get: "Jetzt bei", use: "Nutzen im",
+            directDownload: "Direkter Download", openIn: "Öffnen in",
+            tgNote: "* Telegram Mini-App hat Trainings-Limits für kostenlose Nutzer",
+            comingSoon: "Demnächst"
         },
         footer: { privacy: "Datenschutz", terms: "AGB", contact: "Kontakt", rights: "Alle Rechte vorbehalten." },
         phone: {
@@ -270,7 +279,10 @@ const i18n = {
             title1: "Prêt à transformer", title2: "votre fitness?",
             desc: "Téléchargez FitStream maintenant et commencez votre parcours fitness avec l'IA",
             appStore: "App Store", googlePlay: "Google Play", web: "Navigateur Web",
-            on: "Télécharger sur", get: "Disponible sur", use: "Utiliser dans"
+            on: "Télécharger sur", get: "Disponible sur", use: "Utiliser dans",
+            directDownload: "Téléchargement direct", openIn: "Ouvrir dans",
+            tgNote: "* L'application Telegram a des limites d'entraînement pour les utilisateurs gratuits",
+            comingSoon: "Bientôt"
         },
         footer: { privacy: "Confidentialité", terms: "Conditions", contact: "Contact", rights: "Tous droits réservés." },
         phone: {
@@ -340,7 +352,10 @@ const i18n = {
             title1: "¿Listo para transformar", title2: "tu fitness?",
             desc: "Descarga FitStream ahora y comienza tu viaje fitness con IA",
             appStore: "App Store", googlePlay: "Google Play", web: "Navegador Web",
-            on: "Descargar en", get: "Disponible en", use: "Usar en"
+            on: "Descargar en", get: "Disponible en", use: "Usar en",
+            directDownload: "Descarga directa", openIn: "Abrir en",
+            tgNote: "* La mini-app de Telegram tiene límites de entrenamiento para usuarios gratuitos",
+            comingSoon: "Próximamente"
         },
         footer: { privacy: "Privacidad", terms: "Términos", contact: "Contacto", rights: "Todos los derechos reservados." },
         phone: {
@@ -410,7 +425,10 @@ const i18n = {
             title1: "Pronto a trasformare", title2: "il tuo fitness?",
             desc: "Scarica FitStream ora e inizia il tuo percorso fitness con IA",
             appStore: "App Store", googlePlay: "Google Play", web: "Browser Web",
-            on: "Scarica su", get: "Disponibile su", use: "Usa nel"
+            on: "Scarica su", get: "Disponibile su", use: "Usa nel",
+            directDownload: "Download diretto", openIn: "Apri in",
+            tgNote: "* L'app Telegram ha limiti di allenamento per gli utenti gratuiti",
+            comingSoon: "Prossimamente"
         },
         footer: { privacy: "Privacy", terms: "Termini", contact: "Contatti", rights: "Tutti i diritti riservati." },
         phone: {
@@ -480,7 +498,10 @@ const i18n = {
             title1: "Pronto para transformar", title2: "seu fitness?",
             desc: "Baixe FitStream agora e comece sua jornada fitness com IA",
             appStore: "App Store", googlePlay: "Google Play", web: "Navegador Web",
-            on: "Baixar na", get: "Disponível no", use: "Usar no"
+            on: "Baixar na", get: "Disponível no", use: "Usar no",
+            directDownload: "Download direto", openIn: "Abrir em",
+            tgNote: "* O mini-app do Telegram tem limites de treino para usuários gratuitos",
+            comingSoon: "Em breve"
         },
         footer: { privacy: "Privacidade", terms: "Termos", contact: "Contato", rights: "Todos os direitos reservados." },
         phone: {
@@ -550,7 +571,10 @@ const i18n = {
             title1: "フィットネスを", title2: "変える準備はできましたか?",
             desc: "今すぐFitStreamをダウンロードしてAIパワードのフィットネスジャーニーを始めましょう",
             appStore: "App Store", googlePlay: "Google Play", web: "ウェブブラウザ",
-            on: "でダウンロード", get: "で入手", use: "で使用"
+            on: "でダウンロード", get: "で入手", use: "で使用",
+            directDownload: "直接ダウンロード", openIn: "で開く",
+            tgNote: "* Telegramミニアプリは無料ユーザーのワークアウト制限があります",
+            comingSoon: "近日公開"
         },
         footer: { privacy: "プライバシー", terms: "利用規約", contact: "お問い合わせ", rights: "All rights reserved." },
         phone: {
@@ -620,7 +644,10 @@ const i18n = {
             title1: "피트니스를", title2: "바꿀 준비 되셨나요?",
             desc: "지금 FitStream을 다운로드하고 AI 기반 피트니스 여정을 시작하세요",
             appStore: "App Store", googlePlay: "Google Play", web: "웹 브라우저",
-            on: "에서 다운로드", get: "에서 받기", use: "에서 사용"
+            on: "에서 다운로드", get: "에서 받기", use: "에서 사용",
+            directDownload: "직접 다운로드", openIn: "에서 열기",
+            tgNote: "* 텔레그램 미니앱은 무료 사용자에게 운동 제한이 있습니다",
+            comingSoon: "곧 출시"
         },
         footer: { privacy: "개인정보", terms: "이용약관", contact: "문의", rights: "All rights reserved." },
         phone: {
@@ -771,7 +798,10 @@ const i18n = {
             title1: "准备好改变", title2: "你的健身了吗?",
             desc: "立即下载FitStream，开始你的AI健身之旅",
             appStore: "App Store", googlePlay: "Google Play", web: "网页浏览器",
-            on: "在此下载", get: "在此获取", use: "在此使用"
+            on: "在此下载", get: "在此获取", use: "在此使用",
+            directDownload: "直接下载", openIn: "打开",
+            tgNote: "* Telegram迷你应用对免费用户有锻炼限制",
+            comingSoon: "即将推出"
         },
         footer: { privacy: "隐私政策", terms: "服务条款", contact: "联系我们", rights: "保留所有权利。" },
         phone: {
@@ -922,7 +952,10 @@ const i18n = {
             title1: "Klaar om je", title2: "fitness te transformeren?",
             desc: "Download FitStream nu en begin je AI-aangedreven fitnessreis",
             appStore: "App Store", googlePlay: "Google Play", web: "Web Browser",
-            on: "Download in de", get: "Beschikbaar op", use: "Gebruik in"
+            on: "Download in de", get: "Beschikbaar op", use: "Gebruik in",
+            directDownload: "Directe download", openIn: "Openen in",
+            tgNote: "* Telegram mini-app heeft trainingslimieten voor gratis gebruikers",
+            comingSoon: "Binnenkort"
         },
         footer: { privacy: "Privacy", terms: "Voorwaarden", contact: "Contact", rights: "Alle rechten voorbehouden." },
         phone: {
@@ -1073,7 +1106,10 @@ const i18n = {
             title1: "Redo att förvandla", title2: "din fitness?",
             desc: "Ladda ner FitStream nu och börja din AI-drivna fitnessresa",
             appStore: "App Store", googlePlay: "Google Play", web: "Webbläsare",
-            on: "Ladda ner på", get: "Hämta på", use: "Använd i"
+            on: "Ladda ner på", get: "Hämta på", use: "Använd i",
+            directDownload: "Direktnedladdning", openIn: "Öppna i",
+            tgNote: "* Telegram-miniappen har träningsbegränsningar för gratisanvändare",
+            comingSoon: "Kommer snart"
         },
         footer: { privacy: "Integritet", terms: "Villkor", contact: "Kontakt", rights: "Alla rättigheter förbehållna." },
         phone: {
@@ -1224,7 +1260,10 @@ const i18n = {
             title1: "Gotowy zmienić", title2: "swój fitness?",
             desc: "Pobierz FitStream teraz i rozpocznij swoją podróż fitness z AI",
             appStore: "App Store", googlePlay: "Google Play", web: "Przeglądarka",
-            on: "Pobierz w", get: "Dostępne w", use: "Użyj w"
+            on: "Pobierz w", get: "Dostępne w", use: "Użyj w",
+            directDownload: "Bezpośrednie pobieranie", openIn: "Otwórz w",
+            tgNote: "* Aplikacja Telegram ma limity treningów dla darmowych użytkowników",
+            comingSoon: "Wkrótce"
         },
         footer: { privacy: "Prywatność", terms: "Regulamin", contact: "Kontakt", rights: "Wszelkie prawa zastrzeżone." },
         phone: {
@@ -1375,7 +1414,10 @@ const i18n = {
             title1: "Fitness'ını", title2: "dönüştürmeye hazır mısın?",
             desc: "FitStream'i şimdi indir ve AI destekli fitness yolculuğuna başla",
             appStore: "App Store", googlePlay: "Google Play", web: "Web Tarayıcı",
-            on: "İndir", get: "Al", use: "Kullan"
+            on: "İndir", get: "Al", use: "Kullan",
+            directDownload: "Doğrudan indir", openIn: "Aç",
+            tgNote: "* Telegram mini-app ücretsiz kullanıcılar için antrenman sınırları var",
+            comingSoon: "Yakında"
         },
         footer: { privacy: "Gizlilik", terms: "Şartlar", contact: "İletişim", rights: "Tüm hakları saklıdır." },
         phone: {
@@ -1445,7 +1487,10 @@ const i18n = {
             title1: "مستعد لتحويل", title2: "لياقتك؟",
             desc: "حمّل FitStream الآن وابدأ رحلتك الرياضية بالذكاء الاصطناعي",
             appStore: "App Store", googlePlay: "Google Play", web: "المتصفح",
-            on: "تحميل من", get: "احصل من", use: "استخدم في"
+            on: "تحميل من", get: "احصل من", use: "استخدم في",
+            directDownload: "تحميل مباشر", openIn: "فتح في",
+            tgNote: "* تطبيق تيليجرام المصغر له قيود تمارين للمستخدمين المجانيين",
+            comingSoon: "قريباً"
         },
         footer: { privacy: "الخصوصية", terms: "الشروط", contact: "اتصل", rights: "جميع الحقوق محفوظة." },
         phone: {
@@ -1521,7 +1566,10 @@ const i18n = {
             title1: "მზად ხარ შენი", title2: "ფიტნესის ტრანსფორმაციისთვის?",
             desc: "ჩამოტვირთე FitStream ახლავე და დაიწყე შენი AI-ზე დაფუძნებული ფიტნეს მოგზაურობა",
             appStore: "App Store", googlePlay: "Google Play", web: "ვებ ბრაუზერი",
-            on: "ჩამოტვირთე", get: "მიიღე", use: "გამოიყენე"
+            on: "ჩამოტვირთე", get: "მიიღე", use: "გამოიყენე",
+            directDownload: "პირდაპირი ჩამოტვირთვა", openIn: "გახსენი",
+            tgNote: "* Telegram მინი-აპს აქვს ვარჯიშის შეზღუდვები უფასო მომხმარებლებისთვის",
+            comingSoon: "მალე"
         },
         footer: { privacy: "კონფიდენციალურობა", terms: "პირობები", contact: "კონტაქტი", rights: "ყველა უფლება დაცულია." },
         phone: {
