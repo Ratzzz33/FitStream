@@ -98,7 +98,13 @@ const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
     LUNGES: { color: '#8b5cf6' },
     BURPEES: { color: '#ea580c' },
     DIPS: { color: '#06b6d4' },
-    PULLUPS: { color: '#7c3aed' }
+    PULLUPS: { color: '#7c3aed' },
+    PLANK: { color: '#14b8a6' },
+    MOUNTAIN_CLIMBERS: { color: '#f59e0b' },
+    CRUNCHES: { color: '#ec4899' },
+    LEG_RAISES: { color: '#6366f1' },
+    BICYCLE_CRUNCHES: { color: '#84cc16' },
+    HIGH_KNEES: { color: '#ef4444' }
 };
 
 const DEFAULT_GOALS: DailyGoal[] = [
