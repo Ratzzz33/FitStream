@@ -1,14 +1,22 @@
 /**
- * Nana Banana Image Generation Service
- * Generates AI images of dishes for recipes using Nana Banana v2+
+ * Dish Image Generation Service
+ * Generates AI images of dishes for recipes using Google Imagen 4 API
  */
+
+import { GoogleGenAI } from "@google/genai";
 
 // Cache for generated images to avoid regenerating
 const imageCache = new Map<string, string>();
 
-// Generate cache key from ingredients
-const getCacheKey = (ingredients: string[]): string => {
-  return ingredients.map(i => i.toLowerCase().trim()).sort().join('|');
+// Get API key from environment
+const getApiKey = () => {
+  return process.env.API_KEY || '';
+};
+
+// Generate cache key from dish name and ingredients
+const getCacheKey = (dishName: string, ingredients: string[], stepDescription?: string): string => {
+  const base = `${dishName.toLowerCase()}:${ingredients.map(i => i.toLowerCase().trim()).sort().join('|')}`;
+  return stepDescription ? `step:${stepDescription}:${base}` : `dish:${base}`;
 };
 
 export interface GenerateImageOptions {
@@ -24,108 +32,250 @@ export interface GeneratedImage {
 }
 
 /**
- * Generate an image of a dish using Nana Banana v2+
+ * Generate an image of a dish using Google Imagen 4 API
  */
 export const generateDishImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
   const { dishName, ingredients, style = 'photo', stepDescription } = options;
 
   // Check cache first
-  const cacheKey = stepDescription
-    ? `step:${stepDescription}:${getCacheKey(ingredients)}`
-    : `dish:${dishName}:${getCacheKey(ingredients)}`;
+  const cacheKey = getCacheKey(dishName, ingredients, stepDescription);
 
   if (imageCache.has(cacheKey)) {
     return { url: imageCache.get(cacheKey)!, cached: true };
   }
 
-  // Build prompt for image generation
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.warn('No API key, using placeholder');
+    return { url: getPlaceholderImage(dishName, ingredients), cached: false };
+  }
+
+  // Build optimized prompt for food photography
+  const ingredientsList = ingredients.slice(0, 5).join(', ');
+
   const prompt = stepDescription
-    ? `Cooking step: ${stepDescription}. Ingredients visible: ${ingredients.join(', ')}. Style: ${style === 'photo' ? 'professional food photography' : 'clean illustration'}, top-down view, kitchen setting.`
-    : `Delicious ${dishName} made with ${ingredients.join(', ')}. Style: ${style === 'photo' ? 'professional food photography, appetizing, well-lit' : 'clean modern illustration'}, plated beautifully.`;
+    ? `Professional food photography of cooking step: ${stepDescription}.
+       Dish: ${dishName}. Visible ingredients: ${ingredientsList}.
+       Kitchen setting, natural lighting, top-down or 45-degree angle view,
+       clean modern style, appetizing presentation.
+       NO TEXT, NO LABELS, NO WATERMARKS, NO CAPTIONS.`
+    : `Professional food photography of ${dishName}.
+       Main ingredients: ${ingredientsList}.
+       Beautifully plated, appetizing, well-lit, shallow depth of field,
+       ${style === 'photo' ? 'realistic photo' : 'clean illustration style'},
+       restaurant quality presentation, neutral background.
+       NO TEXT, NO LABELS, NO WATERMARKS, NO CAPTIONS.`;
 
   try {
-    // TODO: Replace with actual Nana Banana v2+ API call
-    // For now, using placeholder that will be replaced with real API
-    const apiKey = process.env.NANA_BANANA_API_KEY || process.env.API_KEY;
+    const ai = new GoogleGenAI({ apiKey });
 
-    if (!apiKey) {
-      // Return placeholder if no API key
-      return { url: getPlaceholderImage(dishName), cached: false };
-    }
-
-    // Nana Banana v2+ API call
-    const response = await fetch('https://api.nana-banana.ai/v2/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        prompt,
-        model: 'nana-banana-v2',
-        size: '512x512',
-        quality: 'standard'
-      })
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        outputMimeType: 'image/webp'
+      }
     });
 
-    if (!response.ok) {
-      console.warn('Nana Banana API error, using placeholder');
-      return { url: getPlaceholderImage(dishName), cached: false };
+    if (response.generatedImages && response.generatedImages.length > 0) {
+      const img = response.generatedImages[0];
+
+      // Check for content filtering
+      if (img.raiFilteredReason) {
+        console.warn(`Image filtered: ${img.raiFilteredReason}`);
+        return { url: getPlaceholderImage(dishName, ingredients), cached: false };
+      }
+
+      if (img.image?.imageBytes) {
+        // Convert to data URL
+        const imageUrl = `data:image/webp;base64,${img.image.imageBytes}`;
+        imageCache.set(cacheKey, imageUrl);
+        return { url: imageUrl, cached: false };
+      }
     }
 
-    const data = await response.json();
-    const imageUrl = data.url || data.image_url || data.data?.[0]?.url;
+    console.warn('No image generated, using placeholder');
+    return { url: getPlaceholderImage(dishName, ingredients), cached: false };
 
-    if (imageUrl) {
-      imageCache.set(cacheKey, imageUrl);
-      return { url: imageUrl, cached: false };
+  } catch (error: any) {
+    console.error('Error generating image:', error.message);
+
+    // Fallback to Unsplash for food images
+    const unsplashUrl = getUnsplashFallback(dishName, ingredients);
+    if (unsplashUrl) {
+      imageCache.set(cacheKey, unsplashUrl);
+      return { url: unsplashUrl, cached: false };
     }
 
-    return { url: getPlaceholderImage(dishName), cached: false };
-  } catch (error) {
-    console.error('Error generating image:', error);
-    return { url: getPlaceholderImage(dishName), cached: false };
+    return { url: getPlaceholderImage(dishName, ingredients), cached: false };
   }
 };
 
 /**
- * Generate a placeholder image SVG for when API is unavailable
+ * Get Unsplash fallback image based on dish category
  */
-const getPlaceholderImage = (dishName: string): string => {
-  // Get first emoji from dish name or default
-  const foodEmojis = ['🍳', '🥗', '🍲', '🍝', '🥘', '🍜', '🍛', '🥙'];
-  const emoji = foodEmojis[Math.abs(hashCode(dishName)) % foodEmojis.length];
+const getUnsplashFallback = (dishName: string, ingredients: string[]): string | null => {
+  const searchTerm = detectDishCategory(dishName, ingredients);
+  // Use Unsplash Source API for relevant food images
+  return `https://source.unsplash.com/512x512/?${encodeURIComponent(searchTerm)},food`;
+};
+
+/**
+ * Detect dish category from name and ingredients for better fallback images
+ */
+const detectDishCategory = (dishName: string, ingredients: string[]): string => {
+  const name = dishName.toLowerCase();
+  const allText = `${name} ${ingredients.join(' ').toLowerCase()}`;
+
+  // Category detection based on dish name and ingredients
+  const categories: [RegExp, string][] = [
+    // Breakfast items
+    [/творог|cottage|каша с бананом|йогурт|мюсли|granola/, 'cottage cheese breakfast'],
+    [/каша|porridge|овсян|oatmeal/, 'oatmeal porridge'],
+    [/яичниц|омлет|scrambled|omelette|eggs/, 'scrambled eggs'],
+    [/блин|pancake|оладь/, 'pancakes'],
+    [/тост|toast|бутерброд|sandwich/, 'toast sandwich'],
+
+    // Soups
+    [/суп|soup|борщ|borscht|щи|солянк/, 'soup bowl'],
+
+    // Salads
+    [/салат|salad|греческ|цезар|caesar/, 'fresh salad'],
+
+    // Pasta & noodles
+    [/паста|макарон|спагетти|pasta|spaghetti|noodle|лапш/, 'pasta dish'],
+
+    // Rice dishes
+    [/рис|rice|плов|ризотто|risotto/, 'rice dish'],
+
+    // Meat dishes
+    [/стейк|steak|мяс|meat|котлет|cutlet|шашлык|kebab/, 'meat dish'],
+    [/курица|chicken|птиц|индейк|turkey/, 'chicken dish'],
+    [/рыб|fish|лосось|salmon|тунец|tuna/, 'fish dish'],
+
+    // Desserts
+    [/торт|cake|десерт|dessert|пирог|pie|печень|cookie/, 'dessert'],
+    [/мороженое|ice cream|сорбет/, 'ice cream'],
+
+    // Drinks
+    [/смузи|smoothie|коктейль|shake/, 'smoothie drink'],
+    [/кофе|coffee|латте|latte|капуччино/, 'coffee drink'],
+
+    // Vegetables
+    [/овощ|vegetable|вегетариан|веган|vegan/, 'vegetable dish'],
+  ];
+
+  for (const [pattern, category] of categories) {
+    if (pattern.test(allText)) {
+      return category;
+    }
+  }
+
+  // Default: use main ingredient or generic food
+  const mainIngredient = ingredients[0] || 'food';
+  return `${mainIngredient} dish`;
+};
+
+/**
+ * Get smart emoji based on dish type and ingredients
+ */
+const getSmartEmoji = (dishName: string, ingredients: string[]): string => {
+  const name = dishName.toLowerCase();
+  const allText = `${name} ${ingredients.join(' ').toLowerCase()}`;
+
+  const emojiMap: [RegExp, string][] = [
+    // Breakfast
+    [/творог|cottage/, '🥛'],
+    [/каша|porridge|овсян|oatmeal/, '🥣'],
+    [/яичниц|scrambled/, '🍳'],
+    [/омлет|omelette/, '🥚'],
+    [/блин|pancake|оладь/, '🥞'],
+    [/тост|toast/, '🍞'],
+    [/бутерброд|sandwich/, '🥪'],
+
+    // Fruits
+    [/банан|banana/, '🍌'],
+    [/яблок|apple/, '🍎'],
+    [/ягод|berry|клубник|strawberry/, '🍓'],
+
+    // Main dishes
+    [/суп|soup|борщ/, '🍲'],
+    [/салат|salad/, '🥗'],
+    [/паста|макарон|спагетти|pasta/, '🍝'],
+    [/рис|rice|плов/, '🍚'],
+    [/пицц|pizza/, '🍕'],
+    [/бургер|burger/, '🍔'],
+
+    // Meat
+    [/стейк|steak/, '🥩'],
+    [/курица|chicken/, '🍗'],
+    [/рыб|fish|лосось/, '🐟'],
+    [/морепродукт|seafood|креветк|shrimp/, '🦐'],
+
+    // Desserts
+    [/торт|cake/, '🎂'],
+    [/пирог|pie/, '🥧'],
+    [/мороженое|ice cream/, '🍨'],
+    [/шоколад|chocolate/, '🍫'],
+
+    // Drinks
+    [/смузи|smoothie/, '🥤'],
+    [/кофе|coffee/, '☕'],
+    [/чай|tea/, '🍵'],
+
+    // Vegetables
+    [/овощ|vegetable/, '🥦'],
+    [/грибы|mushroom/, '🍄'],
+  ];
+
+  for (const [pattern, emoji] of emojiMap) {
+    if (pattern.test(allText)) {
+      return emoji;
+    }
+  }
+
+  // Default food emoji
+  return '🍽️';
+};
+
+/**
+ * Generate a placeholder image SVG when API is unavailable
+ * Now uses smart emoji detection based on dish and ingredients
+ */
+const getPlaceholderImage = (dishName: string, ingredients: string[]): string => {
+  const emoji = getSmartEmoji(dishName, ingredients);
+
+  // Generate warm gradient based on dish type
+  const gradients: Record<string, [string, string]> = {
+    '🥛': ['#f0f9ff', '#dbeafe'], // Light blue for dairy
+    '🥣': ['#fef3c7', '#fde68a'], // Warm yellow for porridge
+    '🍳': ['#fef9c3', '#fef08a'], // Yellow for eggs
+    '🥗': ['#d1fae5', '#a7f3d0'], // Green for salads
+    '🍝': ['#fee2e2', '#fecaca'], // Red for pasta
+    '🍲': ['#ffedd5', '#fed7aa'], // Orange for soups
+    '🍗': ['#fef3c7', '#fde68a'], // Yellow for chicken
+  };
+
+  const [color1, color2] = gradients[emoji] || ['#fef3c7', '#fde68a'];
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
       <defs>
         <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#fef3c7"/>
-          <stop offset="100%" style="stop-color:#fde68a"/>
+          <stop offset="0%" style="stop-color:${color1}"/>
+          <stop offset="100%" style="stop-color:${color2}"/>
         </linearGradient>
       </defs>
       <rect width="200" height="200" fill="url(#bg)" rx="16"/>
-      <text x="100" y="110" font-size="64" text-anchor="middle">${emoji}</text>
-      <text x="100" y="160" font-size="12" text-anchor="middle" fill="#92400e" font-family="system-ui">${truncate(dishName, 20)}</text>
+      <text x="100" y="110" font-size="80" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
     </svg>
   `.trim();
 
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 };
 
-// Simple hash function for consistent emoji selection
-const hashCode = (str: string): number => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-};
-
-const truncate = (str: string, len: number): string => {
-  return str.length > len ? str.slice(0, len - 1) + '…' : str;
-};
 
 /**
  * Preload images for a recipe (all steps + main dish)
@@ -146,7 +296,7 @@ export const preloadRecipeImages = async (
         ingredients,
         stepDescription: step.description
       });
-    }, idx * 500); // Stagger requests
+    }, idx * 1000); // Stagger requests to avoid rate limiting
   });
 };
 
