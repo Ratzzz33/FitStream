@@ -57,6 +57,12 @@ const App = () => {
   // Goal Selection
   const [selectedGoal, setSelectedGoal] = useState<DailyGoal | null>(null);
 
+  // Exercise Picker for Quick Start
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+
+  // Food Photo from Dashboard
+  const [openFoodCameraOnMount, setOpenFoodCameraOnMount] = useState(false);
+
   // Telegram Mini App Detection
   const [isTelegramApp, setIsTelegramApp] = useState(false);
   
@@ -496,8 +502,29 @@ const App = () => {
       if (isTelegramApp) {
           hapticFeedback('impact', 'medium');
       }
-      // Unlimited workouts for all users
+      // Show exercise picker instead of starting immediately
+      setShowExercisePicker(true);
+  };
+
+  const startWorkoutWithExercise = (exerciseType: GoalType) => {
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'light');
+      }
+      setShowExercisePicker(false);
+      // Find or create the goal for this exercise
+      const existingGoal = settings.goals.find(g => g.type === exerciseType);
+      if (existingGoal) {
+          setSelectedGoal(existingGoal);
+      }
       setIsWorkoutActive(true);
+  };
+
+  const handlePhotoFoodClick = () => {
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'medium');
+      }
+      setOpenFoodCameraOnMount(true);
+      setActiveTab(AppTab.NUTRITION);
   };
 
   const handleMockUpgrade = () => {
@@ -507,7 +534,7 @@ const App = () => {
       setShowProModal(false);
   };
 
-  const getIconForType = (type: GoalType) => {
+  const getIconForType = (type: GoalType, size: number = 16) => {
       // Check for Custom Icon first
       if (customIcons[type]) {
           return <img src={customIcons[type]} alt={type} className="w-4 h-4 object-contain" />;
@@ -515,13 +542,22 @@ const App = () => {
 
       // Default Fallback
       switch(type) {
-          case 'STEPS': return <Footprints size={16} className="text-emerald-500"/>;
-          case 'SQUATS': return <ArrowDown size={16} className="text-purple-500"/>;
-          case 'PUSHUPS': return <Activity size={16} className="text-blue-500"/>;
-          case 'SITUPS': return <Move size={16} className="text-orange-500"/>;
-          case 'DIPS': return <ArrowDown size={16} className="text-cyan-500"/>;
-          case 'PULLUPS': return <ArrowUp size={16} className="text-violet-500"/>;
-          default: return <Dumbbell size={16} className="text-gray-400"/>;
+          case 'STEPS': return <Footprints size={size} className="text-emerald-500"/>;
+          case 'SQUATS': return <ArrowDown size={size} className="text-purple-500"/>;
+          case 'PUSHUPS': return <Activity size={size} className="text-blue-500"/>;
+          case 'SITUPS': return <Move size={size} className="text-orange-500"/>;
+          case 'DIPS': return <ArrowDown size={size} className="text-cyan-500"/>;
+          case 'PULLUPS': return <ArrowUp size={size} className="text-violet-500"/>;
+          case 'PLANK': return <Activity size={size} className="text-amber-500"/>;
+          case 'MOUNTAIN_CLIMBERS': return <ArrowUp size={size} className="text-red-500"/>;
+          case 'CRUNCHES': return <Move size={size} className="text-pink-500"/>;
+          case 'LEG_RAISES': return <ArrowUp size={size} className="text-indigo-500"/>;
+          case 'BICYCLE_CRUNCHES': return <Activity size={size} className="text-teal-500"/>;
+          case 'HIGH_KNEES': return <Footprints size={size} className="text-rose-500"/>;
+          case 'JUMPING_JACKS': return <Activity size={size} className="text-yellow-500"/>;
+          case 'LUNGES': return <ArrowDown size={size} className="text-lime-500"/>;
+          case 'BURPEES': return <Dumbbell size={size} className="text-fuchsia-500"/>;
+          default: return <Dumbbell size={size} className="text-gray-400"/>;
       }
   };
 
@@ -536,6 +572,12 @@ const App = () => {
         case 'BURPEES': return t('burpees');
         case 'DIPS': return t('dips');
         case 'PULLUPS': return t('pullups');
+        case 'PLANK': return t('plank');
+        case 'MOUNTAIN_CLIMBERS': return t('mountainClimbers');
+        case 'CRUNCHES': return t('crunches');
+        case 'LEG_RAISES': return t('legRaises');
+        case 'BICYCLE_CRUNCHES': return t('bicycleCrunches');
+        case 'HIGH_KNEES': return t('highKnees');
         default: return (type as string).replace('_', ' ');
     }
   };
@@ -747,12 +789,15 @@ const App = () => {
                         </div>
                     )}
                 </button>
-                <button 
-                    onClick={() => setActiveTab(AppTab.NUTRITION)}
+                <button
+                    onClick={handlePhotoFoodClick}
                     className="bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-5 rounded-2xl shadow-xl shadow-orange-500/20 dark:shadow-orange-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
                 >
-                    <Utensils size={28} />
-                    <span className="font-bold">{t('nutrition')}</span>
+                    <div className="relative">
+                        <Utensils size={28} />
+                        <Camera size={14} className="absolute -bottom-1 -right-2 bg-orange-600 rounded-full p-0.5" />
+                    </div>
+                    <span className="font-bold">{t('photoFood')}</span>
                 </button>
             </div>
             
@@ -800,7 +845,13 @@ const App = () => {
 
         {activeTab === AppTab.WEIGHT && <WeightTracker />}
         
-        {activeTab === AppTab.NUTRITION && <NutritionTracker onRequestPro={() => setShowProModal(true)} />}
+        {activeTab === AppTab.NUTRITION && (
+            <NutritionTracker
+                onRequestPro={() => setShowProModal(true)}
+                openCameraOnMount={openFoodCameraOnMount}
+                onCameraOpened={() => setOpenFoodCameraOnMount(false)}
+            />
+        )}
 
         {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowProModal(true)} />}
 
@@ -1396,11 +1447,49 @@ const App = () => {
       )}
 
       {showAvatarSelector && (
-          <AvatarSelector 
+          <AvatarSelector
             currentAvatar={settings.avatar}
             onClose={() => setShowAvatarSelector(false)}
             onSelect={updateAvatar}
           />
+      )}
+
+      {/* Exercise Picker Modal */}
+      {showExercisePicker && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('selectExercise')}</h2>
+                      <button
+                          onClick={() => setShowExercisePicker(false)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition"
+                      >
+                          <X size={20} className="text-gray-500"/>
+                      </button>
+                  </div>
+
+                  {/* Exercise Grid */}
+                  <div className="p-4 overflow-y-auto max-h-[70vh]">
+                      <div className="grid grid-cols-3 gap-3">
+                          {(['PUSHUPS', 'SQUATS', 'SITUPS', 'PULLUPS', 'DIPS', 'LUNGES', 'BURPEES', 'JUMPING_JACKS', 'PLANK', 'CRUNCHES', 'LEG_RAISES', 'MOUNTAIN_CLIMBERS', 'BICYCLE_CRUNCHES', 'HIGH_KNEES', 'STEPS'] as GoalType[]).map((type) => (
+                              <button
+                                  key={type}
+                                  onClick={() => startWorkoutWithExercise(type)}
+                                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition transform active:scale-95 gap-2"
+                              >
+                                  <div className="w-10 h-10 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center shadow">
+                                      {getIconForType(type, 20)}
+                                  </div>
+                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                                      {getLabelForType(type)}
+                                  </span>
+                              </button>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );

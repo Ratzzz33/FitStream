@@ -15,12 +15,14 @@ import { FoodFinance } from './Finance';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
+  openCameraOnMount?: boolean;
+  onCameraOpened?: () => void;
 }
 
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
 type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
-export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro }) => {
+export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
     const [activeToolSheet, setActiveToolSheet] = useState<ToolSheet>(null);
@@ -40,6 +42,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [showRefNotDetected, setShowRefNotDetected] = useState(false);
     const [pendingFoodResult, setPendingFoodResult] = useState<FoodAnalysisResult | null>(null);
     const [pendingPhotoBase64, setPendingPhotoBase64] = useState<string | null>(null);
+
+    // Home-made food verification
+    const [showHomeMadeDialog, setShowHomeMadeDialog] = useState(false);
+    const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
 
     // Alternative reference objects
     const alternativeObjects = [
@@ -97,6 +103,25 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const daysSinceInstall = (Date.now() - installDate) / (1000 * 60 * 60 * 24);
     const isTrialActive = daysSinceInstall < 7;
     const isScannerUnlocked = settings.isPro || isTrialActive;
+
+    // Auto-open camera when triggered from Dashboard
+    useEffect(() => {
+        if (openCameraOnMount && isScannerUnlocked) {
+            // Small delay to ensure component is mounted
+            const timer = setTimeout(() => {
+                if (!settings.referenceObject) {
+                    setShowRefWarning(true);
+                } else {
+                    startCamera('CAMERA_FOOD');
+                }
+                onCameraOpened?.();
+            }, 100);
+            return () => clearTimeout(timer);
+        } else if (openCameraOnMount && !isScannerUnlocked) {
+            onRequestPro();
+            onCameraOpened?.();
+        }
+    }, [openCameraOnMount]);
 
     const addWater = (amount: number, name: string) => {
         const log: NutritionLog = {
@@ -198,6 +223,16 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     return;
                 }
 
+                // Check home-made status and ingredients
+                const needsHomeMadeVerification = checkHomeMadeVerification(result);
+                if (needsHomeMadeVerification) {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowHomeMadeDialog(true);
+                    setMode('IDLE');
+                    return;
+                }
+
                 // Reference detected or not configured - proceed normally
                 await saveFoodResult(result, base64);
             } else if (currentMode === 'CAMERA_MENU') {
@@ -268,6 +303,55 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             setPendingFoodResult(null);
             setPendingPhotoBase64(null);
         }
+    };
+
+    // Check if we need to verify home-made status
+    const checkHomeMadeVerification = (result: FoodAnalysisResult): boolean => {
+        // If AI determined it's NOT home-made, no need to verify
+        if (!result.isHomeMade) {
+            return false;
+        }
+
+        // If home-made, check if ingredients exist in inventory
+        const inventory = StorageService.getActiveInventory();
+        const inventoryNames = inventory.map(item => item.name.toLowerCase());
+
+        const missing = (result.ingredients || []).filter(ingredient => {
+            const ingredientLower = ingredient.toLowerCase();
+            // Check if any inventory item contains this ingredient name
+            return !inventoryNames.some(invName =>
+                invName.includes(ingredientLower) || ingredientLower.includes(invName)
+            );
+        });
+
+        if (missing.length > 0) {
+            setMissingIngredients(missing);
+            return true;
+        }
+
+        return false;
+    };
+
+    // Handle "Yes, home-made" - save food and don't deduct from inventory
+    const handleConfirmHomeMade = async () => {
+        if (pendingFoodResult && pendingPhotoBase64) {
+            await saveFoodResult(pendingFoodResult, pendingPhotoBase64);
+        }
+        setShowHomeMadeDialog(false);
+        setMissingIngredients([]);
+        setPendingFoodResult(null);
+        setPendingPhotoBase64(null);
+    };
+
+    // Handle "No, from outside" - save food without inventory deduction
+    const handleConfirmOutside = async () => {
+        if (pendingFoodResult && pendingPhotoBase64) {
+            await saveFoodResult(pendingFoodResult, pendingPhotoBase64);
+        }
+        setShowHomeMadeDialog(false);
+        setMissingIngredients([]);
+        setPendingFoodResult(null);
+        setPendingPhotoBase64(null);
     };
 
     const saveFood = () => {
@@ -1025,6 +1109,66 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             >
                                 {t('dismiss')}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Home-Made Verification Dialog */}
+            {showHomeMadeDialog && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95">
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <ChefHat size={32} className="text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('homeMadeQuestion')}</h3>
+
+                            {missingIngredients.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                                        {t('ingredientsNotInInventory')}:
+                                    </p>
+                                    <div className="flex flex-wrap gap-1 justify-center">
+                                        {missingIngredients.slice(0, 5).map((ing, idx) => (
+                                            <span key={idx} className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs px-2 py-1 rounded-full">
+                                                {ing}
+                                            </span>
+                                        ))}
+                                        {missingIngredients.length > 5 && (
+                                            <span className="text-gray-400 text-xs">+{missingIngredients.length - 5}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={handleConfirmHomeMade}
+                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                                >
+                                    <ChefHat size={18} />
+                                    {t('homeMadeYes')}
+                                </button>
+                                <button
+                                    onClick={handleConfirmOutside}
+                                    className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                                >
+                                    <Package size={18} />
+                                    {t('homeMadeNo')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowHomeMadeDialog(false);
+                                        setMissingIngredients([]);
+                                        setPendingFoodResult(null);
+                                        setPendingPhotoBase64(null);
+                                    }}
+                                    className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white py-2"
+                                >
+                                    {t('dismiss')}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
