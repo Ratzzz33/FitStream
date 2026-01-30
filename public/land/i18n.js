@@ -1402,7 +1402,88 @@ const i18n = {
             charts: ["Kilo trend grafikleri", "Antrenman geçmişi grafikleri", "Zaman içinde ilerleme", "Vücut kompozisyonu takibi", "CSV olarak veri dışa aktarma"],
             offline: ["Tam çevrimdışı işlevsellik", "Çevrimiçi olduğunda otomatik senkronizasyon", "Veri kaybı yok", "Yerel depolama yedeklemesi", "Her yerde çalışır"],
             shop: ["Herhangi bir dönem için AI öğün planlama", "Akıllı alışveriş listesi oluşturma", "Raf tarayıcı ürünleri bulur", "Fotoğraf ile ürün doğrulama", "Ürünler için sağlık puanı"],
-            gotIt: "Anladım!"
+            gotIt: "Anladım!",
+            close: "Kapat"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "Gerçek Zamanlı", desc: "MediaPipe ile 33 vücut noktası 30fps'de takip." },
+                exercises: { label: "15 Egzersiz", desc: "Squat, şınav, plank, lunge ve daha fazlası." },
+                feedback: { label: "Geri Bildirim", desc: "Formunuz hakkında anında görsel ve sesli rehberlik." },
+                counting: { label: "Sayım", desc: "AI tekrarları otomatik sayar." }
+            },
+            kitchen: {
+                storage: { label: "Depolama", desc: "Buzdolabı ve dondurucudaki ürünleri organize et." },
+                "ai-scan": { label: "AI Tarama", desc: "Kamerayı tut — AI tanır ve ekler." },
+                expiry: { label: "Son Kullanma", desc: "Tarihler geçmeden hatırlatmalar. İsrafı azalt." },
+                shopping: { label: "Liste", desc: "Eksik olanlara göre otomatik liste." }
+            },
+            cooking: {
+                steps: { label: "Adım Adım", desc: "Her pişirme aşaması için net talimatlar." },
+                timer: { label: "Zamanlayıcı", desc: "Dahili zamanlayıcılar. Aynı anda birden fazla kullan." },
+                voice: { label: "Sesli", desc: "Elleri serbest pişirme için sesli ipuçları." },
+                tips: { label: "İpuçları", desc: "Şef ipuçları ve malzeme alternatifleri." }
+            },
+            coach: {
+                "voice-guide": { label: "Sesli Koç", desc: "Gerçek zamanlı motivasyon. Erkek/kadın ses seç." },
+                "rep-count": { label: "Sayaç", desc: "AI tekrarları otomatik sayar." },
+                "form-tips": { label: "Form", desc: "Duruşunuz hakkında anında geri bildirim." },
+                history: { label: "Geçmiş", desc: "Tüm antrenmanları takip et." }
+            },
+            scale: {
+                camera: { label: "Kamera", desc: "Sadece tartı ekranına doğrultun." },
+                "auto-read": { label: "Otomatik", desc: "AI ağırlığı anında okur." },
+                "any-scale": { label: "Her Tartı", desc: "Dijital ve analog tartılar desteklenir." },
+                trend: { label: "Trend", desc: "Grafiklerde kilo değişimini takip et." }
+            },
+            food: {
+                calories: { label: "Kalori", desc: "Fotoğraf çekin — saniyeler içinde kalori tahmini." },
+                macros: { label: "Makrolar", desc: "Protein, karbonhidrat, yağ dağılımı." },
+                reference: { label: "Referans", desc: "Doğru porsiyonlar için kart kullanın." },
+                log: { label: "Kayıt", desc: "Yiyecekler otomatik günlüğe eklenir." }
+            },
+            receipt: {
+                scan: { label: "Tara", desc: "Fişi çekin. AI her şeyi çıkarır." },
+                extract: { label: "Çıkart", desc: "Ürünler, fiyatlar, miktarlar otomatik tanınır." },
+                prices: { label: "Fiyatlar", desc: "Zaman içinde fiyat değişimlerini takip et." },
+                budget: { label: "Bütçe", desc: "Harcama analitiği ve tasarruf ipuçları." }
+            },
+            finance: {
+                spending: { label: "Harcama", desc: "Tüm gıda alımlarını takip et." },
+                "cooking-vs-out": { label: "Evde vs Dışarı", desc: "Evde pişirme vs dışarıda yeme maliyetlerini karşılaştır." },
+                reports: { label: "Raporlar", desc: "Aylık detaylı gıda bütçesi raporları." },
+                savings: { label: "Tasarruf", desc: "Evde pişirerek ne kadar tasarruf ettiğinizi hesaplayın." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "Adımları, antrenmanları, kalp atış hızını senkronize et." },
+                "apple-health": { label: "Apple Health", desc: "Apple Health ile tam entegrasyon." },
+                steps: { label: "Adımlar", desc: "Telefondan veya akıllı saatten adım sayısı al." },
+                sync: { label: "Senkronizasyon", desc: "Veriler arka planda otomatik senkronize olur." }
+            },
+            goals: {
+                custom: { label: "Özel Hedefler", desc: "Kendi günlük hedeflerinizi ayarlayın." },
+                exercises: { label: "Egzersizler", desc: "Adımlar, şınavlar, squat, su hedefleri." },
+                streak: { label: "Seri", desc: "Alışkanlıklar oluşturmak için seri sayaçları." },
+                progress: { label: "Halkalar", desc: "Günlük ilerlemeyi güzel halkalarda görüntüleyin." }
+            },
+            charts: {
+                weight: { label: "Kilo", desc: "Haftalık ve aylık kilo trendleri." },
+                workouts: { label: "Antrenman", desc: "Sıklık ve yoğunluk görselleştirmesi." },
+                body: { label: "Vücut", desc: "Kas ve yağ kütlesini takip et." },
+                export: { label: "Dışa Aktar", desc: "Tüm verileri CSV olarak dışa aktar." }
+            },
+            offline: {
+                "offline-mode": { label: "Çevrimdışı", desc: "İnternetsiz tam işlevsellik." },
+                "auto-sync": { label: "Oto Senkron", desc: "Çevrimiçi olduğunda değişiklikler otomatik senkronize olur." },
+                local: { label: "Yerel", desc: "Tüm veriler cihazda güvenle depolanır." },
+                anywhere: { label: "Her Yerde", desc: "Spor salonu, açık hava, seyahatte çalışır." }
+            },
+            shop: {
+                planning: { label: "Planlama", desc: "AI tercihlerinize göre yemek önerir." },
+                list: { label: "Akıllı Liste", desc: "Mağaza bölümlerine göre otomatik organize liste." },
+                scanner: { label: "Raf Tarayıcı", desc: "Rafı tarayarak ürünleri hızla bulun." },
+                verify: { label: "Doğrula", desc: "Her şeyi kontrol etmek için sepet fotoğrafı." }
+            }
         }
     },
     ar: {
@@ -1472,7 +1553,88 @@ const i18n = {
             charts: ["مخططات اتجاه الوزن", "رسوم بيانية لسجل التمارين", "التقدم عبر الزمن", "تتبع تركيب الجسم", "تصدير البيانات كـ CSV"],
             offline: ["وظائف كاملة بدون اتصال", "مزامنة تلقائية عند الاتصال", "لا فقدان للبيانات", "نسخ احتياطي للتخزين المحلي", "يعمل في أي مكان"],
             shop: ["تخطيط وجبات بالذكاء الاصطناعي لأي فترة", "إنشاء قائمة تسوق ذكية", "ماسح الرفوف يجد المنتجات", "التحقق من المنتج عبر الصورة", "درجة صحية للمنتجات"],
-            gotIt: "فهمت!"
+            gotIt: "فهمت!",
+            close: "إغلاق"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "فوري", desc: "تتبع 33 نقطة جسم بسرعة 30 إطار/ثانية مع MediaPipe." },
+                exercises: { label: "15 تمرين", desc: "قرفصاء، ضغط، بلانك، لانج والمزيد." },
+                feedback: { label: "ردود فعل", desc: "إرشادات بصرية وصوتية فورية على وضعيتك." },
+                counting: { label: "عد", desc: "AI يعد التكرارات تلقائياً." }
+            },
+            kitchen: {
+                storage: { label: "التخزين", desc: "نظم المنتجات في الثلاجة والمجمد." },
+                "ai-scan": { label: "مسح AI", desc: "وجه الكاميرا — AI يتعرف ويضيف." },
+                expiry: { label: "الصلاحية", desc: "تذكيرات قبل انتهاء التواريخ. قلل الهدر." },
+                shopping: { label: "قائمة", desc: "قوائم تلقائية بناءً على المفقود." }
+            },
+            cooking: {
+                steps: { label: "خطوة بخطوة", desc: "تعليمات واضحة لكل مرحلة طبخ." },
+                timer: { label: "مؤقت", desc: "مؤقتات مدمجة. استخدم عدة مؤقتات معاً." },
+                voice: { label: "صوتي", desc: "نصائح صوتية للطبخ بدون استخدام اليدين." },
+                tips: { label: "نصائح", desc: "نصائح الشيف وبدائل المكونات." }
+            },
+            coach: {
+                "voice-guide": { label: "مدرب صوتي", desc: "تحفيز فوري. اختر صوت ذكر/أنثى." },
+                "rep-count": { label: "عداد", desc: "AI يعد التكرارات تلقائياً." },
+                "form-tips": { label: "الشكل", desc: "ردود فعل فورية على وضعيتك." },
+                history: { label: "السجل", desc: "تتبع جميع التمارين." }
+            },
+            scale: {
+                camera: { label: "كاميرا", desc: "فقط وجه نحو شاشة الميزان." },
+                "auto-read": { label: "قراءة تلقائية", desc: "AI يقرأ الوزن فوراً." },
+                "any-scale": { label: "أي ميزان", desc: "يدعم الموازين الرقمية والتناظرية." },
+                trend: { label: "اتجاه", desc: "تتبع تغيرات الوزن في الرسوم البيانية." }
+            },
+            food: {
+                calories: { label: "سعرات", desc: "التقط صورة — تقدير سعرات في ثوانٍ." },
+                macros: { label: "ماكرو", desc: "تفصيل البروتين والكربوهيدرات والدهون." },
+                reference: { label: "مرجع", desc: "استخدم بطاقة لحصص دقيقة." },
+                log: { label: "سجل", desc: "الطعام يُضاف تلقائياً للسجل." }
+            },
+            receipt: {
+                scan: { label: "مسح", desc: "صور الفاتورة. AI يستخرج كل شيء." },
+                extract: { label: "استخراج", desc: "المنتجات والأسعار والكميات تُتعرف تلقائياً." },
+                prices: { label: "الأسعار", desc: "تتبع تغيرات الأسعار عبر الوقت." },
+                budget: { label: "ميزانية", desc: "تحليلات الإنفاق ونصائح التوفير." }
+            },
+            finance: {
+                spending: { label: "الإنفاق", desc: "تتبع جميع مشتريات الطعام." },
+                "cooking-vs-out": { label: "منزل vs خارج", desc: "قارن تكاليف الطبخ المنزلي مقابل الأكل خارجاً." },
+                reports: { label: "تقارير", desc: "تقارير ميزانية طعام شهرية مفصلة." },
+                savings: { label: "توفير", desc: "احسب كم توفر بالطبخ المنزلي." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "مزامنة الخطوات والتمارين ومعدل القلب." },
+                "apple-health": { label: "Apple Health", desc: "تكامل كامل مع Apple Health." },
+                steps: { label: "خطوات", desc: "احصل على عدد الخطوات من الهاتف أو الساعة الذكية." },
+                sync: { label: "مزامنة", desc: "البيانات تتزامن تلقائياً في الخلفية." }
+            },
+            goals: {
+                custom: { label: "أهداف مخصصة", desc: "حدد أهدافك اليومية الخاصة." },
+                exercises: { label: "تمارين", desc: "أهداف الخطوات والضغط والقرفصاء والماء." },
+                streak: { label: "سلسلة", desc: "عدادات سلاسل لبناء العادات." },
+                progress: { label: "حلقات", desc: "عرض التقدم اليومي في حلقات جميلة." }
+            },
+            charts: {
+                weight: { label: "الوزن", desc: "اتجاهات الوزن الأسبوعية والشهرية." },
+                workouts: { label: "تمارين", desc: "تصور التكرار والشدة." },
+                body: { label: "الجسم", desc: "تتبع كتلة العضلات والدهون." },
+                export: { label: "تصدير", desc: "تصدير جميع البيانات كـ CSV." }
+            },
+            offline: {
+                "offline-mode": { label: "بدون اتصال", desc: "وظائف كاملة بدون إنترنت." },
+                "auto-sync": { label: "مزامنة تلقائية", desc: "التغييرات تتزامن عند الاتصال." },
+                local: { label: "محلي", desc: "جميع البيانات مخزنة بأمان على الجهاز." },
+                anywhere: { label: "في أي مكان", desc: "يعمل في الصالة والهواء الطلق والسفر." }
+            },
+            shop: {
+                planning: { label: "تخطيط", desc: "AI يقترح وجبات بناءً على تفضيلاتك." },
+                list: { label: "قائمة ذكية", desc: "قائمة منظمة تلقائياً حسب أقسام المتجر." },
+                scanner: { label: "ماسح الرفوف", desc: "امسح الرف للعثور على المنتجات بسرعة." },
+                verify: { label: "تحقق", desc: "صور السلة للتأكد من كل شيء." }
+            }
         }
     },
     ka: {
@@ -1548,7 +1710,88 @@ const i18n = {
             charts: ["წონის ტრენდის დიაგრამები", "ვარჯიშის ისტორიის გრაფიკები", "პროგრესი დროთა განმავლობაში", "სხეულის შემადგენლობის თვალყურისდევნება", "მონაცემების ექსპორტი CSV-ში"],
             offline: ["სრული ოფლაინ ფუნქციონალობა", "ავტომატური სინქრონიზაცია ონლაინ რეჟიმში", "მონაცემთა დაკარგვა არ ხდება", "ლოკალური შენახვის სარეზერვო ასლი", "მუშაობს ყველგან"],
             shop: ["AI კვების დაგეგმვა ნებისმიერი პერიოდისთვის", "ჭკვიანი საყიდლების სიის გენერაცია", "თაროს სკანერი პოულობს პროდუქტებს", "პროდუქტის ვერიფიკაცია ფოტოთი", "პროდუქტების ჯანმრთელობის ქულა"],
-            gotIt: "გასაგებია!"
+            gotIt: "გასაგებია!",
+            close: "დახურვა"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "რეალურ დროში", desc: "MediaPipe-ით 33 სხეულის წერტილის თვალყურისდევნება 30fps-ზე." },
+                exercises: { label: "15 ვარჯიში", desc: "სკვოტები, ბრუნვები, პლანკა, ლანჯები და სხვა." },
+                feedback: { label: "უკუკავშირი", desc: "მყისიერი ვიზუალური და ხმოვანი მითითება თქვენს პოზაზე." },
+                counting: { label: "დათვლა", desc: "AI ავტომატურად ითვლის გამეორებებს." }
+            },
+            kitchen: {
+                storage: { label: "შენახვა", desc: "მოაწესრიგეთ პროდუქტები მაცივარსა და საყინულეში." },
+                "ai-scan": { label: "AI სკანი", desc: "მიაშვირეთ კამერა — AI ცნობს და ამატებს." },
+                expiry: { label: "ვადა", desc: "შეხსენებები ვადის გასვლამდე. შეამცირეთ დანაკარგი." },
+                shopping: { label: "სია", desc: "ავტომატური სიები დაკლებულის მიხედვით." }
+            },
+            cooking: {
+                steps: { label: "ნაბიჯ-ნაბიჯ", desc: "მკაფიო ინსტრუქციები ყოველი მზარეულობის ეტაპისთვის." },
+                timer: { label: "ტაიმერი", desc: "ჩაშენებული ტაიმერები. გამოიყენეთ რამდენიმე ერთდროულად." },
+                voice: { label: "ხმოვანი", desc: "ხმოვანი მითითებები ხელების გარეშე მზარეულობისთვის." },
+                tips: { label: "რჩევები", desc: "შეფის რჩევები და ინგრედიენტების ჩანაცვლება." }
+            },
+            coach: {
+                "voice-guide": { label: "ხმოვანი მწვრთნელი", desc: "რეალურ დროში მოტივაცია. აირჩიეთ მამრობითი/მდედრობითი ხმა." },
+                "rep-count": { label: "მთვლელი", desc: "AI ავტომატურად ითვლის გამეორებებს." },
+                "form-tips": { label: "ფორმა", desc: "მყისიერი უკუკავშირი თქვენს პოზაზე." },
+                history: { label: "ისტორია", desc: "ყველა ვარჯიშის თვალყურისდევნება." }
+            },
+            scale: {
+                camera: { label: "კამერა", desc: "უბრალოდ მიმართეთ სასწორის ეკრანისკენ." },
+                "auto-read": { label: "ავტო-კითხვა", desc: "AI მყისიერად კითხულობს წონას." },
+                "any-scale": { label: "ნებისმიერი სასწორი", desc: "მხარდაჭერილია ციფრული და ანალოგური სასწორები." },
+                trend: { label: "ტრენდი", desc: "თვალყური ადევნეთ წონის ცვლილებებს გრაფიკებში." }
+            },
+            food: {
+                calories: { label: "კალორიები", desc: "გადაიღეთ ფოტო — კალორიების შეფასება წამებში." },
+                macros: { label: "მაკროები", desc: "ცილის, ნახშირწყლების, ცხიმის დაშლა." },
+                reference: { label: "საორიენტაციო", desc: "გამოიყენეთ ბარათი ზუსტი პორციებისთვის." },
+                log: { label: "ჟურნალი", desc: "საკვები ავტომატურად ემატება ჟურნალს." }
+            },
+            receipt: {
+                scan: { label: "სკანი", desc: "გადაიღეთ ჩეკი. AI ყველაფერს ამოიღებს." },
+                extract: { label: "ამოღება", desc: "პროდუქტები, ფასები, რაოდენობები ავტომატურად იცნობა." },
+                prices: { label: "ფასები", desc: "თვალყური ადევნეთ ფასების ცვლილებებს დროთა განმავლობაში." },
+                budget: { label: "ბიუჯეტი", desc: "ხარჯვის ანალიტიკა და დაზოგვის რჩევები." }
+            },
+            finance: {
+                spending: { label: "ხარჯვა", desc: "ყველა საკვების შესყიდვის თვალყურისდევნება." },
+                "cooking-vs-out": { label: "სახლი vs გარეთ", desc: "შეადარეთ სახლში მზადების vs გარეთ ჭამის ხარჯები." },
+                reports: { label: "ანგარიშები", desc: "ყოველთვიური დეტალური საკვების ბიუჯეტის ანგარიშები." },
+                savings: { label: "დანაზოგი", desc: "გამოთვალეთ რამდენს ზოგავთ სახლში მზადებით." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "ნაბიჯების, ვარჯიშის, გულისცემის სინქრონიზაცია." },
+                "apple-health": { label: "Apple Health", desc: "სრული ინტეგრაცია Apple Health-თან." },
+                steps: { label: "ნაბიჯები", desc: "მიიღეთ ნაბიჯების რაოდენობა ტელეფონიდან ან სმარტ საათიდან." },
+                sync: { label: "სინქრონიზაცია", desc: "მონაცემები ავტომატურად სინქრონიზდება ფონზე." }
+            },
+            goals: {
+                custom: { label: "მორგებული მიზნები", desc: "დააყენეთ თქვენი საკუთარი ყოველდღიური მიზნები." },
+                exercises: { label: "ვარჯიშები", desc: "ნაბიჯების, ბრუნვების, სკვოტების, წყლის მიზნები." },
+                streak: { label: "სერია", desc: "სერიის მთვლელები ჩვევების შესაქმნელად." },
+                progress: { label: "რგოლები", desc: "ყოველდღიური პროგრესის ჩვენება ლამაზ რგოლებში." }
+            },
+            charts: {
+                weight: { label: "წონა", desc: "კვირის და თვის წონის ტრენდები." },
+                workouts: { label: "ვარჯიშები", desc: "სიხშირისა და ინტენსივობის ვიზუალიზაცია." },
+                body: { label: "სხეული", desc: "კუნთებისა და ცხიმის მასის თვალყურისდევნება." },
+                export: { label: "ექსპორტი", desc: "ყველა მონაცემის ექსპორტი CSV-ში." }
+            },
+            offline: {
+                "offline-mode": { label: "ოფლაინ", desc: "სრული ფუნქციონალობა ინტერნეტის გარეშე." },
+                "auto-sync": { label: "ავტო სინქ", desc: "ცვლილებები ავტომატურად სინქრონიზდება ონლაინ რეჟიმში." },
+                local: { label: "ლოკალური", desc: "ყველა მონაცემი უსაფრთხოდ ინახება მოწყობილობაზე." },
+                anywhere: { label: "ყველგან", desc: "მუშაობს სპორტდარბაზში, გარეთ, მოგზაურობისას." }
+            },
+            shop: {
+                planning: { label: "დაგეგმვა", desc: "AI გთავაზობთ კვებას თქვენი პრეფერენციების მიხედვით." },
+                list: { label: "ჭკვიანი სია", desc: "სია ავტომატურად ორგანიზებული მაღაზიის სექციების მიხედვით." },
+                scanner: { label: "თაროს სკანერი", desc: "დაასკანერეთ თარო პროდუქტების სწრაფად საპოვნელად." },
+                verify: { label: "გადამოწმება", desc: "კალათის ფოტო ყველაფრის შესამოწმებლად." }
+            }
         }
     }
 };
