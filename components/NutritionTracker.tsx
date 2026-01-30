@@ -259,6 +259,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
         try {
             const result = await analyzeFood(pendingPhotoBase64, altObject.emoji + ' ' + t(altObject.label as any), altObject.dimensions);
+            // Skip reference check - user explicitly chose an alternative, just save the result
             await saveFoodResult(result, pendingPhotoBase64);
         } catch (e) {
             setCapturedPhotoBase64(pendingPhotoBase64);
