@@ -92,9 +92,9 @@ export default defineConfig({
     },
   ],
 
-  // Dev server для локального запуска
+  // Dev server для локального запуска / Preview для CI
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI ? 'npm run preview -- --port 5173' : 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
