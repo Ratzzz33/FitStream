@@ -25,7 +25,7 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       # Глубокое сканирование Semgrep
       - name: Semgrep Full Scan
