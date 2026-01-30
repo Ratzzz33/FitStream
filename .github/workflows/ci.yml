@@ -197,12 +197,16 @@ jobs:
 
       - name: Run Gitleaks
         run: |
+          CONFIG_ARG=""
+          if [ -f ".gitleaks.toml" ]; then
+            CONFIG_ARG="--config=/path/.gitleaks.toml"
+          fi
           docker run --rm \
             -v "${PWD}:/path" \
             docker.io/zricethezav/gitleaks:latest \
             detect \
             --source="/path" \
-            --config="/path/.gitleaks.toml" \
+            $CONFIG_ARG \
             --report-format=json \
             --report-path=/path/gitleaks-report.json \
             --exit-code=1
