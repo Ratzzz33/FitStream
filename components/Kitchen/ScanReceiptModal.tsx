@@ -3,6 +3,7 @@ import { X, Camera, Check, AlertCircle, Package, Thermometer, Snowflake } from '
 import { InventoryItem, StorageType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { scanReceipt, ScannedReceipt, ScannedReceiptItem } from '../../services/geminiService';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface ScanReceiptModalProps {
   onClose: () => void;
@@ -19,6 +20,9 @@ export const ScanReceiptModal: React.FC<ScanReceiptModalProps> = ({
   const [receipt, setReceipt] = useState<ScannedReceipt | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
+
+  const settings = StorageService.getSettings();
+  const currency = (settings.currency || 'RUB') as CurrencyCode;
 
   const handleTakePhoto = () => {
     const input = document.createElement('input');
@@ -170,7 +174,7 @@ export const ScanReceiptModal: React.FC<ScanReceiptModalProps> = ({
                     ✓ Распознано {receipt.items.length} товаров
                   </span>
                   <span className="font-semibold text-green-600 dark:text-green-400">
-                    {receipt.totalPrice.toLocaleString()} ₽
+                    {formatCurrency(receipt.totalPrice, currency)}
                   </span>
                 </div>
               </div>
@@ -220,7 +224,7 @@ export const ScanReceiptModal: React.FC<ScanReceiptModalProps> = ({
 
                     {/* Price */}
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      {item.price.toLocaleString()} ₽
+                      {formatCurrency(item.price, currency)}
                     </span>
                   </div>
                 ))}

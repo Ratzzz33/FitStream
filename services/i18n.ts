@@ -71,6 +71,7 @@ const translations = {
     scanError: 'Could not detect clearly. Please try again.',
     goal: 'Goal',
     theme: 'Theme',
+    currency: 'Currency',
     darkMode: 'Dark Mode',
     lightMode: 'Light Mode',
     defaultMotivation: 'Keep pushing! You are doing great!',
@@ -341,6 +342,7 @@ const translations = {
     scanError: 'Не удалось четко распознать. Попробуйте еще раз.',
     goal: 'Цель',
     theme: 'Тема',
+    currency: 'Валюта',
     darkMode: 'Темная тема',
     lightMode: 'Светлая тема',
     defaultMotivation: 'Продолжай в том же духе! Ты молодец!',
@@ -545,6 +547,7 @@ const translations = {
   },
   es: {
     dashboard: 'Inicio',
+    currency: 'Moneda',
     // ... (truncated for brevity - relying on fallback)
     trialEnded: 'Prueba de IA finalizada',
     manualEntry: 'Entrada manual',
@@ -552,6 +555,7 @@ const translations = {
   },
   fr: {
     dashboard: 'Accueil',
+    currency: 'Devise',
     // ...
     trialEnded: 'Essai IA terminé',
     manualEntry: 'Saisie manuelle',
@@ -559,6 +563,7 @@ const translations = {
   },
   de: {
     dashboard: 'Dashboard',
+    currency: 'Währung',
     // ...
     trialEnded: 'KI-Test beendet',
     manualEntry: 'Manuelle Eingabe',
@@ -566,6 +571,7 @@ const translations = {
   },
   zh: {
     dashboard: '主页',
+    currency: '货币',
     // ...
     trialEnded: 'AI 试用结束',
     manualEntry: '手动输入',

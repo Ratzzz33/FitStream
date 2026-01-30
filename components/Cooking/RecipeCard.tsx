@@ -1,6 +1,8 @@
 import React from 'react';
 import { Clock, Flame, Users, AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
+import { StorageService } from '../../services/storageService';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface RecipeCardProps {
   recipe: GeneratedRecipe;
@@ -20,6 +22,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   // Check if all ingredients are available
   const allIngredientsAvailable = recipe.ingredients.every(i => i.isAvailable);
   const unavailableIngredients = recipe.ingredients.filter(i => !i.isAvailable);
+
+  const settings = StorageService.getSettings();
+  const currency = (settings.currency || 'RUB') as CurrencyCode;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
@@ -74,19 +79,19 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             <div className="flex justify-between items-center mb-1">
               <span className="text-gray-600 dark:text-gray-400">💰 Себестоимость:</span>
               <span className="font-medium dark:text-white">
-                ~{recipe.costEstimate}₽ ({Math.round(recipe.costEstimate / recipe.servings)}₽/порция)
+                ~{formatCurrency(recipe.costEstimate, currency)} ({formatCurrency(Math.round(recipe.costEstimate / recipe.servings), currency)}/порция)
               </span>
             </div>
             {recipe.restaurantPrice && (
               <>
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-gray-600 dark:text-gray-400">🍽️ В ресторане:</span>
-                  <span className="text-gray-500 dark:text-gray-400">~{recipe.restaurantPrice}₽</span>
+                  <span className="text-gray-500 dark:text-gray-400">~{formatCurrency(recipe.restaurantPrice, currency)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-green-200 dark:border-green-800">
                   <span className="text-green-600 dark:text-green-400 font-medium">💚 Экономия:</span>
                   <span className="text-green-600 dark:text-green-400 font-bold">
-                    {recipe.restaurantPrice - recipe.costEstimate}₽!
+                    {formatCurrency(recipe.restaurantPrice - recipe.costEstimate, currency)}!
                   </span>
                 </div>
               </>

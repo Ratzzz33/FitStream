@@ -7,6 +7,7 @@ import { ProductList } from './ProductList';
 import { AddProductModal } from './AddProductModal';
 import { ScanReceiptModal } from './ScanReceiptModal';
 import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhotoId } from '../../services/geminiService';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface KitchenProps {
   onClose?: () => void;
@@ -63,7 +64,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
 
   const totalValue = Math.round(calculateInventoryValue());
   const expiringValue = Math.round(calculateExpiringValue());
-  const currency = (settings as any)?.currency || '₽';
+  const currency = (settings?.currency || 'RUB') as CurrencyCode;
 
   // Scan single photo and return products with photoId
   const scanSinglePhoto = async (base64: string, photoId: string): Promise<ProductWithPhotoId[]> => {
@@ -565,7 +566,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         <div className="flex items-center gap-1">
           <span>💰</span>
           <span className="text-gray-600 dark:text-gray-400">~</span>
-          <span className="font-medium dark:text-white">{totalValue.toLocaleString()} {currency}</span>
+          <span className="font-medium dark:text-white">{formatCurrency(totalValue, currency)}</span>
         </div>
         {currentPhotos.length > 1 && (
           <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
@@ -583,7 +584,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             </div>
             <div className="flex items-center gap-1 text-red-500 dark:text-red-400 col-span-2">
               <span>❌</span>
-              <span>Под угрозой ~{expiringValue.toLocaleString()} {currency}</span>
+              <span>~{formatCurrency(expiringValue, currency)}</span>
             </div>
           </>
         )}

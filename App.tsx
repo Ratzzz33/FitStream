@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -21,6 +21,7 @@ import { t } from './services/i18n';
 import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback } from './services/telegramService';
 import TelegramLinkButton from './components/TelegramLinkButton';
 import { googleAuthService } from './services/googleAuthService';
+import { getCurrencyList, CurrencyCode } from './services/currencyService';
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -1080,12 +1081,40 @@ const App = () => {
                         {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400" /> : <Sun size={20} className="text-orange-500" />}
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{t('theme')}</span>
                     </div>
-                    <button 
+                    <button
                         onClick={toggleTheme}
                         className={`px-4 py-2 rounded-lg text-xs font-bold transition ${settings.theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}
                     >
                         {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
                     </button>
+                </div>
+
+                {/* Currency Selection */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Coins size={20} className="text-green-500" />
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{t('currency') || 'Валюта'}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {getCurrencyList().map((curr) => (
+                            <button
+                                key={curr.code}
+                                onClick={() => {
+                                    const updated = { ...settings, currency: curr.code as CurrencyCode };
+                                    setSettings(updated);
+                                    StorageService.saveSettings(updated);
+                                }}
+                                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                                    (settings.currency || 'RUB') === curr.code
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-2 ring-green-500'
+                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                <span>{curr.flag}</span>
+                                <span>{curr.symbol}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Health Connect */}
