@@ -4,7 +4,12 @@
 name: Deploy
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      password:
+        description: 'Deploy password'
+        required: true
+        type: string
 
 env:
   AWS_REGION: eu-central-1
@@ -15,7 +20,7 @@ jobs:
   deploy:
     name: 🚀 Deploy to AWS
     runs-on: self-hosted
-    # Triggered manually via "gh workflow run deploy" or GitHub UI
+    if: ${{ github.event.inputs.password == 'deploy' }}
 
     steps:
       - name: Checkout

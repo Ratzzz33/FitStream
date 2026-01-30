@@ -79,6 +79,9 @@ export interface FoodAnalysisResult {
     fat: number;
     referenceDetected: boolean;
     confidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+    isHomeMade: boolean;
+    homeIndicators: string[];
+    ingredients: string[];
 }
 
 export const analyzeFood = async (
@@ -115,6 +118,23 @@ Check if ANY common reference object is visible for scale estimation:
 referenceDetected: true if ANY of these objects is visible (not just the preferred one)
 confidenceLevel: HIGH if clear reference visible, MEDIUM if partial/unclear, LOW if no reference at all
 
+ALSO determine if this food is HOME-MADE or from OUTSIDE:
+Home-made indicators (isHomeMade=true):
+- Food container, lunch box, meal prep container
+- Home kitchen plates, simple dishes
+- Home environment visible
+- Food in tupperware or similar storage
+
+Outside food indicators (isHomeMade=false):
+- Restaurant plates with logo or branding
+- Cafe/restaurant table or setting
+- Professional plating/garnish
+- Takeout packaging with brand
+- Fast food containers
+
+homeIndicators: list visible indicators that helped determine if home-made (e.g. ["lunch box", "home plate"])
+ingredients: list the main ingredients in this dish (e.g. ["chicken", "rice", "vegetables", "sauce"])
+
 Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
                     ]
                 }
@@ -130,9 +150,12 @@ Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
                         carbs: { type: Type.NUMBER },
                         fat: { type: Type.NUMBER },
                         referenceDetected: { type: Type.BOOLEAN },
-                        confidenceLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] }
+                        confidenceLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
+                        isHomeMade: { type: Type.BOOLEAN },
+                        homeIndicators: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        ingredients: { type: Type.ARRAY, items: { type: Type.STRING } }
                     },
-                    required: ["name", "calories", "protein", "carbs", "fat", "referenceDetected", "confidenceLevel"]
+                    required: ["name", "calories", "protein", "carbs", "fat", "referenceDetected", "confidenceLevel", "isHomeMade", "homeIndicators", "ingredients"]
                 }
             }
         });

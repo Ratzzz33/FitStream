@@ -71,7 +71,7 @@ export interface PendingItem {
     needsAiAnalysis: boolean;
 }
 
-export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES' | 'DIPS' | 'PULLUPS';
+export type GoalType = 'STEPS' | 'PUSHUPS' | 'SQUATS' | 'SITUPS' | 'JUMPING_JACKS' | 'LUNGES' | 'BURPEES' | 'DIPS' | 'PULLUPS' | 'PLANK' | 'MOUNTAIN_CLIMBERS' | 'CRUNCHES' | 'LEG_RAISES' | 'BICYCLE_CRUNCHES' | 'HIGH_KNEES';
 
 export interface DailyGoal {
   type: GoalType;
