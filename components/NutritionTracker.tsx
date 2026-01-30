@@ -92,7 +92,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [flashEnabled, setFlashEnabled] = useState(false);
     const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
     const [showCameraRefSelector, setShowCameraRefSelector] = useState(false);
-    const [selectedRefObject, setSelectedRefObject] = useState<string>(settings.referenceObject || 'Hand');
+    const [selectedRefObject, setSelectedRefObject] = useState<string>('Hand');
 
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -125,6 +125,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    // Initialize selected reference object from settings
+    useEffect(() => {
+        if (settings.referenceObject) {
+            setSelectedRefObject(settings.referenceObject);
+        }
+    }, [settings.referenceObject]);
 
     // Track pending items count
     useEffect(() => {
