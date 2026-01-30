@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     ShoppingCart, ChefHat, Users, Clock, Loader2, Camera, Check, X,
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
-    RefreshCw, Heart, AlertCircle, Eye
+    RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus
 } from 'lucide-react';
 import { t } from '../services/i18n';
 import {
@@ -22,6 +22,8 @@ import {
     scanStoreShelf,
     suggestProductAlternative,
     checkDuplicateInInventory,
+    generateMealAlternatives,
+    MealAlternative,
     ShelfScanResult
 } from '../services/geminiService';
 import { StorageService } from '../services/storageService';
@@ -85,6 +87,16 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     // Expanded meal days
     const [expandedDays, setExpandedDays] = useState<number[]>([1]);
 
+    // Generation progress state
+    const [generationStage, setGenerationStage] = useState<1 | 2 | 3>(1);
+    const [generationProgress, setGenerationProgress] = useState(0);
+
+    // Meal replacement state
+    const [selectedMealForReplacement, setSelectedMealForReplacement] = useState<PlannedMeal | null>(null);
+    const [mealAlternatives, setMealAlternatives] = useState<MealAlternative[]>([]);
+    const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
+    const [productChanges, setProductChanges] = useState<{ added: string[]; removed: string[] } | null>(null);
+
     // Load inventory
     const inventory = StorageService.getInventory?.() || [];
 
@@ -105,12 +117,34 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         e.target.value = ''; // Reset input
     };
 
-    // Generate meal plan
+    // Generate meal plan with progress stages
     const handleGeneratePlan = async () => {
         setIsLoading(true);
         setError(null);
+        setGenerationStage(1);
+        setGenerationProgress(0);
+
+        // Animate progress through stages
+        const progressInterval = setInterval(() => {
+            setGenerationProgress(prev => {
+                if (prev < 30) {
+                    return prev + 2;
+                } else if (prev < 70) {
+                    setGenerationStage(2);
+                    return prev + 1.5;
+                } else if (prev < 95) {
+                    setGenerationStage(3);
+                    return prev + 0.5;
+                }
+                return prev;
+            });
+        }, 100);
+
         try {
             const result = await generateMealPlanForShopping(inventory, preferences);
+            clearInterval(progressInterval);
+            setGenerationProgress(100);
+
             const newSession: ShoppingSession = {
                 id: Date.now().toString(),
                 createdAt: new Date().toISOString(),
@@ -120,10 +154,19 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 status: 'planning',
                 totalEstimatedCost: result.totalEstimatedCost
             };
-            setSession(newSession);
-            setView('list');
+
+            // Small delay to show 100% before switching view
+            setTimeout(() => {
+                setSession(newSession);
+                setView('list');
+                setGenerationProgress(0);
+                setGenerationStage(1);
+            }, 300);
         } catch (e) {
+            clearInterval(progressInterval);
             setError(String(e));
+            setGenerationProgress(0);
+            setGenerationStage(1);
         } finally {
             setIsLoading(false);
         }
@@ -135,6 +178,131 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             setSession({ ...session, status: 'shopping' });
             setView('shopping');
         }
+    };
+
+    // Open meal replacement modal
+    const handleOpenMealReplacement = async (meal: PlannedMeal) => {
+        setSelectedMealForReplacement(meal);
+        setMealAlternatives([]);
+        setIsLoadingAlternatives(true);
+        setProductChanges(null);
+
+        try {
+            const result = await generateMealAlternatives(meal, preferences, inventory);
+            setMealAlternatives(result.alternatives);
+        } catch (e) {
+            setError(String(e));
+        } finally {
+            setIsLoadingAlternatives(false);
+        }
+    };
+
+    // Replace meal with alternative
+    const handleReplaceMeal = (alternative: MealAlternative) => {
+        if (!session || !selectedMealForReplacement) return;
+
+        // Get old ingredients from the meal being replaced
+        const oldIngredients = selectedMealForReplacement.ingredients.map(i => i.name.toLowerCase());
+
+        // Create new PlannedMeal from alternative
+        const newMeal: PlannedMeal = {
+            ...selectedMealForReplacement,
+            recipeName: alternative.recipeName,
+            recipeDescription: alternative.recipeDescription,
+            cookingTime: alternative.cookingTime,
+            calories: alternative.calories,
+            difficulty: alternative.difficulty,
+            ingredients: alternative.ingredients.map(ing => ({
+                ...ing,
+                inInventory: false,
+                needToBuy: ing.quantity
+            }))
+        };
+
+        // Update meal plan
+        const updatedMealPlan = session.mealPlan.map(m =>
+            m.id === selectedMealForReplacement.id ? newMeal : m
+        );
+
+        // Recalculate shopping list
+        const allIngredients = new Map<string, ShoppingListItem>();
+
+        // First, remove items that were only for the replaced meal
+        session.shoppingList.forEach(item => {
+            const wasOnlyForReplacedMeal = item.forRecipes.length === 1 &&
+                item.forRecipes[0] === selectedMealForReplacement.recipeName;
+
+            if (!wasOnlyForReplacedMeal) {
+                // Update forRecipes to remove old meal name
+                const updatedForRecipes = item.forRecipes.filter(r => r !== selectedMealForReplacement.recipeName);
+                if (updatedForRecipes.length > 0) {
+                    allIngredients.set(item.name.toLowerCase(), {
+                        ...item,
+                        forRecipes: updatedForRecipes
+                    });
+                }
+            }
+        });
+
+        // Track changes
+        const removedProducts: string[] = [];
+        const addedProducts: string[] = [];
+
+        // Check what was removed
+        session.shoppingList.forEach(item => {
+            if (!allIngredients.has(item.name.toLowerCase())) {
+                removedProducts.push(`${item.emoji} ${item.name}`);
+            }
+        });
+
+        // Add new ingredients from the alternative
+        alternative.ingredients.forEach(ing => {
+            const key = ing.name.toLowerCase();
+            if (allIngredients.has(key)) {
+                const existing = allIngredients.get(key)!;
+                allIngredients.set(key, {
+                    ...existing,
+                    quantity: existing.quantity + ing.quantity,
+                    forRecipes: [...existing.forRecipes, alternative.recipeName]
+                });
+            } else {
+                addedProducts.push(`${ing.emoji} ${ing.name}`);
+                allIngredients.set(key, {
+                    id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: ing.name,
+                    emoji: ing.emoji,
+                    quantity: ing.quantity,
+                    unit: ing.unit,
+                    category: 'other' as ShoppingCategory,
+                    forRecipes: [alternative.recipeName],
+                    healthScore: 1,
+                    isChecked: false
+                });
+            }
+        });
+
+        const updatedShoppingList = Array.from(allIngredients.values());
+
+        setSession({
+            ...session,
+            mealPlan: updatedMealPlan,
+            shoppingList: updatedShoppingList
+        });
+
+        setProductChanges({
+            added: addedProducts,
+            removed: removedProducts
+        });
+
+        setSelectedMealForReplacement(null);
+        setMealAlternatives([]);
+    };
+
+    // Close meal replacement modal
+    const handleCloseMealReplacement = () => {
+        setSelectedMealForReplacement(null);
+        setMealAlternatives([]);
+        setProductChanges(null);
     };
 
     // Toggle item checked
@@ -425,6 +593,39 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             )}
 
+            {/* Generation Progress */}
+            {isLoading && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {generationStage === 1 && t('generatingStage1')}
+                            {generationStage === 2 && t('generatingStage2')}
+                            {generationStage === 3 && t('generatingStage3')}
+                        </span>
+                        <span className="text-sm font-bold text-emerald-500">
+                            {Math.round(generationProgress)}%
+                        </span>
+                    </div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-200 ease-out"
+                            style={{ width: `${generationProgress}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400">
+                        <span className={generationStage >= 1 ? 'text-emerald-500 font-medium' : ''}>
+                            🔍 Холодильник
+                        </span>
+                        <span className={generationStage >= 2 ? 'text-emerald-500 font-medium' : ''}>
+                            📋 Меню
+                        </span>
+                        <span className={generationStage >= 3 ? 'text-emerald-500 font-medium' : ''}>
+                            🛒 Продукты
+                        </span>
+                    </div>
+                </div>
+            )}
+
             <button
                 onClick={handleGeneratePlan}
                 disabled={isLoading}
@@ -488,10 +689,21 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                                     {meal.cookingTime} мин • {meal.calories} ккал
                                                 </span>
                                             </div>
-                                            <p className="font-bold text-gray-900 dark:text-white">{meal.recipeName}</p>
-                                            {meal.recipeDescription && (
-                                                <p className="text-xs text-gray-500 mt-1">{meal.recipeDescription}</p>
-                                            )}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-gray-900 dark:text-white">{meal.recipeName}</p>
+                                                    {meal.recipeDescription && (
+                                                        <p className="text-xs text-gray-500 mt-1">{meal.recipeDescription}</p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleOpenMealReplacement(meal)}
+                                                    className="ml-2 p-2 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-500 hover:text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition"
+                                                    title={t('replaceMeal')}
+                                                >
+                                                    <Repeat size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -531,6 +743,118 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     <ShoppingCart size={18} /> {t('startShopping')}
                 </button>
             </div>
+
+            {/* Product Changes Notification */}
+            {productChanges && (productChanges.added.length > 0 || productChanges.removed.length > 0) && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                            <RefreshCw size={16} /> {t('productsChanged')}
+                        </h4>
+                        <button
+                            onClick={() => setProductChanges(null)}
+                            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-full"
+                        >
+                            <X size={16} className="text-blue-500" />
+                        </button>
+                    </div>
+                    {productChanges.added.length > 0 && (
+                        <div className="mb-2">
+                            <span className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                                <Plus size={12} /> {t('addedProducts')}:
+                            </span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {productChanges.added.join(', ')}
+                            </p>
+                        </div>
+                    )}
+                    {productChanges.removed.length > 0 && (
+                        <div>
+                            <span className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                                <Minus size={12} /> {t('removedProducts')}:
+                            </span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {productChanges.removed.join(', ')}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Meal Replacement Modal */}
+            {selectedMealForReplacement && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+                    <div className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg max-h-[80vh] overflow-hidden animate-slide-up">
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                {t('chooseMealAlternative')}
+                            </h3>
+                            <button
+                                onClick={handleCloseMealReplacement}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Current meal */}
+                        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 mb-1">Текущее блюдо:</p>
+                            <p className="font-bold text-gray-900 dark:text-white">
+                                {selectedMealForReplacement.recipeName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {selectedMealForReplacement.cookingTime} мин • {selectedMealForReplacement.calories} ккал
+                            </p>
+                        </div>
+
+                        <div className="overflow-y-auto max-h-[50vh] p-4 space-y-3">
+                            {isLoadingAlternatives ? (
+                                <div className="flex flex-col items-center justify-center py-8">
+                                    <Loader2 size={32} className="animate-spin text-emerald-500 mb-3" />
+                                    <p className="text-gray-500">{t('loadingAlternatives')}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {mealAlternatives.map((alt, idx) => (
+                                        <button
+                                            key={alt.id || idx}
+                                            onClick={() => handleReplaceMeal(alt)}
+                                            className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-left hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition"
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="font-bold text-gray-900 dark:text-white">
+                                                    {alt.recipeName}
+                                                </p>
+                                                <ChevronRight size={18} className="text-gray-400" />
+                                            </div>
+                                            <p className="text-sm text-gray-500 mb-2">
+                                                {alt.recipeDescription}
+                                            </p>
+                                            <div className="flex items-center gap-3 text-xs text-gray-400">
+                                                <span>⏱ {alt.cookingTime} мин</span>
+                                                <span>🔥 {alt.calories} ккал</span>
+                                                <span>
+                                                    {alt.difficulty === 'easy' && '😊 Просто'}
+                                                    {alt.difficulty === 'medium' && '👨‍🍳 Средне'}
+                                                    {alt.difficulty === 'hard' && '🎯 Сложно'}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        onClick={handleCloseMealReplacement}
+                                        className="w-full py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-600 dark:text-gray-400 font-medium"
+                                    >
+                                        {t('keepOriginal')}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 

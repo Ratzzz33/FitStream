@@ -1361,3 +1361,106 @@ export const checkDuplicateInInventory = (
 
     return { hasDuplicate: false };
 };
+
+// 16. Generate meal alternatives for replacement
+export interface MealAlternative {
+    id: string;
+    recipeName: string;
+    recipeDescription: string;
+    cookingTime: number;
+    calories: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+    ingredients: Array<{
+        name: string;
+        emoji: string;
+        quantity: number;
+        unit: string;
+    }>;
+}
+
+export const generateMealAlternatives = async (
+    currentMeal: PlannedMeal,
+    preferences: ShoppingPreferences,
+    inventory: InventoryItem[]
+): Promise<{ alternatives: MealAlternative[] }> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+
+    const difficultyMap = { easy: 'простые', medium: 'средние', hard: 'сложные' };
+    const timeMap = { quick: 'до 30 минут', medium: '30-60 минут', long: 'более 60 минут' };
+    const mealTypeMap = { breakfast: 'завтрак', lunch: 'обед', dinner: 'ужин', snack: 'перекус' };
+
+    const inventoryList = inventory.map(item => `${item.emoji || ''} ${item.name}`).join(', ');
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{
+                parts: [{
+                    text: `Ты умная жена, которая помогает заменить блюдо в меню.
+
+ТЕКУЩЕЕ БЛЮДО (${mealTypeMap[currentMeal.mealType]}):
+- Название: ${currentMeal.recipeName}
+- Описание: ${currentMeal.recipeDescription}
+- Время готовки: ${currentMeal.cookingTime} мин
+- Калории: ${currentMeal.calories}
+
+ПРЕДПОЧТЕНИЯ:
+- Сложность: ${difficultyMap[preferences.cookingDifficulty]}
+- Макс. время готовки: ${timeMap[preferences.maxCookingTime]}
+- Людей: ${preferences.peopleCount}
+
+ЕСТЬ В ХОЛОДИЛЬНИКЕ: ${inventoryList || 'пусто'}
+
+Предложи 3 альтернативных блюда похожей сложности и времени готовки.
+Постарайся использовать то, что уже есть в холодильнике.
+Верни JSON.`
+                }]
+            }],
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        alternatives: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.STRING },
+                                    recipeName: { type: Type.STRING },
+                                    recipeDescription: { type: Type.STRING },
+                                    cookingTime: { type: Type.NUMBER },
+                                    calories: { type: Type.NUMBER },
+                                    difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] },
+                                    ingredients: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                name: { type: Type.STRING },
+                                                emoji: { type: Type.STRING },
+                                                quantity: { type: Type.NUMBER },
+                                                unit: { type: Type.STRING }
+                                            },
+                                            required: ['name', 'emoji', 'quantity', 'unit']
+                                        }
+                                    }
+                                },
+                                required: ['id', 'recipeName', 'recipeDescription', 'cookingTime', 'calories', 'difficulty', 'ingredients']
+                            }
+                        }
+                    },
+                    required: ['alternatives']
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
+    } catch (error) {
+        console.error("Error generating meal alternatives:", error);
+        throw error;
+    }
+};
