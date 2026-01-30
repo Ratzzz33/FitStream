@@ -2,7 +2,7 @@
 
 import {
   ExerciseLog, WeightLog, UserSettings, Friend, DailyGoal, GoalType, NutritionLog, Gender, ActivityLevel,
-  KitchenStorage, InventoryItem, Recipe, CookedMeal, Leftover, StorageType
+  KitchenStorage, InventoryItem, Recipe, CookedMeal, Leftover, StorageType, StoragePhoto
 } from '../types';
 import { ApiService } from './api';
 
@@ -526,17 +526,212 @@ export const StorageService = {
 
   getStorages: (): KitchenStorage[] => {
     const data = localStorage.getItem(KEYS.KITCHEN_STORAGES);
-    return data ? JSON.parse(data) : DEFAULT_STORAGES;
+    const storages = data ? JSON.parse(data) : DEFAULT_STORAGES;
+    // Миграция: конвертировать старый single photo в массив
+    return storages.map((s: KitchenStorage) => {
+      if (s.photo && (!s.photos || s.photos.length === 0)) {
+        s.photos = [{
+          id: `photo_migrated_${Date.now()}`,
+          base64: s.photo,
+          createdAt: s.lastUpdated || new Date().toISOString()
+        }];
+      }
+      return s;
+    });
   },
 
+  // Deprecated: для обратной совместимости
   saveStoragePhoto: (storageId: string, photo: string): void => {
+    const photoId = StorageService.addStoragePhoto(storageId, photo);
+    // Также обновляем старое поле для совместимости
     const storages = StorageService.getStorages();
     const idx = storages.findIndex(s => s.id === storageId);
     if (idx !== -1) {
       storages[idx].photo = photo;
-      storages[idx].lastUpdated = new Date().toISOString();
       localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
     }
+  },
+
+  // === Мультифото методы ===
+
+  addStoragePhoto: (storageId: string, photoBase64: string, label?: string): string => {
+    const storages = StorageService.getStorages();
+    const idx = storages.findIndex(s => s.id === storageId);
+    if (idx === -1) return '';
+
+    const photoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newPhoto: StoragePhoto = {
+      id: photoId,
+      base64: photoBase64,
+      createdAt: new Date().toISOString(),
+      label
+    };
+
+    if (!storages[idx].photos) {
+      storages[idx].photos = [];
+    }
+    storages[idx].photos!.push(newPhoto);
+    storages[idx].lastUpdated = new Date().toISOString();
+    // Также обновляем legacy поле (последнее фото)
+    storages[idx].photo = photoBase64;
+
+    localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    return photoId;
+  },
+
+  getStoragePhotos: (storageId: string): StoragePhoto[] => {
+    const storages = StorageService.getStorages();
+    const storage = storages.find(s => s.id === storageId);
+    return storage?.photos || [];
+  },
+
+  removeStoragePhoto: (storageId: string, photoId: string): void => {
+    const storages = StorageService.getStorages();
+    const idx = storages.findIndex(s => s.id === storageId);
+    if (idx === -1 || !storages[idx].photos) return;
+
+    storages[idx].photos = storages[idx].photos!.filter(p => p.id !== photoId);
+    storages[idx].lastUpdated = new Date().toISOString();
+
+    // Обновляем legacy поле (последнее фото или пусто)
+    storages[idx].photo = storages[idx].photos!.length > 0
+      ? storages[idx].photos![storages[idx].photos!.length - 1].base64
+      : undefined;
+
+    // Удаляем inventory items привязанные только к этому фото
+    const inventory = StorageService.getInventory();
+    const updatedInventory = inventory.filter(item => {
+      // Оставляем если:
+      // 1. Продукт не из фото
+      // 2. Продукт с другого фото
+      // 3. Продукт виден на нескольких фото (удаляем только эту позицию)
+      if (item.source !== 'photo') return true;
+      if (item.photoId !== photoId) {
+        // Проверяем mergedFromPhotoIds
+        if (item.mergedFromPhotoIds?.includes(photoId)) {
+          item.mergedFromPhotoIds = item.mergedFromPhotoIds.filter(id => id !== photoId);
+          // Если продукт всё ещё виден на других фото — оставляем
+          return item.mergedFromPhotoIds.length > 0 || (item.photoId && item.photoId !== photoId);
+        }
+        return true;
+      }
+      // Если только на этом фото — удаляем
+      return item.mergedFromPhotoIds && item.mergedFromPhotoIds.length > 0;
+    });
+
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(updatedInventory));
+    localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+  },
+
+  updateStoragePhotoLabel: (storageId: string, photoId: string, label: string): void => {
+    const storages = StorageService.getStorages();
+    const storage = storages.find(s => s.id === storageId);
+    if (!storage?.photos) return;
+
+    const photo = storage.photos.find(p => p.id === photoId);
+    if (photo) {
+      photo.label = label;
+      localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    }
+  },
+
+  // Заменить фото (тот же ракурс, новое фото)
+  replaceStoragePhoto: (storageId: string, oldPhotoId: string, newPhotoBase64: string): string => {
+    const storages = StorageService.getStorages();
+    const storage = storages.find(s => s.id === storageId);
+    if (!storage?.photos) return '';
+
+    const photoIdx = storage.photos.findIndex(p => p.id === oldPhotoId);
+    if (photoIdx === -1) return '';
+
+    // Сохраняем label от старого фото
+    const oldLabel = storage.photos[photoIdx].label;
+
+    // Создаём новое фото с тем же ID (чтобы сохранить связи с inventory)
+    const newPhotoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    storage.photos[photoIdx] = {
+      id: newPhotoId,
+      base64: newPhotoBase64,
+      createdAt: new Date().toISOString(),
+      label: oldLabel
+    };
+
+    storage.lastUpdated = new Date().toISOString();
+    storage.photo = newPhotoBase64; // legacy
+
+    // Обновляем inventory items — переносим со старого photoId на новый
+    const inventory = StorageService.getInventory();
+    inventory.forEach(item => {
+      if (item.photoId === oldPhotoId) {
+        item.photoId = newPhotoId;
+      }
+      if (item.mergedFromPhotoIds?.includes(oldPhotoId)) {
+        item.mergedFromPhotoIds = item.mergedFromPhotoIds.map(id =>
+          id === oldPhotoId ? newPhotoId : id
+        );
+      }
+    });
+
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+
+    return newPhotoId;
+  },
+
+  // Удалить depleted items для фото (после пересканирования)
+  clearDepletedForPhoto: (photoId: string): void => {
+    const inventory = StorageService.getInventory().filter(item => {
+      // Удаляем depleted items только для этого фото
+      if (item.depleted && item.photoId === photoId) {
+        return false;
+      }
+      // Или если в mergedFromPhotoIds
+      if (item.depleted && item.mergedFromPhotoIds?.includes(photoId)) {
+        // Удаляем этот photoId из merged
+        item.mergedFromPhotoIds = item.mergedFromPhotoIds.filter(id => id !== photoId);
+        return item.mergedFromPhotoIds.length > 0;
+      }
+      return true;
+    });
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+  },
+
+  // Получить активные (не depleted) items
+  getActiveInventory: (): InventoryItem[] => {
+    return StorageService.getInventory().filter(item => !item.depleted);
+  },
+
+  // Получить все items включая depleted (для показа на фото)
+  getInventoryWithDepleted: (storageId?: string): InventoryItem[] => {
+    const inventory = StorageService.getInventory();
+    return storageId
+      ? inventory.filter(i => i.storageId === storageId)
+      : inventory;
+  },
+
+  clearStoragePhotos: (storageId: string): void => {
+    const storages = StorageService.getStorages();
+    const idx = storages.findIndex(s => s.id === storageId);
+    if (idx === -1) return;
+
+    storages[idx].photos = [];
+    storages[idx].photo = undefined;
+    storages[idx].lastUpdated = new Date().toISOString();
+
+    // Удаляем все inventory items с фото для этого хранилища
+    const inventory = StorageService.getInventory().filter(
+      item => item.storageId !== storageId || item.source !== 'photo'
+    );
+
+    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+  },
+
+  // Получить inventory items для конкретного фото
+  getInventoryByPhoto: (photoId: string): InventoryItem[] => {
+    return StorageService.getInventory().filter(item =>
+      item.photoId === photoId || item.mergedFromPhotoIds?.includes(photoId)
+    );
   },
 
   // === SMART KITCHEN: Inventory ===
@@ -584,9 +779,17 @@ export const StorageService = {
     const idx = inventory.findIndex(i => i.id === id);
     if (idx !== -1) {
       if (newQuantity <= 0) {
-        inventory.splice(idx, 1);
+        // Не удаляем, а помечаем как depleted (для показа X на фото)
+        inventory[idx].quantity = 0;
+        inventory[idx].depleted = true;
+        inventory[idx].depletedAt = new Date().toISOString();
       } else {
         inventory[idx].quantity = newQuantity;
+        // Если было depleted и добавили — снимаем метку
+        if (inventory[idx].depleted) {
+          inventory[idx].depleted = false;
+          inventory[idx].depletedAt = undefined;
+        }
       }
       localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
     }
