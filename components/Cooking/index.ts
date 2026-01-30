@@ -1,5 +1,8 @@
 export { Cooking } from './Cooking';
 export { RecipeCard } from './RecipeCard';
+export { RecipeCardMini } from './RecipeCardMini';
+export { RecipeCardExpanded } from './RecipeCardExpanded';
+export { RecipeCarousel } from './RecipeCarousel';
 export { CookingMode } from './CookingMode';
 export { CookingStep } from './CookingStep';
 export { CookingComplete } from './CookingComplete';

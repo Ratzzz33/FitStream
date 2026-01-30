@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -13,9 +13,11 @@ import { StatsCharts } from './components/Charts';
 import { GoalSettings } from './components/GoalSettings';
 import { AvatarSelector } from './components/AvatarSelector';
 import { HealthConnect } from './components/HealthConnect';
+import { DeviceSettings } from './components/DeviceSettings';
 import { ProUpgradeModal } from './components/ProUpgradeModal';
 import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
+import { ShoppingAssistant } from './components/ShoppingAssistant';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
 import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback } from './services/telegramService';
@@ -795,6 +797,8 @@ const App = () => {
         
         {activeTab === AppTab.NUTRITION && <NutritionTracker onRequestPro={() => setShowProModal(true)} />}
 
+        {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowProModal(true)} />}
+
         {activeTab === AppTab.SOCIAL && (
             <div className="px-4 space-y-4 pb-24">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('leaderboard')}</h2>
@@ -1117,8 +1121,8 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Health Connect */}
-                <HealthConnect settings={settings} onUpdate={refreshData} />
+                {/* Device Connections (Scales, Health Connect, Watches) */}
+                <DeviceSettings settings={settings} onUpdate={refreshData} />
             </div>
         )}
       </main>
@@ -1133,7 +1137,13 @@ const App = () => {
           <Utensils size={20} />
           <span className="text-[10px] font-medium">{t('nutrition')}</span>
         </button>
-        
+
+        {/* Shopping Button */}
+        <button onClick={() => setActiveTab(AppTab.SHOPPING)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
+          <ShoppingCart size={20} />
+          <span className="text-[10px] font-medium">{t('shopping')}</span>
+        </button>
+
         {/* Main Workout Button */}
         <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
             <div className="bg-blue-600 text-white p-3 rounded-full -mt-8 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 hover:bg-blue-500 transition border-4 border-white dark:border-slate-950">
@@ -1142,10 +1152,6 @@ const App = () => {
             <span className="text-[10px] font-medium">{t('workout')}</span>
         </button>
 
-        <button onClick={() => setActiveTab(AppTab.SOCIAL)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SOCIAL ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
-          <Users size={20} />
-          <span className="text-[10px] font-medium">{t('social')}</span>
-        </button>
         <button onClick={() => setActiveTab(AppTab.SETTINGS)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
           <Settings size={20} />
           <span className="text-[10px] font-medium">{t('settings')}</span>

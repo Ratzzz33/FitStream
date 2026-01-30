@@ -173,6 +173,34 @@ class HealthService {
   }
 
   /**
+   * Get today's calories burned
+   */
+  async getTodayCalories(): Promise<number> {
+    const platform = platformService.getInfo();
+
+    if (platform.platform === 'android') {
+      return googleFitService.getTodayCalories();
+    } else if (platform.platform === 'ios') {
+      return appleHealthService.getTodayCalories?.() || 0;
+    }
+
+    return Math.round(this.webStepCounter * 0.04);
+  }
+
+  /**
+   * Get data sources (connected health apps)
+   */
+  async getDataSources(): Promise<string[]> {
+    const platform = platformService.getInfo();
+
+    if (platform.platform === 'android') {
+      return googleFitService.getDataSources();
+    }
+
+    return [];
+  }
+
+  /**
    * Get step history for past N days
    */
   async getStepHistory(days: number = 7): Promise<StepData[]> {

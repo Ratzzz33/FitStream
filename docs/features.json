@@ -1,0 +1,419 @@
+{
+  "app": {
+    "name": "FitStream AI",
+    "version": "2.0",
+    "tagline": {
+      "en": "AI-Powered Fitness & Nutrition Companion",
+      "ru": "ИИ-помощник для фитнеса и питания",
+      "es": "Compañero de fitness y nutrición con IA",
+      "fr": "Compagnon fitness et nutrition propulsé par l'IA",
+      "de": "KI-gestützter Fitness- und Ernährungsbegleiter",
+      "zh": "AI驱动的健身与营养助手"
+    }
+  },
+  "features": {
+    "poseTracking": {
+      "icon": "🧘",
+      "title": {
+        "en": "AI Pose Tracking",
+        "ru": "ИИ-трекинг позы",
+        "es": "Seguimiento de postura con IA",
+        "fr": "Suivi de posture par IA",
+        "de": "KI-Haltungsverfolgung",
+        "zh": "AI姿态追踪"
+      },
+      "description": {
+        "en": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
+        "ru": "Анализ формы в реальном времени с MediaPipe. Мгновенная обратная связь по технике упражнений без облачной обработки.",
+        "es": "Análisis de forma en tiempo real usando MediaPipe. Retroalimentación instantánea sobre tu técnica sin procesamiento en la nube.",
+        "fr": "Analyse de forme en temps réel avec MediaPipe. Retour instantané sur votre technique sans traitement cloud.",
+        "de": "Echtzeit-Formanalyse mit MediaPipe. Sofortiges Feedback zu Ihrer Übungstechnik ohne Cloud-Verarbeitung.",
+        "zh": "使用MediaPipe进行实时姿态分析。无需云处理即可获得即时技术反馈。"
+      },
+      "premium": false
+    },
+    "exercises": {
+      "icon": "💪",
+      "title": {
+        "en": "15 Trackable Exercises",
+        "ru": "15 отслеживаемых упражнений",
+        "es": "15 ejercicios rastreables",
+        "fr": "15 exercices suivis",
+        "de": "15 verfolgbare Übungen",
+        "zh": "15种可追踪运动"
+      },
+      "description": {
+        "en": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
+        "ru": "Приседания, Отжимания, Пресс, Выпады, Бёрпи, Прыжки, Высокие колени, Скалолаз, Планка, Стенка, Подъём ног, Ягодичный мост, Подъём на носки, Боковые выпады, Трицепс",
+        "es": "Sentadillas, Flexiones, Abdominales, Zancadas, Burpees, Saltos, Rodillas altas, Escaladores, Plancha, Sentadilla en pared, Elevación de piernas, Puente de glúteos, Elevación de talones, Zancadas laterales, Fondos de tríceps",
+        "fr": "Squats, Pompes, Abdos, Fentes, Burpees, Jumping Jacks, Genoux hauts, Mountain Climbers, Planche, Chaise, Relevés de jambes, Ponts fessiers, Mollets, Fentes latérales, Dips triceps",
+        "de": "Kniebeugen, Liegestütze, Sit-ups, Ausfallschritte, Burpees, Hampelmänner, Knieheben, Bergsteiger, Plank, Wandsitzen, Beinheben, Glute Bridges, Wadenheben, Seitliche Ausfallschritte, Trizeps-Dips",
+        "zh": "深蹲、俯卧撑、仰卧起坐、弓步、波比跳、开合跳、高抬腿、登山跑、平板支撑、靠墙静蹲、抬腿、臀桥、提踵、侧弓步、三头肌下压"
+      },
+      "premium": false
+    },
+    "smartKitchen": {
+      "icon": "🍳",
+      "title": {
+        "en": "Smart Kitchen",
+        "ru": "Умная кухня",
+        "es": "Cocina inteligente",
+        "fr": "Cuisine intelligente",
+        "de": "Intelligente Küche",
+        "zh": "智能厨房"
+      },
+      "description": {
+        "en": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
+        "ru": "Управляйте продуктами в холодильнике, шкафу и морозилке. ИИ распознаёт продукты по фото. Получайте рецепты на основе того, что есть.",
+        "es": "Gestiona tu inventario de nevera, despensa y congelador. La IA reconoce productos de fotos. Obtén sugerencias de recetas basadas en lo que tienes.",
+        "fr": "Gérez votre inventaire de frigo, garde-manger et congélateur. L'IA reconnaît les produits sur photos. Obtenez des suggestions de recettes.",
+        "de": "Verwalten Sie Ihren Kühlschrank-, Vorrats- und Tiefkühlbestand. KI erkennt Produkte auf Fotos. Rezeptvorschläge basierend auf vorhandenen Zutaten.",
+        "zh": "管理您的冰箱、储藏室和冷冻库库存。AI从照片识别产品。根据现有食材获取食谱建议。"
+      },
+      "premium": false
+    },
+    "cookingMode": {
+      "icon": "👨‍🍳",
+      "title": {
+        "en": "Guided Cooking Mode",
+        "ru": "Режим готовки с подсказками",
+        "es": "Modo de cocina guiada",
+        "fr": "Mode cuisine guidée",
+        "de": "Geführter Kochmodus",
+        "zh": "引导式烹饪模式"
+      },
+      "description": {
+        "en": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
+        "ru": "Пошаговые инструкции с таймерами, напоминаниями о перемешивании и советами по решению проблем. Логирование калорий по завершении.",
+        "es": "Instrucciones paso a paso con temporizadores integrados, recordatorios para revolver y consejos. Registra calorías al terminar.",
+        "fr": "Instructions étape par étape avec minuteries intégrées, rappels de mélange et conseils de dépannage. Enregistrez les calories à la fin.",
+        "de": "Schritt-für-Schritt-Anleitungen mit integrierten Timern, Rühr-Erinnerungen und Problemlösungstipps. Kalorien am Ende protokollieren.",
+        "zh": "带有内置计时器、搅拌提醒和故障排除提示的分步说明。完成后记录卡路里。"
+      },
+      "premium": false
+    },
+    "nutritionScanner": {
+      "icon": "📸",
+      "title": {
+        "en": "AI Food Scanner",
+        "ru": "ИИ-сканер еды",
+        "es": "Escáner de comida con IA",
+        "fr": "Scanner alimentaire IA",
+        "de": "KI-Lebensmittelscanner",
+        "zh": "AI食物扫描仪"
+      },
+      "description": {
+        "en": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
+        "ru": "Сфотографируйте еду и получите мгновенную оценку калорий. Использует эталонный предмет для точного определения порции.",
+        "es": "Toma una foto de tu comida y obtén estimación instantánea de calorías. Usa un objeto de referencia para porciones precisas.",
+        "fr": "Prenez une photo de votre repas et obtenez une estimation instantanée des calories. Utilise un objet de référence pour les portions.",
+        "de": "Fotografieren Sie Ihre Mahlzeit und erhalten Sie sofort eine Kalorienschätzung. Verwendet ein Referenzobjekt für genaue Portionsgrößen.",
+        "zh": "拍摄您的餐食照片，即时获得卡路里估算。使用参考物体进行精确份量测量。"
+      },
+      "premium": false
+    },
+    "smartScale": {
+      "icon": "⚖️",
+      "title": {
+        "en": "Smart Scale Integration",
+        "ru": "Интеграция умных весов",
+        "es": "Integración de báscula inteligente",
+        "fr": "Intégration balance connectée",
+        "de": "Smart-Waagen-Integration",
+        "zh": "智能体重秤集成"
+      },
+      "description": {
+        "en": "Connect Xiaomi Mi Scale via Bluetooth. Track body composition: weight, body fat, muscle mass, bone mass, BMI, and more.",
+        "ru": "Подключите Xiaomi Mi Scale через Bluetooth. Отслеживайте состав тела: вес, жир, мышцы, кости, ИМТ и другое.",
+        "es": "Conecta Xiaomi Mi Scale por Bluetooth. Rastrea composición corporal: peso, grasa, músculo, hueso, IMC y más.",
+        "fr": "Connectez Xiaomi Mi Scale via Bluetooth. Suivez la composition corporelle: poids, graisse, muscles, os, IMC et plus.",
+        "de": "Verbinden Sie Xiaomi Mi Scale via Bluetooth. Verfolgen Sie Körperzusammensetzung: Gewicht, Fett, Muskeln, Knochen, BMI und mehr.",
+        "zh": "通过蓝牙连接小米体重秤。追踪身体成分：体重、体脂、肌肉、骨骼、BMI等。"
+      },
+      "premium": false
+    },
+    "healthIntegrations": {
+      "icon": "❤️",
+      "title": {
+        "en": "Health Platform Sync",
+        "ru": "Синхронизация с платформами здоровья",
+        "es": "Sincronización con plataformas de salud",
+        "fr": "Sync plateformes santé",
+        "de": "Gesundheitsplattform-Sync",
+        "zh": "健康平台同步"
+      },
+      "description": {
+        "en": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
+        "ru": "Бесшовная синхронизация с Google Fit, Apple Health и Samsung Health. Данные автоматически синхронизируются между платформами.",
+        "es": "Sincronización perfecta con Google Fit, Apple Health y Samsung Health. Tus datos fluyen automáticamente.",
+        "fr": "Synchronisation transparente avec Google Fit, Apple Health et Samsung Health. Vos données circulent automatiquement.",
+        "de": "Nahtlose Synchronisierung mit Google Fit, Apple Health und Samsung Health. Ihre Daten fließen automatisch.",
+        "zh": "与Google Fit、Apple Health和三星健康无缝同步。您的数据在平台之间自动流动。"
+      },
+      "premium": false
+    },
+    "offlineFirst": {
+      "icon": "📴",
+      "title": {
+        "en": "Offline First",
+        "ru": "Работает офлайн",
+        "es": "Primero sin conexión",
+        "fr": "Hors ligne d'abord",
+        "de": "Offline zuerst",
+        "zh": "离线优先"
+      },
+      "description": {
+        "en": "Full functionality without internet. Your data syncs automatically when you're back online.",
+        "ru": "Полная функциональность без интернета. Данные синхронизируются автоматически при подключении.",
+        "es": "Funcionalidad completa sin internet. Tus datos se sincronizan automáticamente cuando vuelvas a conectarte.",
+        "fr": "Fonctionnalité complète sans internet. Vos données se synchronisent automatiquement.",
+        "de": "Volle Funktionalität ohne Internet. Ihre Daten synchronisieren sich automatisch.",
+        "zh": "无需互联网即可完全运行。重新上线时数据自动同步。"
+      },
+      "premium": false
+    },
+    "multiLanguage": {
+      "icon": "🌍",
+      "title": {
+        "en": "6 Languages",
+        "ru": "6 языков",
+        "es": "6 idiomas",
+        "fr": "6 langues",
+        "de": "6 Sprachen",
+        "zh": "6种语言"
+      },
+      "description": {
+        "en": "English, Русский, Español, Français, Deutsch, 中文. Auto-detects your browser language.",
+        "ru": "English, Русский, Español, Français, Deutsch, 中文. Автоматически определяет язык браузера.",
+        "es": "English, Русский, Español, Français, Deutsch, 中文. Detecta automáticamente el idioma de tu navegador.",
+        "fr": "English, Русский, Español, Français, Deutsch, 中文. Détecte automatiquement la langue de votre navigateur.",
+        "de": "English, Русский, Español, Français, Deutsch, 中文. Erkennt automatisch Ihre Browsersprache.",
+        "zh": "English, Русский, Español, Français, Deutsch, 中文。自动检测您的浏览器语言。"
+      },
+      "premium": false
+    },
+    "multiPlatform": {
+      "icon": "📱",
+      "title": {
+        "en": "Multi-Platform",
+        "ru": "Мультиплатформа",
+        "es": "Multiplataforma",
+        "fr": "Multi-plateforme",
+        "de": "Multi-Plattform",
+        "zh": "多平台"
+      },
+      "description": {
+        "en": "Web, iOS, Android, and Telegram Mini App. One account, all your devices.",
+        "ru": "Web, iOS, Android и Telegram Mini App. Один аккаунт на всех устройствах.",
+        "es": "Web, iOS, Android y Telegram Mini App. Una cuenta, todos tus dispositivos.",
+        "fr": "Web, iOS, Android et Telegram Mini App. Un compte, tous vos appareils.",
+        "de": "Web, iOS, Android und Telegram Mini App. Ein Konto, alle Ihre Geräte.",
+        "zh": "Web、iOS、Android和Telegram小程序。一个账户，所有设备。"
+      },
+      "premium": false
+    },
+    "aiCoach": {
+      "icon": "🤖",
+      "title": {
+        "en": "AI Motivation Coach",
+        "ru": "ИИ-мотивационный тренер",
+        "es": "Entrenador de motivación IA",
+        "fr": "Coach motivation IA",
+        "de": "KI-Motivationscoach",
+        "zh": "AI激励教练"
+      },
+      "description": {
+        "en": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
+        "ru": "Персонализированные мотивационные цитаты от Gemini AI. Выберите мужской (Fenrir) или женский (Kore) голос.",
+        "es": "Citas motivacionales personalizadas de Gemini AI. Elige voz masculina (Fenrir) o femenina (Kore).",
+        "fr": "Citations motivantes personnalisées par Gemini AI. Choisissez voix masculine (Fenrir) ou féminine (Kore).",
+        "de": "Personalisierte Motivationszitate von Gemini AI. Wählen Sie männliche (Fenrir) oder weibliche (Kore) Stimme.",
+        "zh": "由Gemini AI提供的个性化励志名言。选择男声(Fenrir)或女声(Kore)。"
+      },
+      "premium": true
+    },
+    "smartShopping": {
+      "icon": "🛒",
+      "title": {
+        "en": "Smart Shopping Assistant",
+        "ru": "Умный помощник для покупок",
+        "es": "Asistente de compras inteligente",
+        "fr": "Assistant shopping intelligent",
+        "de": "Intelligenter Einkaufsassistent",
+        "zh": "智能购物助手"
+      },
+      "description": {
+        "en": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need. Your smart wife for shopping!",
+        "ru": "Планируйте меню, составляйте списки покупок, проверяйте продукты по фото, сканируйте витрины магазина. Ваша умная жена для шоппинга!",
+        "es": "Planifica comidas, genera listas de compras, verifica productos por foto, escanea estantes. ¡Tu asistente inteligente de compras!",
+        "fr": "Planifiez les repas, générez des listes de courses, vérifiez les produits par photo. Votre assistant shopping intelligent!",
+        "de": "Planen Sie Mahlzeiten, erstellen Sie Einkaufslisten, überprüfen Sie Produkte per Foto. Ihr smarter Einkaufsassistent!",
+        "zh": "规划餐食、生成购物清单、通过照片验证产品、扫描货架找到所需商品。您的智能购物助手！"
+      },
+      "premium": false
+    },
+    "foodFinance": {
+      "icon": "💰",
+      "title": {
+        "en": "Food Finance Tracker",
+        "ru": "Трекер расходов на еду",
+        "es": "Rastreador de gastos en comida",
+        "fr": "Suivi dépenses alimentaires",
+        "de": "Lebensmittelausgaben-Tracker",
+        "zh": "食物支出追踪器"
+      },
+      "description": {
+        "en": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
+        "ru": "Отслеживайте расходы на еду, смотрите куда уходят деньги и считайте экономию от домашней готовки.",
+        "es": "Rastrea tus gastos en comida, ve a dónde va tu dinero y calcula ahorros de cocinar en casa vs comer fuera.",
+        "fr": "Suivez vos dépenses alimentaires, voyez où va votre argent et calculez les économies.",
+        "de": "Verfolgen Sie Ihre Lebensmittelausgaben und berechnen Sie Ersparnisse durch Selbstkochen.",
+        "zh": "追踪您的食物支出，查看资金去向，计算在家烹饪与外出就餐的节省。"
+      },
+      "premium": false
+    },
+    "receiptScanning": {
+      "icon": "🧾",
+      "title": {
+        "en": "Receipt Scanning",
+        "ru": "Сканирование чеков",
+        "es": "Escaneo de recibos",
+        "fr": "Scan de reçus",
+        "de": "Beleg-Scanning",
+        "zh": "收据扫描"
+      },
+      "description": {
+        "en": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
+        "ru": "Сканируйте чеки из магазина для автоматического добавления продуктов с ценами и сроками годности.",
+        "es": "Escanea recibos de compras para agregar automáticamente productos con precios y fechas de vencimiento.",
+        "fr": "Scannez les reçus pour ajouter automatiquement les produits avec prix et dates de péremption.",
+        "de": "Scannen Sie Kassenzettel, um Produkte automatisch mit Preisen und Verfallsdaten hinzuzufügen.",
+        "zh": "扫描购物收据，自动添加产品及价格和保质期。"
+      },
+      "premium": false
+    },
+    "gamification": {
+      "icon": "🏆",
+      "title": {
+        "en": "Achievements & Leaderboard",
+        "ru": "Достижения и лидерборд",
+        "es": "Logros y tabla de clasificación",
+        "fr": "Succès et classement",
+        "de": "Erfolge & Rangliste",
+        "zh": "成就与排行榜"
+      },
+      "description": {
+        "en": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
+        "ru": "Получайте достижения за выполнение целей. Соревнуйтесь с друзьями в лидерборде.",
+        "es": "Gana logros por alcanzar metas. Compite con amigos en la tabla de clasificación social.",
+        "fr": "Gagnez des succès pour vos accomplissements. Affrontez vos amis dans le classement.",
+        "de": "Verdienen Sie Erfolge für erreichte Meilensteine. Treten Sie gegen Freunde in der Rangliste an.",
+        "zh": "达成里程碑获得成就。在社交排行榜上与朋友竞争。"
+      },
+      "premium": false
+    },
+    "charts": {
+      "icon": "📊",
+      "title": {
+        "en": "Analytics & Charts",
+        "ru": "Аналитика и графики",
+        "es": "Análisis y gráficos",
+        "fr": "Analyses et graphiques",
+        "de": "Analysen & Diagramme",
+        "zh": "分析与图表"
+      },
+      "description": {
+        "en": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
+        "ru": "Визуализируйте прогресс с помощью красивых графиков. Отслеживайте тренды веса, калорий и тренировок.",
+        "es": "Visualiza tu progreso con gráficos hermosos. Rastrea tendencias en peso, calorías y entrenamientos.",
+        "fr": "Visualisez votre progression avec de beaux graphiques. Suivez les tendances de poids, calories et entraînements.",
+        "de": "Visualisieren Sie Ihren Fortschritt mit schönen Diagrammen. Verfolgen Sie Trends bei Gewicht, Kalorien und Training.",
+        "zh": "用精美图表可视化您的进度。追踪体重、卡路里、锻炼和身体成分趋势。"
+      },
+      "premium": false
+    }
+  },
+  "premium": {
+    "price": "$4.99/month",
+    "features": {
+      "en": [
+        "Unlimited AI requests (vs 10/day)",
+        "AI-generated dish photos",
+        "Unlimited history (vs 7 days)",
+        "Multiple timers (up to 10)",
+        "Voice assistant",
+        "Restaurant menu scanning",
+        "PDF data export",
+        "Ad-free experience"
+      ],
+      "ru": [
+        "Безлимитные AI запросы (вместо 10/день)",
+        "AI-генерация фото блюд",
+        "Безлимитная история (вместо 7 дней)",
+        "Множество таймеров (до 10)",
+        "Голосовой помощник",
+        "Сканирование меню ресторанов",
+        "Экспорт данных в PDF",
+        "Без рекламы"
+      ],
+      "es": [
+        "Solicitudes IA ilimitadas (vs 10/día)",
+        "Fotos de platos generadas por IA",
+        "Historial ilimitado (vs 7 días)",
+        "Múltiples temporizadores (hasta 10)",
+        "Asistente de voz",
+        "Escaneo de menú de restaurante",
+        "Exportación de datos PDF",
+        "Sin anuncios"
+      ],
+      "fr": [
+        "Requêtes IA illimitées (vs 10/jour)",
+        "Photos de plats générées par IA",
+        "Historique illimité (vs 7 jours)",
+        "Minuteries multiples (jusqu'à 10)",
+        "Assistant vocal",
+        "Scan de menu restaurant",
+        "Export PDF des données",
+        "Sans publicité"
+      ],
+      "de": [
+        "Unbegrenzte KI-Anfragen (vs 10/Tag)",
+        "KI-generierte Essensfotos",
+        "Unbegrenzter Verlauf (vs 7 Tage)",
+        "Mehrere Timer (bis zu 10)",
+        "Sprachassistent",
+        "Restaurant-Menü-Scanning",
+        "PDF-Datenexport",
+        "Werbefrei"
+      ],
+      "zh": [
+        "无限AI请求（对比每天10次）",
+        "AI生成菜品照片",
+        "无限历史记录（对比7天）",
+        "多个计时器（最多10个）",
+        "语音助手",
+        "餐厅菜单扫描",
+        "PDF数据导出",
+        "无广告体验"
+      ]
+    }
+  },
+  "cta": {
+    "download": {
+      "en": "Download Free",
+      "ru": "Скачать бесплатно",
+      "es": "Descargar gratis",
+      "fr": "Télécharger gratuitement",
+      "de": "Kostenlos herunterladen",
+      "zh": "免费下载"
+    },
+    "tryWeb": {
+      "en": "Try Web Version",
+      "ru": "Попробовать веб-версию",
+      "es": "Probar versión web",
+      "fr": "Essayer la version web",
+      "de": "Web-Version testen",
+      "zh": "试用网页版"
+    }
+  }
+}
