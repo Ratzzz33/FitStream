@@ -754,7 +754,8 @@ const App = () => {
                                 progress={goal.current}
                                 total={goal.target}
                                 color={goal.color}
-                                label={goal.unit === 'reps' ? t('reps') : t('steps')}
+                                label=" "
+                                compact={true}
                             />
                             <div className="mt-1 text-center">
                                 <span className="block text-[10px] font-bold text-gray-800 dark:text-white truncate w-full">{getLabelForType(goal.type)}</span>
