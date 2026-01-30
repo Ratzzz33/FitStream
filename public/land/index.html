@@ -233,7 +233,7 @@ function populateLangDropdown() {
         <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div>
                 <div class="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-6">
-                    <span class="text-sm text-blue-300" data-t="ai.powered">Powered by Gemini 2.5 Flash</span>
+                    <span class="text-sm text-blue-300" data-t="ai.powered">Powered by Advanced Gemini</span>
                 </div>
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
                     <span data-t="ai.title1">AI That Actually</span><br>
@@ -549,6 +549,11 @@ function openFeatureModal(featureKey) {
     const icon = modal.querySelector('[data-modal-icon]');
     const featureList = modal.querySelector('[data-modal-features]');
     const iconBg = modal.querySelector('[data-modal-icon-bg]');
+    const coverImg = modal.querySelector('[data-modal-cover]');
+
+    // Set cover image
+    coverImg.src = `covers/${featureKey}.png`;
+    coverImg.alt = featureKey;
 
     // Get translations
     const titleKey = `features.${featureKey}`;
@@ -620,27 +625,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Feature Modal -->
 <div id="featureModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target === this) closeFeatureModal()">
-    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
-        <div class="flex justify-between items-start mb-6">
-            <div class="flex items-center gap-4">
-                <div data-modal-icon-bg class="w-20 h-20 bg-blue-600/20 border-2 border-blue-500/50 rounded-2xl flex items-center justify-center text-4xl">
+    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
+        <!-- Cover Image -->
+        <div class="relative w-full aspect-video overflow-hidden">
+            <img data-modal-cover src="" alt="" class="w-full h-full object-cover">
+            <button onclick="closeFeatureModal()" class="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div data-modal-icon-bg class="w-14 h-14 bg-blue-600/20 border-2 border-blue-500/50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
                     <span data-modal-icon>💪</span>
                 </div>
                 <div>
-                    <h3 data-modal-title class="text-2xl font-bold">Feature Title</h3>
-                    <p data-modal-desc class="text-slate-400 text-sm mt-1">Feature description goes here</p>
+                    <h3 data-modal-title class="text-xl font-bold">Feature Title</h3>
+                    <p data-modal-desc class="text-slate-400 text-sm">Feature description</p>
                 </div>
             </div>
-            <button onclick="closeFeatureModal()" class="text-slate-500 hover:text-white transition p-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            <ul data-modal-features class="space-y-2 mb-6 text-sm">
+                <!-- Features will be populated by JS -->
+            </ul>
+            <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
+                Got it!
             </button>
         </div>
-        <ul data-modal-features class="space-y-3 mb-6">
-            <!-- Features will be populated by JS -->
-        </ul>
-        <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
-            Got it!
-        </button>
     </div>
 </div>
 
