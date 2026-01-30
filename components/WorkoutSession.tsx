@@ -541,17 +541,20 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Theme helper
+  const isDark = settings.theme === 'dark';
+
   // ========== SMART PANEL (MAIN ENTRY) ==========
   if (mode === 'smart_panel') {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <button onClick={onFinish} className="p-2 text-gray-400">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
-          <h1 className="text-lg font-bold text-white">Тренировка</h1>
-          <button onClick={() => setMode('local')} className="p-2 text-gray-400">
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Тренировка</h1>
+          <button onClick={() => setMode('local')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ChevronRight size={24} />
           </button>
         </div>
@@ -566,10 +569,10 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         </div>
 
         {/* Custom workout button */}
-        <div className="p-4 border-t border-gray-700">
+        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             onClick={() => setMode('local')}
-            className="w-full py-3 rounded-xl text-gray-400 border border-gray-700 flex items-center justify-center gap-2"
+            className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
           >
             <Cpu className="w-5 h-5" />
             Своя тренировка
@@ -582,13 +585,13 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== WARMUP REMINDER ==========
   if (mode === 'warmup_reminder') {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <button onClick={() => setMode('smart_panel')} className="p-2 text-gray-400">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-lg font-bold text-white">Разминка</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Разминка</h1>
           <div className="w-10" />
         </div>
 
@@ -615,11 +618,11 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== FEEDBACK SCREEN ==========
   if (mode === 'feedback' && lastExerciseInfo) {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="w-10" />
-          <h1 className="text-lg font-bold text-white">{getExerciseNameRu(lastExerciseInfo.exercise)}</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{getExerciseNameRu(lastExerciseInfo.exercise)}</h1>
           <div className="w-10" />
         </div>
 
@@ -638,18 +641,18 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
 
         {/* Queue progress */}
         {workoutQueue.length > 1 && (
-          <div className="p-4 border-t border-gray-700">
+          <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className="flex items-center justify-center gap-2">
               {workoutQueue.map((_, idx) => (
                 <div
                   key={idx}
                   className={`w-3 h-3 rounded-full ${
-                    idx < currentQueueIndex + 1 ? 'bg-green-500' : 'bg-gray-700'
+                    idx < currentQueueIndex + 1 ? 'bg-green-500' : isDark ? 'bg-gray-700' : 'bg-gray-300'
                   }`}
                 />
               ))}
             </div>
-            <p className="text-center text-gray-500 text-sm mt-2">
+            <p className={`text-center text-sm mt-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
               {currentQueueIndex + 1} из {workoutQueue.length}
             </p>
           </div>
@@ -661,19 +664,19 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== MODE SELECTION SCREEN ==========
   if (mode === 'select') {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <button onClick={onFinish} className="p-2 text-gray-400">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
-          <h1 className="text-lg font-bold text-white">Тренировка</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Тренировка</h1>
           <div className="w-10" />
         </div>
 
         {/* Mode selection */}
         <div className="flex-1 p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-white text-center mb-8">
+          <h2 className={`text-xl font-semibold text-center mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Выберите режим
           </h2>
 
@@ -747,7 +750,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </button>
 
           {/* Info */}
-          <div className="text-center text-gray-500 text-sm mt-8">
+          <div className={`text-center text-sm mt-8 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
             <p>Локальный режим использует MediaPipe для отслеживания позы.</p>
             <p>AI Коуч подключается к Gemini Live API (тарифицируется).</p>
           </div>
@@ -759,14 +762,14 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== LOCAL MODE: Exercise Selection ==========
   if (mode === 'local') {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <button onClick={() => setMode('smart_panel')} className="p-2 text-gray-400">
+        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-lg font-bold text-white">Выбор упражнения</h1>
-          <button onClick={onFinish} className="p-2 text-gray-400">
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Выбор упражнения</h1>
+          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
         </div>
@@ -781,43 +784,49 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
                   selectedExercise === exercise
                     ? 'border-green-500 bg-green-500/20 text-green-400'
-                    : 'border-gray-700 bg-gray-800 text-gray-400'
+                    : isDark
+                      ? 'border-gray-700 bg-gray-800 text-gray-400'
+                      : 'border-gray-200 bg-white text-gray-600 shadow-sm'
                 }`}
               >
                 <div className="mb-1">
                   <ExerciseIcon exercise={exercise} className="w-8 h-8" />
                 </div>
-                <div className="text-white font-medium text-xs text-center leading-tight">
+                <div className={`font-medium text-xs text-center leading-tight ${
+                  selectedExercise === exercise
+                    ? 'text-green-400'
+                    : isDark ? 'text-white' : 'text-gray-900'
+                }`}>
                   {getExerciseNameRu(exercise)}
                 </div>
                 {isTimeBased(exercise) && (
-                  <div className="text-[10px] text-gray-500 mt-0.5">время</div>
+                  <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>время</div>
                 )}
               </button>
             ))}
           </div>
 
           {/* Target selector */}
-          <div className="mt-4 bg-gray-800 rounded-xl p-4">
-            <label className="text-gray-400 text-sm mb-2 block">
+          <div className={`mt-4 rounded-xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
+            <label className={`text-sm mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               {isTimeBased(selectedExercise) ? 'Цель (секунды)' : 'Цель (повторения)'}
             </label>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setTargetReps(Math.max(5, targetReps - 5))}
-                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold active:bg-gray-600"
+                className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
               >
                 -
               </button>
               <div className="flex-1 text-center">
-                <span className="text-4xl font-bold text-white">{targetReps}</span>
-                <span className="text-gray-400 ml-2">
+                <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{targetReps}</span>
+                <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {isTimeBased(selectedExercise) ? 'сек' : 'раз'}
                 </span>
               </div>
               <button
                 onClick={() => setTargetReps(Math.min(120, targetReps + 5))}
-                className="w-12 h-12 bg-gray-700 rounded-xl text-white text-xl font-bold active:bg-gray-600"
+                className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
               >
                 +
               </button>
@@ -826,7 +835,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         </div>
 
         {/* Start button */}
-        <div className="p-4 border-t border-gray-700">
+        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             onClick={() => setMode('local_active')}
             className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"

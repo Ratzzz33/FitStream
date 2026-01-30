@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode (instead of media query) */
+@variant dark (&:where(.dark, .dark *));
+
 /* Tailwind 4 theme customization */
 @theme {
   --color-slate-850: #1e293b;
