@@ -51,6 +51,28 @@ const HEALTH_COLORS = {
     3: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400', ring: 'ring-red-500' }
 };
 
+// Стандартный набор продуктов которые должны быть дома
+const ESSENTIAL_PRODUCTS = [
+    { name: 'Молоко', emoji: '🥛', category: 'dairy' },
+    { name: 'Яйца', emoji: '🥚', category: 'dairy' },
+    { name: 'Хлеб', emoji: '🍞', category: 'bread' },
+    { name: 'Масло сливочное', emoji: '🧈', category: 'dairy' },
+    { name: 'Сыр', emoji: '🧀', category: 'dairy' },
+    { name: 'Курица', emoji: '🍗', category: 'meat' },
+    { name: 'Рис', emoji: '🍚', category: 'grains' },
+    { name: 'Макароны', emoji: '🍝', category: 'grains' },
+    { name: 'Картофель', emoji: '🥔', category: 'vegetables' },
+    { name: 'Лук', emoji: '🧅', category: 'vegetables' },
+    { name: 'Морковь', emoji: '🥕', category: 'vegetables' },
+    { name: 'Помидоры', emoji: '🍅', category: 'vegetables' },
+    { name: 'Огурцы', emoji: '🥒', category: 'vegetables' },
+    { name: 'Яблоки', emoji: '🍎', category: 'fruits' },
+    { name: 'Бананы', emoji: '🍌', category: 'fruits' },
+    { name: 'Соль', emoji: '🧂', category: 'spices' },
+    { name: 'Сахар', emoji: '🍬', category: 'spices' },
+    { name: 'Растительное масло', emoji: '🫒', category: 'other' },
+];
+
 interface Props {
     onRequestPro?: () => void;
 }
@@ -403,48 +425,52 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const totalCount = session?.shoppingList.length || 0;
     const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
+    // Вычисляем что есть и чего не хватает
+    const activeInventory = StorageService.getActiveInventory?.() || inventory.filter(i => !i.depleted);
+    const inventoryNames = activeInventory.map(i => i.name.toLowerCase());
+
+    const missingEssentials = ESSENTIAL_PRODUCTS.filter(p =>
+        !inventoryNames.some(name =>
+            name.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(name)
+        )
+    );
+
+    const inStockEssentials = ESSENTIAL_PRODUCTS.filter(p =>
+        inventoryNames.some(name =>
+            name.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(name)
+        )
+    );
+
     // Render functions
     const renderHome = () => (
-        <div className="px-4 space-y-6 pb-24">
-            <div className="text-center py-8">
-                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                    <ShoppingCart size={40} className="text-white" />
+        <div className="px-4 space-y-4 pb-24">
+            {/* Header compact */}
+            <div className="flex items-center gap-3 pt-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
+                    <ShoppingCart size={24} className="text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {t('shoppingAssistant')}
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    {t('wifeTip')} 👩‍🍳
-                </p>
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                        {t('shoppingAssistant')}
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">
+                        {t('wifeTip')} 👩‍🍳
+                    </p>
+                </div>
             </div>
 
-            <button
-                onClick={() => setView('planning')}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-5 rounded-2xl shadow-lg flex items-center justify-between hover:from-emerald-400 hover:to-teal-400 transition transform active:scale-[0.98]"
-            >
-                <div className="flex items-center gap-4">
-                    <div className="bg-white/20 p-3 rounded-xl">
-                        <ChefHat size={28} />
-                    </div>
-                    <div className="text-left">
-                        <p className="font-bold text-lg">{t('goShopping')}</p>
-                        <p className="text-sm text-white/80">{t('planMeals')}</p>
-                    </div>
-                </div>
-                <ChevronRight size={24} />
-            </button>
-
+            {/* Active session progress */}
             {session && session.status !== 'completed' && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-gray-900 dark:text-white">
-                            {t('shoppingList')}
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">
+                            🛒 Активный список
                         </h3>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold">
                             {checkedCount}/{totalCount}
                         </span>
                     </div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
+                    <div className="h-2 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden mb-3">
                         <div
                             className="h-full bg-emerald-500 transition-all duration-300"
                             style={{ width: `${progress}%` }}
@@ -452,16 +478,124 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     </div>
                     <button
                         onClick={() => setView(session.status === 'shopping' ? 'shopping' : 'list')}
-                        className="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 py-2 rounded-xl font-bold"
+                        className="w-full bg-emerald-500 text-white py-2 rounded-xl font-bold text-sm"
                     >
-                        {session.status === 'shopping' ? t('startShopping') : t('shoppingList')}
+                        Продолжить покупки →
                     </button>
                 </div>
             )}
 
-            <div className="text-center text-xs text-gray-400 pt-4">
-                {t('startNewShopping')}
-            </div>
+            {/* Missing essentials - Need to buy */}
+            {missingEssentials.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="text-red-500">⚠️</span> Нужно купить
+                        </h3>
+                        <span className="text-xs text-red-500 font-medium bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
+                            {missingEssentials.length} поз.
+                        </span>
+                    </div>
+                    <div className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                            {missingEssentials.slice(0, 12).map((p, idx) => (
+                                <span
+                                    key={idx}
+                                    className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-1.5 rounded-full text-sm flex items-center gap-1"
+                                >
+                                    {p.emoji} {p.name}
+                                </span>
+                            ))}
+                            {missingEssentials.length > 12 && (
+                                <span className="text-gray-400 text-sm px-2 py-1.5">
+                                    +{missingEssentials.length - 12}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* In stock from inventory */}
+            {activeInventory.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="text-green-500">✓</span> На полках
+                        </h3>
+                        <span className="text-xs text-green-600 font-medium bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                            {activeInventory.length} поз.
+                        </span>
+                    </div>
+                    <div className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                            {activeInventory.slice(0, 10).map((item, idx) => (
+                                <span
+                                    key={idx}
+                                    className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-full text-sm flex items-center gap-1"
+                                >
+                                    {item.emoji || '📦'} {item.name}
+                                    {item.quantity && (
+                                        <span className="text-green-500 text-xs ml-1">
+                                            {item.quantity}{item.unit}
+                                        </span>
+                                    )}
+                                </span>
+                            ))}
+                            {activeInventory.length > 10 && (
+                                <span className="text-gray-400 text-sm px-2 py-1.5">
+                                    +{activeInventory.length - 10}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Empty state when no inventory */}
+            {activeInventory.length === 0 && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 text-center border border-dashed border-gray-300 dark:border-gray-600">
+                    <span className="text-4xl mb-2 block">📷</span>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        Сфоткай запасы, чтобы обновить сведения
+                    </p>
+                </div>
+            )}
+
+            {/* Go shopping button */}
+            <button
+                onClick={() => setView('planning')}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-emerald-400 hover:to-teal-400 transition transform active:scale-[0.98]"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2.5 rounded-xl">
+                        <ChefHat size={24} />
+                    </div>
+                    <div className="text-left">
+                        <p className="font-bold">{t('goShopping')}</p>
+                        <p className="text-xs text-white/80">{t('planMeals')}</p>
+                    </div>
+                </div>
+                <ChevronRight size={24} />
+            </button>
+
+            {/* Quick stats */}
+            {(inStockEssentials.length > 0 || missingEssentials.length > 0) && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {inStockEssentials.length}
+                        </p>
+                        <p className="text-xs text-green-600/70 dark:text-green-400/70">базовых есть</p>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {missingEssentials.length}
+                        </p>
+                        <p className="text-xs text-red-600/70 dark:text-red-400/70">нужно купить</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
