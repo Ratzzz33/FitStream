@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost } from '../services/geminiService';
 import { NutritionLog } from '../types';
@@ -86,6 +86,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [showAddCustomRef, setShowAddCustomRef] = useState(false);
     const [customRefName, setCustomRefName] = useState('');
     const [customRefDimensions, setCustomRefDimensions] = useState('');
+
+    // Fullscreen camera state
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+    const [flashEnabled, setFlashEnabled] = useState(false);
+    const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
+    const [showCameraRefSelector, setShowCameraRefSelector] = useState(false);
+    const [selectedRefObject, setSelectedRefObject] = useState<string>(settings.referenceObject || 'Hand');
 
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -194,11 +201,22 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         startCamera('CAMERA_FOOD');
     };
 
-    const startCamera = async (targetMode: ScanMode) => {
+    const startCamera = async (targetMode: ScanMode, facing?: 'user' | 'environment') => {
         setMode(targetMode);
+        setCapturedPreview(null);
+        const useFacing = facing || facingMode;
         try {
+            // Stop any existing stream first
+            if (videoRef.current?.srcObject) {
+                const oldStream = videoRef.current.srcObject as MediaStream;
+                oldStream.getTracks().forEach(t => t.stop());
+            }
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
+                video: {
+                    facingMode: useFacing,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -209,6 +227,97 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             setMode('IDLE');
             alert(t('cameraDenied'));
         }
+    };
+
+    // Switch between front and back camera
+    const switchCamera = () => {
+        const newFacing = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newFacing);
+        if (mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') {
+            startCamera(mode, newFacing);
+        }
+    };
+
+    // Toggle flash (if supported)
+    const toggleFlash = async () => {
+        if (!videoRef.current?.srcObject) return;
+        const stream = videoRef.current.srcObject as MediaStream;
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities?.() as any;
+        if (capabilities?.torch) {
+            const newFlashState = !flashEnabled;
+            await track.applyConstraints({ advanced: [{ torch: newFlashState }] } as any);
+            setFlashEnabled(newFlashState);
+        }
+    };
+
+    // Capture photo but show preview first
+    const capturePhoto = () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        const context = canvasRef.current.getContext('2d');
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context?.drawImage(videoRef.current, 0, 0);
+        const base64 = canvasRef.current.toDataURL('image/jpeg').split(',')[1];
+        setCapturedPreview(base64);
+    };
+
+    // Use the captured photo and analyze
+    const usePhoto = async () => {
+        if (!capturedPreview) return;
+
+        // Stop stream
+        if (videoRef.current?.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(t => t.stop());
+        }
+
+        const base64 = capturedPreview;
+        const currentMode = mode;
+        setCapturedPreview(null);
+
+        // If offline, save photo and show manual entry
+        if (!navigator.onLine) {
+            setCapturedPhotoBase64(base64);
+            setMode('OFFLINE_PHOTO');
+            return;
+        }
+
+        setMode('ANALYZING');
+
+        try {
+            if (currentMode === 'CAMERA_FOOD') {
+                const result = await analyzeFood(base64, selectedRefObject || 'Hand');
+
+                if (selectedRefObject && !result.referenceDetected && result.confidenceLevel === 'LOW') {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowRefNotDetected(true);
+                    return;
+                }
+
+                if (checkHomeMadeVerification(result)) {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowHomeMadeDialog(true);
+                    return;
+                }
+
+                await saveFoodResult(result, base64);
+            } else {
+                const menuResult = await analyzeMenu(base64);
+                setMenuRecommendations(menuResult);
+                setMode('RESULT_MENU');
+            }
+        } catch (e) {
+            setCapturedPhotoBase64(base64);
+            setMode('OFFLINE_PHOTO');
+        }
+    };
+
+    // Retake photo - go back to camera
+    const retakePreview = () => {
+        setCapturedPreview(null);
     };
 
     const captureAndAnalyze = async () => {
@@ -701,38 +810,154 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     </div>
                 )}
 
-                {/* --- 2. CAMERA STATE --- */}
+                {/* --- 2. FULLSCREEN CAMERA MODAL --- */}
                 {(mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') && (
-                    <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-black shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-                        <canvas ref={canvasRef} className="hidden" />
+                    <div className="fixed inset-0 bg-black z-[100] flex flex-col">
+                        {/* Video / Preview */}
+                        <div className="flex-1 relative overflow-hidden">
+                            {!capturedPreview ? (
+                                <>
+                                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                                    <canvas ref={canvasRef} className="hidden" />
 
-                        <div className="absolute top-4 right-4 z-10">
-                            <button onClick={() => {
-                                // Stop tracks
-                                const stream = videoRef.current?.srcObject as MediaStream;
-                                stream?.getTracks().forEach(t => t.stop());
-                                setMode('IDLE');
-                            }} className="bg-black/40 text-white p-2 rounded-full backdrop-blur">
+                                    {/* Frame guide */}
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className={`border-2 border-white/60 rounded-2xl ${mode === 'CAMERA_MENU' ? 'w-[85%] h-[70%]' : 'w-72 h-72'}`}>
+                                            {/* Corner accents */}
+                                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-2xl" />
+                                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-2xl" />
+                                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-2xl" />
+                                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-2xl" />
+                                        </div>
+                                    </div>
+
+                                    {/* Top hint */}
+                                    {mode === 'CAMERA_FOOD' && (
+                                        <div className="absolute top-20 left-0 right-0 flex justify-center pointer-events-none">
+                                            <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm">
+                                                {t('placeObjectInfo')} <span className="font-bold text-yellow-400">{selectedRefObject}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                /* Photo Preview */
+                                <img
+                                    src={`data:image/jpeg;base64,${capturedPreview}`}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
+                        </div>
+
+                        {/* Top controls */}
+                        <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
+                            <button
+                                onClick={() => {
+                                    const stream = videoRef.current?.srcObject as MediaStream;
+                                    stream?.getTracks().forEach(t => t.stop());
+                                    setCapturedPreview(null);
+                                    setMode('IDLE');
+                                }}
+                                className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-full"
+                            >
                                 <X size={24} />
                             </button>
+
+                            {!capturedPreview && (
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={toggleFlash}
+                                        className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-full"
+                                    >
+                                        {flashEnabled ? <Zap size={24} className="text-yellow-400" /> : <ZapOff size={24} />}
+                                    </button>
+                                    <button
+                                        onClick={switchCamera}
+                                        className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-full"
+                                    >
+                                        <SwitchCamera size={24} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <div className={`w-64 h-64 border-2 border-white/50 border-dashed rounded-lg mb-4 ${mode === 'CAMERA_MENU' ? 'w-3/4 h-3/4' : ''}`}></div>
-                            <div className="bg-black/60 px-3 py-1 rounded text-white text-xs backdrop-blur text-center max-w-[80%]">
-                                {mode === 'CAMERA_FOOD'
-                                    ? <>{t('placeObjectInfo')} <span className="font-bold text-yellow-400">({settings.referenceObject || 'Hand'})</span></>
-                                    : t('analyzingMenu')}
-                            </div>
-                        </div>
-                        <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-auto">
-                            <button
-                                onClick={captureAndAnalyze}
-                                className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-200 transition transform active:scale-95 border-4 border-gray-300/50"
-                            >
-                                <Camera size={32} />
-                            </button>
+                        {/* Bottom controls */}
+                        <div className="absolute bottom-0 left-0 right-0 pb-8 pt-4 bg-gradient-to-t from-black/80 to-transparent">
+                            {!capturedPreview ? (
+                                <>
+                                    {/* Reference object selector (food mode only) */}
+                                    {mode === 'CAMERA_FOOD' && (
+                                        <div className="px-4 mb-4">
+                                            <button
+                                                onClick={() => setShowCameraRefSelector(!showCameraRefSelector)}
+                                                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white text-sm flex items-center justify-between"
+                                            >
+                                                <span>{t('referenceObject')}: <b>{selectedRefObject}</b></span>
+                                                <ChevronRight size={18} className={`transition-transform ${showCameraRefSelector ? 'rotate-90' : ''}`} />
+                                            </button>
+
+                                            {showCameraRefSelector && (
+                                                <div className="mt-2 bg-black/80 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {alternativeObjects.map(obj => (
+                                                            <button
+                                                                key={obj.id}
+                                                                onClick={() => {
+                                                                    setSelectedRefObject(t(obj.label as any));
+                                                                    setShowCameraRefSelector(false);
+                                                                }}
+                                                                className={`p-2 rounded-lg flex flex-col items-center gap-1 transition ${
+                                                                    selectedRefObject === t(obj.label as any)
+                                                                        ? 'bg-white/20 ring-2 ring-white'
+                                                                        : 'bg-white/5 hover:bg-white/10'
+                                                                }`}
+                                                            >
+                                                                <div className="w-6 h-6 text-white">{obj.icon}</div>
+                                                                <span className="text-[10px] text-white/80 truncate w-full text-center">
+                                                                    {t(obj.label as any)}
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Capture button */}
+                                    <div className="flex justify-center">
+                                        <button
+                                            onClick={capturePhoto}
+                                            className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-lg active:scale-95 transition border-4 border-white/50"
+                                        >
+                                            <div className="w-16 h-16 rounded-full bg-white border-4 border-gray-300" />
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                /* Preview actions */
+                                <div className="flex justify-center gap-8 px-4">
+                                    <button
+                                        onClick={retakePreview}
+                                        className="flex flex-col items-center gap-2 text-white"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                                            <RotateCcw size={28} />
+                                        </div>
+                                        <span className="text-sm">{t('retake') || 'Переснять'}</span>
+                                    </button>
+                                    <button
+                                        onClick={usePhoto}
+                                        className="flex flex-col items-center gap-2 text-white"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
+                                            <Check size={32} />
+                                        </div>
+                                        <span className="text-sm">{t('usePhoto') || 'Использовать'}</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
