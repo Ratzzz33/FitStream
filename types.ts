@@ -128,6 +128,7 @@ export enum AppTab {
   DASHBOARD = 'DASHBOARD',
   WORKOUT = 'WORKOUT',
   NUTRITION = 'NUTRITION',
+  SHOPPING = 'SHOPPING',
   WEIGHT = 'WEIGHT',
   SOCIAL = 'SOCIAL',
   SETTINGS = 'SETTINGS'
@@ -237,3 +238,115 @@ export interface Leftover {
 
 // PRD: Дневник | Кухня | Рецепты | Финансы
 export type NutritionSubTab = 'diary' | 'kitchen' | 'recipes' | 'finance';
+
+// === SMART SHOPPING ASSISTANT TYPES ===
+
+export type CookingDifficulty = 'easy' | 'medium' | 'hard';
+export type CookingTime = 'quick' | 'medium' | 'long'; // <30min, 30-60min, >60min
+
+export interface ShoppingPreferences {
+  daysCount: number;           // На сколько дней покупки
+  peopleCount: number;         // На сколько человек
+  cookingDifficulty: CookingDifficulty;
+  maxCookingTime: CookingTime;
+  dietaryRestrictions?: string[]; // "vegetarian", "low-carb", etc.
+  budget?: number;             // Бюджет в рублях
+  preferredStores?: string[];  // Любимые магазины
+}
+
+export interface ShoppingListItem {
+  id: string;
+  name: string;
+  emoji: string;
+  quantity: number;
+  unit: string;
+  category: ShoppingCategory;
+  estimatedPrice?: number;
+  forRecipes: string[];        // Для каких рецептов нужен
+  isChecked: boolean;
+  verifiedPhoto?: string;      // base64 фото для верификации
+  verificationStatus?: 'pending' | 'correct' | 'wrong' | 'alternative';
+  healthScore?: 1 | 2 | 3;     // 🟢🟡🔴
+  healthNote?: string;         // "Много сахара, возьми без добавок"
+  expiryReminder?: boolean;    // Напомнить проверить срок
+  alternatives?: ShoppingAlternative[];
+  alreadyHave?: boolean;       // Уже есть дома
+  alreadyHaveQuantity?: number;
+}
+
+export type ShoppingCategory =
+  | 'dairy'      // Молочные
+  | 'meat'       // Мясо
+  | 'fish'       // Рыба
+  | 'vegetables' // Овощи
+  | 'fruits'     // Фрукты
+  | 'grains'     // Крупы
+  | 'bread'      // Хлеб
+  | 'frozen'     // Заморозка
+  | 'drinks'     // Напитки
+  | 'snacks'     // Снеки
+  | 'spices'     // Специи
+  | 'other';     // Прочее
+
+export interface ShoppingAlternative {
+  name: string;
+  emoji: string;
+  reason: string;              // "Дешевле на 30%", "Больше белка"
+  healthScore: 1 | 2 | 3;
+}
+
+export interface ShoppingSession {
+  id: string;
+  createdAt: string;
+  preferences: ShoppingPreferences;
+  mealPlan: PlannedMeal[];
+  shoppingList: ShoppingListItem[];
+  status: 'planning' | 'shopping' | 'completed';
+  totalEstimatedCost: number;
+  actualCost?: number;
+  store?: string;
+}
+
+export interface PlannedMeal {
+  id: string;
+  day: number;                 // 1, 2, 3...
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  recipeName: string;
+  recipeDescription: string;
+  servings: number;
+  calories: number;
+  cookingTime: number;         // минуты
+  difficulty: CookingDifficulty;
+  ingredients: PlannedIngredient[];
+}
+
+export interface PlannedIngredient {
+  name: string;
+  emoji: string;
+  quantity: number;
+  unit: string;
+  inInventory: boolean;
+  inventoryQuantity?: number;
+  needToBuy: number;
+}
+
+export interface ProductVerification {
+  isCorrect: boolean;
+  confidence: number;          // 0-100
+  productName: string;
+  healthScore: 1 | 2 | 3;
+  healthAnalysis: string;
+  expiryWarning?: string;      // "Срок годности через 2 дня!"
+  betterAlternative?: {
+    name: string;
+    reason: string;
+  };
+  nutritionPer100: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    sugar?: number;
+    fiber?: number;
+  };
+}
