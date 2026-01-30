@@ -805,7 +805,7 @@ const translations = {
     loggedOut: "Вы вышли из аккаунта. Локальные данные сохранены.",
     loggingIn: "Вход...",
     syncAcrossDevices: "Синхронизация между устройствами",
-    shopping: "Магазин",
+    shopping: "в Магазин",
     goShopping: "Иду в магазин",
     shoppingAssistant: "Умный шоппинг",
     planMeals: "Планировать меню",
