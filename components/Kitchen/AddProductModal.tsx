@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Lightbulb, Loader2 } from 'lucide-react';
 import { InventoryItem, StorageType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { getProductNutrition } from '../../services/geminiService';
+import { georgiaPrices } from '../../services/georgiaPricesService';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface AddProductModalProps {
   storageId: StorageType;
@@ -22,7 +24,29 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [expiresAt, setExpiresAt] = useState('');
   const [emoji, setEmoji] = useState('🍽️');
   const [caloriesPer100, setCaloriesPer100] = useState('');
+  const [price, setPrice] = useState<number | null>(null);
+  const [priceSuggested, setPriceSuggested] = useState(false);
   const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+
+  const settings = StorageService.getSettings();
+  const currency = (settings?.currency || 'GEL') as CurrencyCode;
+
+  // Auto-suggest price from database when name or quantity changes
+  useEffect(() => {
+    if (name.trim()) {
+      const suggestedPrice = georgiaPrices.getPrice(
+        name.trim(),
+        parseFloat(quantity) || 1,
+        unit
+      );
+      if (suggestedPrice) {
+        setPrice(suggestedPrice);
+        setPriceSuggested(true);
+      } else {
+        setPriceSuggested(false);
+      }
+    }
+  }, [name, quantity, unit]);
 
   const handleGetNutrition = async () => {
     if (!name.trim()) return;
@@ -63,7 +87,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       addedAt: new Date().toISOString(),
       source: 'manual',
-      caloriesPer100: parseFloat(caloriesPer100) || 0
+      caloriesPer100: parseFloat(caloriesPer100) || 0,
+      price: price || undefined
     };
 
     StorageService.saveInventoryItem(item);
@@ -197,19 +222,47 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             />
           </div>
 
-          {/* Calories */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Калории на 100{unit === 'мл' ? 'мл' : 'г'} <span className="text-gray-400">(опционально)</span>
-            </label>
-            <input
-              type="number"
-              value={caloriesPer100}
-              onChange={(e) => setCaloriesPer100(e.target.value)}
-              placeholder="313"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          {/* Calories and Price */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Калории на 100{unit === 'мл' ? 'мл' : 'г'}
+              </label>
+              <input
+                type="number"
+                value={caloriesPer100}
+                onChange={(e) => setCaloriesPer100(e.target.value)}
+                placeholder="313"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Цена {priceSuggested && <span className="text-green-500">(из базы)</span>}
+              </label>
+              <input
+                type="number"
+                value={price || ''}
+                onChange={(e) => {
+                  setPrice(e.target.value ? parseFloat(e.target.value) : null);
+                  setPriceSuggested(false);
+                }}
+                placeholder="0"
+                min="0"
+                step="0.01"
+                className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  priceSuggested
+                    ? 'border-green-400 bg-green-50 dark:bg-green-900/20'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+              />
+              {price && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formatCurrency(price, currency)}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Submit */}
