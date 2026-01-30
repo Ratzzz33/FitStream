@@ -1,9 +1,9 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult } from '../services/geminiService';
+import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
