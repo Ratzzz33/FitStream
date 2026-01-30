@@ -4,4 +4,5 @@
     <string name="title_activity_main">FitStream</string>
     <string name="package_name">com.fitstream.app</string>
     <string name="custom_url_scheme">com.fitstream.app</string>
+    <string name="server_client_id">1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com</string>
 </resources>

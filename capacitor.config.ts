@@ -11,6 +11,11 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
