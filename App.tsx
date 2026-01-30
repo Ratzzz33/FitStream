@@ -695,35 +695,40 @@ const App = () => {
                    </button>
                 </div>
                 
-                {/* Rings Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    {enabledGoals.map((goal, idx) => (
-                        <div 
-                            key={goal.type} 
+                {/* Horizontal scrollable goals slider */}
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+                    {enabledGoals.map((goal) => (
+                        <div
+                            key={goal.type}
                             onClick={() => setSelectedGoal(goal)}
-                            className={`bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-lg cursor-pointer hover:scale-[1.02] transition-transform ${enabledGoals.length % 2 !== 0 && idx === enabledGoals.length - 1 ? 'col-span-2' : ''}`}
+                            className="flex-shrink-0 w-[100px] bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-2 flex flex-col items-center justify-center relative shadow-lg cursor-pointer hover:scale-[1.02] transition-transform snap-start"
                         >
-                             <div className="absolute top-3 left-3">
+                             <div className="absolute top-2 left-2">
                                  {getIconForType(goal.type)}
                              </div>
-                             <AchievementRing 
-                                radius={55} 
-                                stroke={8} 
-                                progress={goal.current} 
-                                total={goal.target} 
-                                color={goal.color} 
+                             <AchievementRing
+                                radius={32}
+                                stroke={4}
+                                progress={goal.current}
+                                total={goal.target}
+                                color={goal.color}
                                 label={goal.unit === 'reps' ? t('reps') : t('steps')}
                             />
-                            <div className="mt-2 text-center">
-                                <span className="block text-sm font-bold text-gray-800 dark:text-white">{getLabelForType(goal.type)}</span>
+                            <div className="mt-1 text-center">
+                                <span className="block text-[10px] font-bold text-gray-800 dark:text-white truncate w-full">{getLabelForType(goal.type)}</span>
                             </div>
                         </div>
                     ))}
-                    {enabledGoals.length === 0 && (
-                         <div className="col-span-2 text-center py-8 text-gray-500 bg-gray-100 dark:bg-gray-900/30 rounded-2xl border border-dashed border-gray-300 dark:border-gray-800">
-                             {t('noGoals')}
-                         </div>
-                    )}
+                    {/* Add goal button */}
+                    <div
+                        onClick={() => setShowGoalSettings(true)}
+                        className="flex-shrink-0 w-[100px] bg-gray-100 dark:bg-gray-900/30 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-2 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition snap-start"
+                    >
+                        <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                            <span className="text-2xl text-gray-400 dark:text-gray-500">+</span>
+                        </div>
+                        <span className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-1">{t('addGoal') || 'Добавить'}</span>
+                    </div>
                 </div>
             </div>
 
