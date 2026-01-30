@@ -9,8 +9,14 @@ const crypto = require('crypto');
 // In-memory store for link codes (in production, use Redis or DB)
 const linkCodes = new Map(); // code -> { userId, expiresAt }
 
+// Store for feedback conversations: adminMessageId -> { userChatId, userName }
+const feedbackReplies = new Map();
+
 let bot = null;
 let pool = null;
+
+// Admin chat ID for receiving feedback (your personal Telegram ID)
+const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
 /**
  * Initialize the Telegram bot
@@ -41,8 +47,18 @@ function initBot(dbPool) {
     bot.onText(/\/stats/, handleStats);
     bot.onText(/\/goals/, handleGoals);
     bot.onText(/\/help/, handleHelp);
+    bot.onText(/\/feedback/, handleFeedbackCommand);
+
+    // Handle regular messages (feedback from users)
+    bot.on('message', handleUserMessage);
 
     console.log('Telegram bot initialized successfully');
+
+    if (ADMIN_CHAT_ID) {
+        console.log('Feedback forwarding enabled to admin:', ADMIN_CHAT_ID);
+    } else {
+        console.warn('TELEGRAM_ADMIN_CHAT_ID not set. Feedback forwarding disabled.');
+    }
 
     return bot;
 }
@@ -291,14 +307,176 @@ async function handleHelp(msg) {
         `/unlink - Unlink your account\n` +
         `/stats - View today's statistics\n` +
         `/goals - Check goal progress\n` +
+        `/feedback - Contact support\n` +
         `/help - Show this message\n\n` +
         `<b>Notifications</b>\n` +
         `When linked, you'll receive:\n` +
         `- Goal completion alerts\n` +
         `- Streak milestone celebrations\n` +
-        `- Daily workout reminders`,
+        `- Daily workout reminders\n\n` +
+        `<b>Support</b>\n` +
+        `Just send any message to contact our team!`,
         { parse_mode: 'HTML' }
     );
+}
+
+/**
+ * Handle /feedback command
+ */
+async function handleFeedbackCommand(msg) {
+    const chatId = msg.chat.id;
+    const firstName = msg.from.first_name || 'User';
+
+    bot.sendMessage(chatId,
+        `Hi ${firstName}! 👋\n\n` +
+        `Want to share feedback, report a bug, or ask a question?\n\n` +
+        `Just send your message here and our team will reply as soon as possible!\n\n` +
+        `You can send:\n` +
+        `📝 Text messages\n` +
+        `📷 Screenshots\n` +
+        `🎥 Videos\n` +
+        `📎 Files`,
+        { parse_mode: 'HTML' }
+    );
+}
+
+/**
+ * Handle regular messages from users (forward to admin as feedback)
+ */
+async function handleUserMessage(msg) {
+    // Skip if it's a command
+    if (msg.text && msg.text.startsWith('/')) return;
+
+    const chatId = msg.chat.id;
+
+    // Skip if this is admin replying
+    if (ADMIN_CHAT_ID && chatId.toString() === ADMIN_CHAT_ID.toString()) {
+        // Check if admin is replying to a forwarded message
+        if (msg.reply_to_message) {
+            await handleAdminReply(msg);
+        }
+        return;
+    }
+
+    // No admin configured - just acknowledge
+    if (!ADMIN_CHAT_ID) {
+        return;
+    }
+
+    // Get user info
+    const user = await getUserByTelegramChatId(chatId);
+    const userName = user?.settings?.name || msg.from.first_name || 'Anonymous';
+    const username = msg.from.username ? `@${msg.from.username}` : 'no username';
+    const isPro = user?.is_pro ? '⭐ PRO' : '';
+
+    // Build header for admin
+    const header = `📨 <b>Feedback from ${userName}</b> ${isPro}\n` +
+        `👤 ${username} | ID: <code>${chatId}</code>\n` +
+        `━━━━━━━━━━━━━━━\n`;
+
+    try {
+        let sentMessage;
+
+        // Forward different message types
+        if (msg.photo) {
+            // Photo message
+            const photo = msg.photo[msg.photo.length - 1]; // Get highest resolution
+            sentMessage = await bot.sendPhoto(ADMIN_CHAT_ID, photo.file_id, {
+                caption: header + (msg.caption || ''),
+                parse_mode: 'HTML'
+            });
+        } else if (msg.video) {
+            sentMessage = await bot.sendVideo(ADMIN_CHAT_ID, msg.video.file_id, {
+                caption: header + (msg.caption || ''),
+                parse_mode: 'HTML'
+            });
+        } else if (msg.document) {
+            sentMessage = await bot.sendDocument(ADMIN_CHAT_ID, msg.document.file_id, {
+                caption: header + (msg.caption || ''),
+                parse_mode: 'HTML'
+            });
+        } else if (msg.voice) {
+            sentMessage = await bot.sendVoice(ADMIN_CHAT_ID, msg.voice.file_id, {
+                caption: header,
+                parse_mode: 'HTML'
+            });
+        } else if (msg.text) {
+            sentMessage = await bot.sendMessage(ADMIN_CHAT_ID,
+                header + msg.text,
+                { parse_mode: 'HTML' }
+            );
+        } else {
+            // Unknown message type - forward as is
+            sentMessage = await bot.forwardMessage(ADMIN_CHAT_ID, chatId, msg.message_id);
+        }
+
+        // Store mapping for replies
+        if (sentMessage) {
+            feedbackReplies.set(sentMessage.message_id, {
+                userChatId: chatId,
+                userName: userName
+            });
+        }
+
+        // Confirm to user
+        await bot.sendMessage(chatId,
+            `✅ Message received!\n\nWe'll reply as soon as possible.`,
+            { parse_mode: 'HTML' }
+        );
+
+    } catch (e) {
+        console.error('Error forwarding feedback to admin:', e);
+    }
+}
+
+/**
+ * Handle admin replies to forwarded messages
+ */
+async function handleAdminReply(msg) {
+    const replyToId = msg.reply_to_message.message_id;
+    const feedbackData = feedbackReplies.get(replyToId);
+
+    if (!feedbackData) {
+        // Try to extract user ID from the message if it contains the ID pattern
+        const text = msg.reply_to_message.text || msg.reply_to_message.caption || '';
+        const idMatch = text.match(/ID: (\d+)/);
+
+        if (!idMatch) {
+            bot.sendMessage(msg.chat.id, '⚠️ Cannot find user to reply to. Reply expired or invalid.');
+            return;
+        }
+
+        feedbackData = { userChatId: parseInt(idMatch[1]), userName: 'User' };
+    }
+
+    try {
+        // Send admin's reply to the user
+        if (msg.photo) {
+            const photo = msg.photo[msg.photo.length - 1];
+            await bot.sendPhoto(feedbackData.userChatId, photo.file_id, {
+                caption: `📩 <b>Reply from FitStream Team:</b>\n\n${msg.caption || ''}`,
+                parse_mode: 'HTML'
+            });
+        } else if (msg.text) {
+            await bot.sendMessage(feedbackData.userChatId,
+                `📩 <b>Reply from FitStream Team:</b>\n\n${msg.text}`,
+                { parse_mode: 'HTML' }
+            );
+        } else {
+            // Forward other types
+            await bot.copyMessage(feedbackData.userChatId, msg.chat.id, msg.message_id);
+        }
+
+        // Confirm to admin
+        await bot.sendMessage(msg.chat.id,
+            `✅ Reply sent to ${feedbackData.userName}`,
+            { reply_to_message_id: msg.message_id }
+        );
+
+    } catch (e) {
+        console.error('Error sending reply to user:', e);
+        bot.sendMessage(msg.chat.id, `❌ Failed to send reply: ${e.message}`);
+    }
 }
 
 /**

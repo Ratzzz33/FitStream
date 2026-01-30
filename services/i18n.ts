@@ -92,7 +92,10 @@ const translations = {
     coachVoice: 'Coach Voice',
     voiceMale: 'Male',
     voiceFemale: 'Female',
-    
+    support: 'Support',
+    supportDesc: 'Questions, feedback, or issues?',
+    contactUs: 'Contact',
+
     // Statistics
     statistics: 'Statistics',
     week: 'Week',
@@ -455,7 +458,10 @@ const translations = {
     coachVoice: 'Голос тренера',
     voiceMale: 'Мужской',
     voiceFemale: 'Женский',
-    
+    support: 'Поддержка',
+    supportDesc: 'Вопросы, отзывы или проблемы?',
+    contactUs: 'Написать',
+
     // Statistics
     statistics: 'Статистика',
     week: 'Неделя',
