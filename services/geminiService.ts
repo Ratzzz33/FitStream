@@ -83,8 +83,8 @@ export const analyzeFood = async (
     const lang = navigator.language;
 
     const refContext = referenceDimensions
-        ? `User should have placed a "${referenceObject}" (${referenceDimensions}) for scale.`
-        : `User should have placed a "${referenceObject}" for scale.`;
+        ? `User prefers "${referenceObject}" (${referenceDimensions}) for scale.`
+        : `User prefers "${referenceObject}" for scale.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -95,9 +95,16 @@ export const analyzeFood = async (
                         { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
                         { text: `Identify food in this photo. ${refContext}
 
-IMPORTANT: Check if the reference object "${referenceObject}" is actually visible in the photo.
-- referenceDetected: true ONLY if you can clearly see the reference object
-- confidenceLevel: HIGH if reference visible, MEDIUM if using hand/common object, LOW if no reference
+Check if ANY common reference object is visible for scale estimation:
+- Fork, spoon, knife, chopsticks
+- Hand, fingers
+- Credit card, ID card
+- Coin, lighter
+- Phone, keys
+- The user's preferred object: "${referenceObject}"
+
+referenceDetected: true if ANY of these objects is visible (not just the preferred one)
+confidenceLevel: HIGH if clear reference visible, MEDIUM if partial/unclear, LOW if no reference at all
 
 Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
                     ]
