@@ -190,7 +190,10 @@ test.describe('Accessibility', () => {
     }
   });
 
-  test('touch targets are large enough', async ({ mobilePage }) => {
+  test('touch targets are large enough', async ({ mobilePage, browserName }) => {
+    // Firefox doesn't support mobile emulation
+    test.skip(browserName === 'firefox', 'Mobile tests not supported in Firefox');
+
     await mobilePage.goto('/');
     await mobilePage.waitForLoadState('networkidle');
 

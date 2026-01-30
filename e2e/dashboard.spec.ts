@@ -106,6 +106,9 @@ test.describe('Dashboard - Theme', () => {
 });
 
 test.describe('Dashboard - Responsive', () => {
+  // Firefox doesn't support mobile emulation
+  test.skip(({ browserName }) => browserName === 'firefox', 'Mobile tests not supported in Firefox');
+
   test('renders correctly on mobile', async ({ mobilePage }) => {
     await mobilePage.goto('/');
 

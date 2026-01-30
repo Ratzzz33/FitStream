@@ -127,6 +127,29 @@ interface CameraCalibration {
   isCalibrated: boolean;
 }
 
+// Personal angle calibration data (learned from user's demo rep)
+export interface PersonalCalibration {
+  exercise: TrackableExercise;
+  upAngle: number;           // User's personal UP angle (standing/extended)
+  downAngle: number;         // User's personal DOWN angle (squat/bent)
+  calibratedAt: number;      // Timestamp
+  repCount: number;          // How many reps used to calibrate
+}
+
+// Rep counting improvements
+interface RepCountingState {
+  lastRepTime: number;           // Timestamp of last counted rep
+  stableFrameCount: number;      // Frames in stable position
+  currentPhaseStartTime: number; // When current phase started
+  minAngleInRep: number;         // Track min angle during rep
+  maxAngleInRep: number;         // Track max angle during rep
+}
+
+// Constants for improved rep counting
+const MIN_REP_INTERVAL_MS = 400;     // Minimum time between reps (debounce)
+const STABLE_FRAMES_REQUIRED = 2;    // Frames required in stable position
+const HYSTERESIS_BUFFER = 8;         // Degrees buffer for phase transitions
+
 // Thresholds for each exercise - now with bilateral support
 const EXERCISE_CONFIG: Record<TrackableExercise, {
   upAngleMin: number;
@@ -759,6 +782,8 @@ export interface PoseTrackerCallbacks {
   onPlankTime?: (seconds: number) => void;
   onCalibrationUpdate?: (calibration: CameraCalibration) => void;
   onOrientationDetected?: (orientation: BodyOrientation, activeSide: 'left' | 'right' | 'both') => void;
+  onPersonalCalibrationProgress?: (phase: 'waiting' | 'down' | 'up' | 'done', angle: number) => void;
+  onPersonalCalibrationComplete?: (calibration: PersonalCalibration) => void;
 }
 
 export interface PoseTrackerOptions {
@@ -788,6 +813,31 @@ export class PoseTracker {
   // Calibration samples for auto-detection
   private calibrationSamples: CameraPlacement[] = [];
   private readonly calibrationSampleCount = 10;
+
+  // Personal angle calibration
+  private personalCalibration: PersonalCalibration | null = null;
+  private isPersonalCalibrationMode = false;
+  private personalCalibrationPhase: 'waiting' | 'down' | 'up' | 'done' = 'waiting';
+  private personalCalibrationAngles: number[] = [];
+  private personalCalibrationMinAngle = 999;
+  private personalCalibrationMaxAngle = 0;
+
+  // Improved rep counting state
+  private repCountingState: RepCountingState = {
+    lastRepTime: 0,
+    stableFrameCount: 0,
+    currentPhaseStartTime: 0,
+    minAngleInRep: 999,
+    maxAngleInRep: 0
+  };
+
+  // Hysteresis thresholds (calculated from base or personal calibration)
+  private hysteresisThresholds = {
+    upEnter: 160,
+    upExit: 152,
+    downEnter: 100,
+    downExit: 108
+  };
 
   constructor(
     exercise: TrackableExercise,
@@ -835,6 +885,137 @@ export class PoseTracker {
   // Get current calibration status
   getCalibration(): CameraCalibration {
     return { ...this.calibration };
+  }
+
+  // ===== PERSONAL ANGLE CALIBRATION =====
+
+  // Set personal calibration (loaded from storage)
+  setPersonalCalibration(calibration: PersonalCalibration | null): void {
+    this.personalCalibration = calibration;
+    if (calibration) {
+      this.updateHysteresisThresholds(calibration.upAngle, calibration.downAngle);
+    }
+  }
+
+  // Get current personal calibration
+  getPersonalCalibration(): PersonalCalibration | null {
+    return this.personalCalibration;
+  }
+
+  // Start personal calibration mode (user does 1 demo rep)
+  startPersonalCalibration(): void {
+    this.isPersonalCalibrationMode = true;
+    this.personalCalibrationPhase = 'waiting';
+    this.personalCalibrationAngles = [];
+    this.personalCalibrationMinAngle = 999;
+    this.personalCalibrationMaxAngle = 0;
+    this.isRunning = true;
+  }
+
+  // Stop personal calibration mode
+  stopPersonalCalibration(): void {
+    this.isPersonalCalibrationMode = false;
+    this.personalCalibrationPhase = 'waiting';
+  }
+
+  // Check if in personal calibration mode
+  isInPersonalCalibrationMode(): boolean {
+    return this.isPersonalCalibrationMode;
+  }
+
+  // Update hysteresis thresholds from calibration data
+  private updateHysteresisThresholds(upAngle: number, downAngle: number): void {
+    // Add hysteresis buffer to prevent flickering
+    this.hysteresisThresholds = {
+      upEnter: upAngle - HYSTERESIS_BUFFER,      // Need to reach this to enter UP
+      upExit: upAngle - HYSTERESIS_BUFFER * 2,   // Must go below this to exit UP
+      downEnter: downAngle + HYSTERESIS_BUFFER,  // Need to reach this to enter DOWN
+      downExit: downAngle + HYSTERESIS_BUFFER * 2 // Must go above this to exit DOWN
+    };
+  }
+
+  // Process frame during personal calibration
+  private processPersonalCalibration(angle: number): void {
+    this.personalCalibrationAngles.push(angle);
+
+    // Track min/max angles
+    if (angle < this.personalCalibrationMinAngle) {
+      this.personalCalibrationMinAngle = angle;
+    }
+    if (angle > this.personalCalibrationMaxAngle) {
+      this.personalCalibrationMaxAngle = angle;
+    }
+
+    const config = EXERCISE_CONFIG[this.exercise];
+    const defaultUp = config.upAngleMin;
+    const defaultDown = config.downAngleMax;
+
+    // State machine for calibration rep
+    switch (this.personalCalibrationPhase) {
+      case 'waiting':
+        // Wait for user to go down (angle decreasing toward DOWN threshold)
+        if (angle < defaultUp - 20) {
+          this.personalCalibrationPhase = 'down';
+          this.callbacks.onPersonalCalibrationProgress?.('down', angle);
+        }
+        break;
+
+      case 'down':
+        // Wait for user to hit bottom and start coming up
+        if (angle < defaultDown + 30) {
+          // User is in the down position, track minimum
+        }
+        // Detect when coming back up (angle increasing significantly)
+        if (angle > this.personalCalibrationMinAngle + 25) {
+          this.personalCalibrationPhase = 'up';
+          this.callbacks.onPersonalCalibrationProgress?.('up', angle);
+        }
+        break;
+
+      case 'up':
+        // Wait for user to return to standing
+        if (angle > this.personalCalibrationMaxAngle - 10 || angle > defaultUp - 10) {
+          this.personalCalibrationPhase = 'done';
+          this.finishPersonalCalibration();
+        }
+        break;
+    }
+
+    this.callbacks.onPersonalCalibrationProgress?.(this.personalCalibrationPhase, angle);
+  }
+
+  // Complete personal calibration and save
+  private finishPersonalCalibration(): void {
+    // Calculate personal thresholds with some margin
+    const upAngle = Math.min(this.personalCalibrationMaxAngle, 175);
+    const downAngle = Math.max(this.personalCalibrationMinAngle, 60);
+
+    // Validate calibration (should have reasonable range)
+    const range = upAngle - downAngle;
+    if (range < 30 || range > 120) {
+      // Invalid calibration, reset
+      this.personalCalibrationPhase = 'waiting';
+      this.personalCalibrationMinAngle = 999;
+      this.personalCalibrationMaxAngle = 0;
+      return;
+    }
+
+    const calibration: PersonalCalibration = {
+      exercise: this.exercise,
+      upAngle: upAngle - 5,      // Add small margin
+      downAngle: downAngle + 5,  // Add small margin
+      calibratedAt: Date.now(),
+      repCount: 1
+    };
+
+    this.personalCalibration = calibration;
+    this.updateHysteresisThresholds(calibration.upAngle, calibration.downAngle);
+
+    // Notify completion
+    this.callbacks.onPersonalCalibrationComplete?.(calibration);
+
+    // Exit calibration mode
+    this.isPersonalCalibrationMode = false;
   }
 
   // Start calibration mode - collects samples during countdown
@@ -968,6 +1149,36 @@ export class PoseTracker {
     }
 
     if (!results.poseLandmarks || !this.isRunning) return;
+
+    // Handle personal calibration mode
+    if (this.isPersonalCalibrationMode) {
+      const landmarks = results.poseLandmarks;
+      const config = EXERCISE_CONFIG[this.exercise];
+
+      // Calculate current angle
+      const jointA_L = landmarks[LANDMARKS[config.jointA_L]];
+      const jointB_L = landmarks[LANDMARKS[config.jointB_L]];
+      const jointC_L = landmarks[LANDMARKS[config.jointC_L]];
+      const jointA_R = landmarks[LANDMARKS[config.jointA_R]];
+      const jointB_R = landmarks[LANDMARKS[config.jointB_R]];
+      const jointC_R = landmarks[LANDMARKS[config.jointC_R]];
+
+      const leftAngle = calculateAngle(jointA_L, jointB_L, jointC_L, config.use3D);
+      const rightAngle = calculateAngle(jointA_R, jointB_R, jointC_R, config.use3D);
+      const avgAngle = (leftAngle + rightAngle) / 2;
+
+      // Still emit pose for visualization
+      this.callbacks.onPoseUpdate(landmarks, avgAngle, leftAngle, rightAngle);
+
+      // Process calibration
+      this.processPersonalCalibration(avgAngle);
+
+      // Exit if calibration is done
+      if (this.personalCalibrationPhase === 'done') {
+        return;
+      }
+      return;
+    }
 
     const landmarks = results.poseLandmarks;
     const config = EXERCISE_CONFIG[this.exercise];
@@ -1104,29 +1315,90 @@ export class PoseTracker {
   ): void {
     const config = EXERCISE_CONFIG[this.exercise];
     const prevPhase = this.state.phase;
+    const now = Date.now();
 
-    // Determine current phase based on adjusted thresholds
-    if (angle >= thresholds.upAngleMin) {
-      this.state.phase = 'up';
-    } else if (angle <= thresholds.downAngleMax) {
-      this.state.phase = 'down';
-    } else {
-      this.state.phase = 'transition';
+    // Use personal calibration if available, otherwise use adjusted thresholds
+    let effectiveUp = thresholds.upAngleMin;
+    let effectiveDown = thresholds.downAngleMax;
+
+    if (this.personalCalibration && this.personalCalibration.exercise === this.exercise) {
+      effectiveUp = this.personalCalibration.upAngle;
+      effectiveDown = this.personalCalibration.downAngle;
     }
 
-    // Count rep when completing full cycle: up → down → up
+    // Track min/max angles during current rep
+    if (angle < this.repCountingState.minAngleInRep) {
+      this.repCountingState.minAngleInRep = angle;
+    }
+    if (angle > this.repCountingState.maxAngleInRep) {
+      this.repCountingState.maxAngleInRep = angle;
+    }
+
+    // Determine current phase with HYSTERESIS to prevent flickering
+    let newPhase: RepPhase = this.state.phase;
+
+    if (this.state.phase === 'up') {
+      // In UP state - need to go significantly down to transition
+      if (angle <= effectiveDown + HYSTERESIS_BUFFER) {
+        newPhase = 'down';
+      } else if (angle < effectiveUp - HYSTERESIS_BUFFER) {
+        newPhase = 'transition';
+      }
+    } else if (this.state.phase === 'down') {
+      // In DOWN state - need to go significantly up to transition
+      if (angle >= effectiveUp - HYSTERESIS_BUFFER) {
+        newPhase = 'up';
+      } else if (angle > effectiveDown + HYSTERESIS_BUFFER) {
+        newPhase = 'transition';
+      }
+    } else {
+      // In TRANSITION state
+      if (angle >= effectiveUp - HYSTERESIS_BUFFER / 2) {
+        newPhase = 'up';
+      } else if (angle <= effectiveDown + HYSTERESIS_BUFFER / 2) {
+        newPhase = 'down';
+      }
+    }
+
+    // Track stable frames in same phase
+    if (newPhase === this.state.phase) {
+      this.repCountingState.stableFrameCount++;
+    } else {
+      this.repCountingState.stableFrameCount = 1;
+      this.repCountingState.currentPhaseStartTime = now;
+    }
+
+    // Only transition phase if stable for required frames
+    if (this.repCountingState.stableFrameCount >= STABLE_FRAMES_REQUIRED) {
+      this.state.phase = newPhase;
+    }
+
+    // Count rep when completing full cycle: down → up
+    // With DEBOUNCE to prevent double counting
     if (prevPhase === 'down' && this.state.phase === 'up') {
-      this.state.repCount++;
+      const timeSinceLastRep = now - this.repCountingState.lastRepTime;
 
-      // Calculate form score with bilateral consideration
-      const formScore = this.calculateFormScore();
-      this.state.formScore = formScore;
+      // Check debounce AND that we actually went through a meaningful range
+      const repRange = this.repCountingState.maxAngleInRep - this.repCountingState.minAngleInRep;
+      const minRequiredRange = (effectiveUp - effectiveDown) * 0.5; // At least 50% of full range
 
-      this.callbacks.onRepComplete(this.state.repCount, formScore);
+      if (timeSinceLastRep >= MIN_REP_INTERVAL_MS && repRange >= minRequiredRange) {
+        this.state.repCount++;
+        this.repCountingState.lastRepTime = now;
+
+        // Calculate form score with bilateral consideration
+        const formScore = this.calculateFormScore();
+        this.state.formScore = formScore;
+
+        this.callbacks.onRepComplete(this.state.repCount, formScore);
+
+        // Reset min/max tracking for next rep
+        this.repCountingState.minAngleInRep = 999;
+        this.repCountingState.maxAngleInRep = 0;
+      }
     }
 
     // Periodic form check with orientation awareness
-    const now = Date.now();
     if (now - this.lastFormCheck > this.formCheckInterval) {
       this.lastFormCheck = now;
       const feedback = config.formChecks(landmarks, this.state.bodyOrientation);
@@ -1192,6 +1464,15 @@ export class PoseTracker {
     // Reset angle history
     this.angleHistory = { left: [], right: [] };
 
+    // Reset rep counting state
+    this.repCountingState = {
+      lastRepTime: 0,
+      stableFrameCount: 0,
+      currentPhaseStartTime: 0,
+      minAngleInRep: 999,
+      maxAngleInRep: 0
+    };
+
     // Reset calibration if auto
     if (this.options.cameraPlacement === 'auto') {
       this.calibration.isCalibrated = false;
@@ -1203,12 +1484,23 @@ export class PoseTracker {
   getDetailedState(): ExerciseState & {
     calibration: CameraCalibration;
     thresholds: { upAngleMin: number; downAngleMax: number };
+    personalCalibration: PersonalCalibration | null;
+    isPersonallyCalibrated: boolean;
   } {
     const config = EXERCISE_CONFIG[this.exercise];
+    const baseThresholds = getAdjustedThresholds(config, this.calibration.placement);
+
+    // Use personal calibration if available
+    const effectiveThresholds = this.personalCalibration
+      ? { upAngleMin: this.personalCalibration.upAngle, downAngleMax: this.personalCalibration.downAngle }
+      : baseThresholds;
+
     return {
       ...this.state,
       calibration: { ...this.calibration },
-      thresholds: getAdjustedThresholds(config, this.calibration.placement)
+      thresholds: effectiveThresholds,
+      personalCalibration: this.personalCalibration,
+      isPersonallyCalibrated: this.personalCalibration !== null
     };
   }
 }
