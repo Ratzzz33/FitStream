@@ -496,73 +496,142 @@ function renderPhone() {
     ph.innerHTML = `<div class="relative h-full">${h}</div>`;
 }
 
-// ===== FEATURE MODAL =====
+// ===== FEATURE MODAL WITH TILES (Yandex-style) =====
 const featureDetails = {
     pose: {
-        icon: '🧘',
         color: 'violet',
-        features: ['Real-time pose detection with MediaPipe', '15 different exercises supported', 'Instant feedback on form', 'Rep counting with AI', 'Works on any camera']
+        tiles: [
+            { id: 'realtime', label: 'Real-time Detection' },
+            { id: 'exercises', label: '15 Exercises' },
+            { id: 'feedback', label: 'Form Feedback' },
+            { id: 'counting', label: 'Rep Counting' },
+        ]
     },
     kitchen: {
-        icon: '🍳',
         color: 'amber',
-        features: ['Track products in fridge, pantry & freezer', 'AI recognizes products from photos', 'Expiry date tracking', 'Smart shopping lists', 'Low stock notifications']
+        tiles: [
+            { id: 'storage', label: 'Storage Tracking' },
+            { id: 'ai-scan', label: 'AI Product Scan' },
+            { id: 'expiry', label: 'Expiry Alerts' },
+            { id: 'shopping', label: 'Shopping Lists' },
+        ]
     },
     cooking: {
-        icon: '👨‍🍳',
         color: 'rose',
-        features: ['Step-by-step recipe guidance', 'Built-in cooking timers', 'Voice reminders', 'Troubleshooting tips', 'Ingredient substitutions']
+        tiles: [
+            { id: 'steps', label: 'Step-by-Step' },
+            { id: 'timer', label: 'Smart Timers' },
+            { id: 'voice', label: 'Voice Guide' },
+            { id: 'tips', label: 'Pro Tips' },
+        ]
     },
     coach: {
-        icon: '💪',
         color: 'blue',
-        features: ['Real-time voice guidance', 'Automatic rep counting', 'Form correction tips', 'Customizable voice (male/female)', 'Workout history tracking']
+        tiles: [
+            { id: 'voice-guide', label: 'Voice Coaching' },
+            { id: 'rep-count', label: 'Auto Rep Count' },
+            { id: 'form-tips', label: 'Form Correction' },
+            { id: 'history', label: 'Workout History' },
+        ]
     },
     scale: {
-        icon: '📷',
         color: 'emerald',
-        features: ['Point camera at any scale', 'AI reads weight automatically', 'Works with digital & analog scales', 'Phone tare weight support', 'Trend tracking']
+        tiles: [
+            { id: 'camera', label: 'Camera Scan' },
+            { id: 'auto-read', label: 'Auto Reading' },
+            { id: 'any-scale', label: 'Any Scale Type' },
+            { id: 'trend', label: 'Weight Trends' },
+        ]
     },
     food: {
-        icon: '🍎',
         color: 'orange',
-        features: ['Instant calorie estimation', 'Macro breakdown (protein, carbs, fat)', 'Reference object for accuracy', 'Meal history logging', 'Daily nutrition summary']
+        tiles: [
+            { id: 'calories', label: 'Instant Calories' },
+            { id: 'macros', label: 'Macro Breakdown' },
+            { id: 'reference', label: 'Size Reference' },
+            { id: 'log', label: 'Meal Logging' },
+        ]
     },
     receipt: {
-        icon: '🧾',
         color: 'teal',
-        features: ['Scan grocery receipts', 'Auto-extract products & prices', 'Expiry date estimation', 'Price history tracking', 'Budget insights']
+        tiles: [
+            { id: 'scan', label: 'Receipt Scan' },
+            { id: 'extract', label: 'Auto Extract' },
+            { id: 'prices', label: 'Price Tracking' },
+            { id: 'budget', label: 'Budget Insights' },
+        ]
     },
     finance: {
-        icon: '💰',
         color: 'lime',
-        features: ['Track food spending', 'Home cooking vs eating out', 'Monthly budget reports', 'Savings calculator', 'Cost per meal analysis']
+        tiles: [
+            { id: 'spending', label: 'Food Spending' },
+            { id: 'cooking-vs-out', label: 'Cook vs Eat Out' },
+            { id: 'reports', label: 'Monthly Reports' },
+            { id: 'savings', label: 'Savings Calc' },
+        ]
     },
     health: {
-        icon: '❤️',
         color: 'red',
-        features: ['Google Fit integration', 'Apple Health sync', 'Samsung Health Connect', 'Steps & activity data', 'Sleep tracking import']
+        tiles: [
+            { id: 'google-fit', label: 'Google Fit' },
+            { id: 'apple-health', label: 'Apple Health' },
+            { id: 'steps', label: 'Steps Sync' },
+            { id: 'sync', label: 'Auto Sync' },
+        ]
     },
     goals: {
-        icon: '🎯',
         color: 'purple',
-        features: ['Custom daily goals', 'Steps, pushups, squats & more', 'Streak tracking', 'Progress visualization', 'Reminder notifications']
+        tiles: [
+            { id: 'custom', label: 'Custom Goals' },
+            { id: 'exercises', label: 'Exercise Types' },
+            { id: 'streak', label: 'Streak Tracking' },
+            { id: 'progress', label: 'Progress Rings' },
+        ]
     },
     charts: {
-        icon: '📊',
         color: 'cyan',
-        features: ['Weight trend charts', 'Workout history graphs', 'Progress over time', 'Body composition tracking', 'Export data as CSV']
+        tiles: [
+            { id: 'weight', label: 'Weight Charts' },
+            { id: 'workouts', label: 'Workout Graphs' },
+            { id: 'body', label: 'Body Composition' },
+            { id: 'export', label: 'Export CSV' },
+        ]
     },
     offline: {
-        icon: '📶',
         color: 'slate',
-        features: ['Full offline functionality', 'Automatic sync when online', 'No data loss', 'Local storage backup', 'Works anywhere']
+        tiles: [
+            { id: 'offline-mode', label: 'Offline Mode' },
+            { id: 'auto-sync', label: 'Auto Sync' },
+            { id: 'local', label: 'Local Storage' },
+            { id: 'anywhere', label: 'Works Anywhere' },
+        ]
     },
     shop: {
-        icon: '🛒',
         color: 'pink',
-        features: ['AI meal planning for X days', 'Smart shopping list generation', 'Shelf scanner finds products', 'Product verification via photo', 'Health score for items']
+        tiles: [
+            { id: 'planning', label: 'Meal Planning' },
+            { id: 'list', label: 'Smart Lists' },
+            { id: 'scanner', label: 'Shelf Scanner' },
+            { id: 'verify', label: 'Photo Verify' },
+        ]
     }
+};
+
+// Placeholder icons for tiles when images fail to load
+const placeholderIcons = {
+    pose: { realtime: '👁️', exercises: '🏋️', feedback: '✅', counting: '🔢' },
+    kitchen: { storage: '🗄️', 'ai-scan': '📸', expiry: '📅', shopping: '🛒' },
+    cooking: { steps: '📋', timer: '⏱️', voice: '🔊', tips: '💡' },
+    coach: { 'voice-guide': '🎙️', 'rep-count': '🔄', 'form-tips': '📐', history: '📊' },
+    scale: { camera: '📷', 'auto-read': '🔍', 'any-scale': '⚖️', trend: '📈' },
+    food: { calories: '🔥', macros: '🥗', reference: '💳', log: '📝' },
+    receipt: { scan: '📄', extract: '✨', prices: '💵', budget: '📊' },
+    finance: { spending: '💸', 'cooking-vs-out': '🏠', reports: '📑', savings: '🐷' },
+    health: { 'google-fit': '❤️', 'apple-health': '🍎', steps: '👟', sync: '🔄' },
+    goals: { custom: '🎯', exercises: '💪', streak: '🔥', progress: '⭕' },
+    charts: { weight: '📉', workouts: '📊', body: '🧍', export: '📤' },
+    offline: { 'offline-mode': '📴', 'auto-sync': '☁️', local: '💾', anywhere: '🌍' },
+    shop: { planning: '📅', list: '📝', scanner: '🔍', verify: '✅' },
 };
 
 function openFeatureModal(featureKey) {
@@ -572,9 +641,7 @@ function openFeatureModal(featureKey) {
     const modal = document.getElementById('featureModal');
     const title = modal.querySelector('[data-modal-title]');
     const desc = modal.querySelector('[data-modal-desc]');
-    const icon = modal.querySelector('[data-modal-icon]');
-    const featureList = modal.querySelector('[data-modal-features]');
-    const iconBg = modal.querySelector('[data-modal-icon-bg]');
+    const tilesGrid = modal.querySelector('[data-modal-tiles]');
     const coverImg = modal.querySelector('[data-modal-cover]');
 
     // Set cover image
@@ -582,66 +649,44 @@ function openFeatureModal(featureKey) {
     coverImg.alt = featureKey;
 
     // Get translations
-    const titleKey = `features.${featureKey}`;
-    const descKey = `features.${featureKey}Desc`;
+    title.textContent = t(`features.${featureKey}`);
+    desc.textContent = t(`features.${featureKey}Desc`);
 
-    title.textContent = t(titleKey);
-    desc.textContent = t(descKey);
-    icon.textContent = feature.icon;
-
-    // Update color classes
-    const colorClasses = {
-        violet: { bg: 'bg-violet-600/20', border: 'border-violet-500/50', text: 'text-violet-400', gradient: 'from-violet-600 to-purple-600' },
-        amber: { bg: 'bg-amber-600/20', border: 'border-amber-500/50', text: 'text-amber-400', gradient: 'from-amber-600 to-orange-600' },
-        rose: { bg: 'bg-rose-600/20', border: 'border-rose-500/50', text: 'text-rose-400', gradient: 'from-rose-600 to-pink-600' },
-        blue: { bg: 'bg-blue-600/20', border: 'border-blue-500/50', text: 'text-blue-400', gradient: 'from-blue-600 to-indigo-600' },
-        emerald: { bg: 'bg-emerald-600/20', border: 'border-emerald-500/50', text: 'text-emerald-400', gradient: 'from-emerald-600 to-teal-600' },
-        orange: { bg: 'bg-orange-600/20', border: 'border-orange-500/50', text: 'text-orange-400', gradient: 'from-orange-600 to-red-600' },
-        teal: { bg: 'bg-teal-600/20', border: 'border-teal-500/50', text: 'text-teal-400', gradient: 'from-teal-600 to-cyan-600' },
-        lime: { bg: 'bg-lime-600/20', border: 'border-lime-500/50', text: 'text-lime-400', gradient: 'from-lime-600 to-green-600' },
-        red: { bg: 'bg-red-600/20', border: 'border-red-500/50', text: 'text-red-400', gradient: 'from-red-600 to-rose-600' },
-        purple: { bg: 'bg-purple-600/20', border: 'border-purple-500/50', text: 'text-purple-400', gradient: 'from-purple-600 to-indigo-600' },
-        cyan: { bg: 'bg-cyan-600/20', border: 'border-cyan-500/50', text: 'text-cyan-400', gradient: 'from-cyan-600 to-blue-600' },
-        slate: { bg: 'bg-slate-600/20', border: 'border-slate-500/50', text: 'text-slate-400', gradient: 'from-slate-600 to-gray-600' },
-        pink: { bg: 'bg-pink-600/20', border: 'border-pink-500/50', text: 'text-pink-400', gradient: 'from-pink-600 to-rose-600' }
+    // Color classes for tiles
+    const tileColors = {
+        violet: 'from-violet-600/30 to-violet-900/50 border-violet-500/30 hover:border-violet-400',
+        amber: 'from-amber-600/30 to-amber-900/50 border-amber-500/30 hover:border-amber-400',
+        rose: 'from-rose-600/30 to-rose-900/50 border-rose-500/30 hover:border-rose-400',
+        blue: 'from-blue-600/30 to-blue-900/50 border-blue-500/30 hover:border-blue-400',
+        emerald: 'from-emerald-600/30 to-emerald-900/50 border-emerald-500/30 hover:border-emerald-400',
+        orange: 'from-orange-600/30 to-orange-900/50 border-orange-500/30 hover:border-orange-400',
+        teal: 'from-teal-600/30 to-teal-900/50 border-teal-500/30 hover:border-teal-400',
+        lime: 'from-lime-600/30 to-lime-900/50 border-lime-500/30 hover:border-lime-400',
+        red: 'from-red-600/30 to-red-900/50 border-red-500/30 hover:border-red-400',
+        purple: 'from-purple-600/30 to-purple-900/50 border-purple-500/30 hover:border-purple-400',
+        cyan: 'from-cyan-600/30 to-cyan-900/50 border-cyan-500/30 hover:border-cyan-400',
+        slate: 'from-slate-600/30 to-slate-800/50 border-slate-500/30 hover:border-slate-400',
+        pink: 'from-pink-600/30 to-pink-900/50 border-pink-500/30 hover:border-pink-400'
     };
-    const colors = colorClasses[feature.color] || colorClasses.blue;
-    iconBg.className = `w-14 h-14 ${colors.bg} border-2 ${colors.border} rounded-xl flex items-center justify-center text-2xl flex-shrink-0`;
 
-    // Tile icons for each feature (5 icons per feature)
-    const tileIcons = {
-        pose: ['🎯', '🏋️', '📐', '🔢', '📹'],
-        kitchen: ['🧊', '📸', '⏰', '📝', '🔔'],
-        cooking: ['📋', '⏱️', '🔊', '💡', '🔄'],
-        coach: ['🎙️', '🔢', '✨', '🗣️', '📈'],
-        scale: ['📷', '🤖', '⚖️', '📱', '📊'],
-        food: ['⚡', '🥗', '📏', '📚', '📅'],
-        receipt: ['📄', '💲', '📆', '💰', '📉'],
-        finance: ['💳', '🏠', '📊', '💵', '🍽️'],
-        health: ['💚', '🍎', '💙', '👟', '😴'],
-        goals: ['🎯', '💪', '🔥', '📈', '⏰'],
-        charts: ['📈', '📊', '⏳', '💪', '📤'],
-        offline: ['✈️', '🔄', '💾', '🗂️', '🌍'],
-        shop: ['📅', '📝', '📷', '✅', '💚']
-    };
-    const icons = tileIcons[featureKey] || ['✨', '✨', '✨', '✨', '✨'];
-
-    // Build interactive tiles with translations
-    const modalFeatures = i18n[lang]?.modal?.[featureKey] || feature.features;
-    const shortLabels = modalFeatures.map(f => f.split(' ').slice(0, 3).join(' '));
-
-    featureList.innerHTML = modalFeatures.map((f, i) => `
-        <div class="feature-tile group cursor-pointer" onclick="this.classList.toggle('expanded')" style="animation-delay: ${i * 80}ms">
-            <div class="flex items-center gap-3 p-3 rounded-xl ${colors.bg} border ${colors.border} hover:border-opacity-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <span class="text-2xl">${icons[i] || '✨'}</span>
-                <span class="font-medium text-white text-sm flex-1">${shortLabels[i]}</span>
-                <svg class="w-4 h-4 ${colors.text} transition-transform group-[.expanded]:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
+    // Build tiles grid (Yandex-style with AI images)
+    const tileLabels = i18n[lang]?.tiles?.[featureKey] || {};
+    tilesGrid.innerHTML = feature.tiles.map((tile, i) => `
+        <div class="group bg-gradient-to-br ${tileColors[feature.color]} border rounded-2xl p-2 transition-all duration-300 hover:scale-105" style="animation: fadeIn 0.3s ease ${i * 60}ms both">
+            <div class="aspect-square rounded-xl overflow-hidden mb-2 bg-slate-800/50 flex items-center justify-center">
+                <img
+                    src="covers/tiles/${featureKey}-${tile.id}.png"
+                    alt="${tile.label}"
+                    class="w-full h-full object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                >
+                <div class="w-full h-full items-center justify-center text-3xl hidden">
+                    ${placeholderIcons[featureKey]?.[tile.id] || '⚡'}
+                </div>
             </div>
-            <div class="tile-desc hidden group-[.expanded]:block px-3 pb-3 pt-1 text-xs text-slate-400 animate-fadeIn">
-                ${f}
-            </div>
+            <p class="text-[10px] font-medium text-center text-slate-200 leading-tight">
+                ${tileLabels[tile.id] || tile.label}
+            </p>
         </div>
     `).join('');
 
@@ -679,30 +724,32 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- Feature Modal -->
-<div id="featureModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target === this) closeFeatureModal()">
-    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
-        <!-- Cover Image -->
-        <div class="relative w-full aspect-video overflow-hidden">
+<!-- Feature Modal - Yandex-style Tiles -->
+<div id="featureModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-md" onclick="if(event.target === this) closeFeatureModal()">
+    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0 shadow-2xl">
+        <!-- Cover Image with Title Overlay -->
+        <div class="relative w-full aspect-[2/1] overflow-hidden">
             <img data-modal-cover src="" alt="" class="w-full h-full object-cover">
-            <button onclick="closeFeatureModal()" class="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
+            <button onclick="closeFeatureModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition backdrop-blur-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
             </button>
+            <div class="absolute bottom-4 left-5 right-5">
+                <h3 data-modal-title class="text-2xl font-bold text-white drop-shadow-lg">Feature Title</h3>
+                <p data-modal-desc class="text-slate-300 text-sm mt-1 drop-shadow">Feature description</p>
+            </div>
         </div>
-        <div class="p-6">
-            <div class="flex items-center gap-4 mb-4">
-                <div data-modal-icon-bg class="w-14 h-14 bg-blue-600/20 border-2 border-blue-500/50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                    <span data-modal-icon>💪</span>
-                </div>
-                <div>
-                    <h3 data-modal-title class="text-xl font-bold">Feature Title</h3>
-                    <p data-modal-desc class="text-slate-400 text-sm">Feature description</p>
-                </div>
+
+        <!-- Tiles Grid -->
+        <div class="p-5">
+            <div data-modal-tiles class="grid grid-cols-4 gap-3">
+                <!-- Tiles populated by JS -->
             </div>
-            <div data-modal-features class="space-y-2 mb-6">
-                <!-- Feature tiles will be populated by JS -->
-            </div>
-            <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
+        </div>
+
+        <!-- Footer -->
+        <div class="px-5 pb-5">
+            <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition shadow-lg" data-t="modal.gotIt">
                 Got it!
             </button>
         </div>
