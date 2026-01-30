@@ -900,8 +900,8 @@ const App = () => {
                             <line x1="14" y1="10" x2="16" y2="10" />
                             <path d="M6 10V8a3 3 0 016 0v2" />
                             {/* Pan */}
-                            <ellipse cx="26" cy="16" rx="7" ry="3" />
-                            <line x1="33" y1="16" x2="36" y2="13" />
+                            <ellipse cx="25" cy="16" rx="6" ry="3" />
+                            <line x1="31" y1="16" x2="36" y2="11" />
                         </svg>
                     </div>
                     <div className="text-center">
