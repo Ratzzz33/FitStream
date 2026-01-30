@@ -901,7 +901,7 @@ const App = () => {
                             <path d="M6 10V8a3 3 0 016 0v2" />
                             {/* Pan */}
                             <ellipse cx="25" cy="16" rx="6" ry="3" />
-                            <line x1="31" y1="16" x2="36" y2="11" />
+                            <line x1="31" y1="15" x2="36" y2="14" />
                         </svg>
                     </div>
                     <div className="text-center">
