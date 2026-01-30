@@ -20,7 +20,7 @@ import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
 import { useStepCounter } from './hooks/useStepCounter';
 import { t } from './services/i18n';
-import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback } from './services/telegramService';
+import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback, openTelegramLink } from './services/telegramService';
 import TelegramLinkButton from './components/TelegramLinkButton';
 import { googleAuthService } from './services/googleAuthService';
 import { getCurrencyList, CurrencyCode } from './services/currencyService';
@@ -973,14 +973,19 @@ const App = () => {
                                 <p className="text-gray-500 dark:text-gray-400 text-xs">{t('supportDesc')}</p>
                             </div>
                         </div>
-                        <a
-                            href="https://t.me/fitstreambot"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <button
+                            onClick={() => {
+                                const botUrl = 'https://t.me/fitstreambot';
+                                if (isTelegramWebApp()) {
+                                    openTelegramLink(botUrl);
+                                } else {
+                                    window.open(botUrl, '_blank');
+                                }
+                            }}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
                         >
                             <Send size={14} /> {t('contactUs')}
-                        </a>
+                        </button>
                     </div>
                 </div>
 
