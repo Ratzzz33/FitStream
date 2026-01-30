@@ -682,7 +682,124 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
     }
 };
 
-// 10. Get nutrition info for manual product entry
+// 10. Deduplicate products from multiple photos (same product from different angles)
+export interface ProductWithPhotoId extends ScannedProduct {
+    photoId: string;
+}
+
+export interface DeduplicatedProduct {
+    name: string;
+    emoji: string;
+    quantity: number;
+    unit: string;
+    expiresInDays: number | null;
+    caloriesPer100: number;
+    // Позиция на каждом фото где виден продукт
+    positions: { photoId: string; x: number; y: number }[];
+    // ID фото где виден продукт
+    photoIds: string[];
+}
+
+export const deduplicateProducts = async (
+    productsFromPhotos: ProductWithPhotoId[]
+): Promise<DeduplicatedProduct[]> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    // Подготовка данных для AI
+    const productsJson = JSON.stringify(productsFromPhotos.map(p => ({
+        photoId: p.photoId,
+        name: p.name,
+        emoji: p.emoji,
+        quantity: p.quantity,
+        unit: p.unit,
+        expiresInDays: p.expiresInDays,
+        caloriesPer100: p.caloriesPer100,
+        positionX: p.positionX,
+        positionY: p.positionY
+    })));
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: `У меня есть продукты с разных фото одного хранилища (холодильника/шкафа).
+Некоторые продукты могут быть сняты с разных ракурсов и появляться на нескольких фото.
+
+ВАЖНО: Объедини дубликаты!
+- Если один и тот же продукт виден на разных фото — это ОДИН продукт, не считай дважды
+- Определи дубликаты по: название, тип продукта, похожее количество
+- Для дубликатов: сохрани все позиции (positions) со всех фото где он виден
+- Не дублируй quantity — если молоко видно на 2 фото, это всё равно 1 пакет молока
+
+Продукты:
+${productsJson}
+
+Верни JSON массив объединённых продуктов. Язык: ${lang}`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            emoji: { type: Type.STRING },
+                            quantity: { type: Type.NUMBER },
+                            unit: { type: Type.STRING },
+                            expiresInDays: { type: Type.NUMBER, nullable: true },
+                            caloriesPer100: { type: Type.NUMBER },
+                            positions: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        photoId: { type: Type.STRING },
+                                        x: { type: Type.NUMBER },
+                                        y: { type: Type.NUMBER }
+                                    },
+                                    required: ["photoId", "x", "y"]
+                                }
+                            },
+                            photoIds: {
+                                type: Type.ARRAY,
+                                items: { type: Type.STRING }
+                            }
+                        },
+                        required: ["name", "emoji", "quantity", "unit", "caloriesPer100", "positions", "photoIds"]
+                    }
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        return [];
+    } catch (error) {
+        console.error("Error deduplicating products:", error);
+        // Fallback: просто преобразуем без дедупликации
+        return productsFromPhotos.map(p => ({
+            name: p.name,
+            emoji: p.emoji,
+            quantity: p.quantity,
+            unit: p.unit,
+            expiresInDays: p.expiresInDays,
+            caloriesPer100: p.caloriesPer100,
+            positions: [{ photoId: p.photoId, x: p.positionX, y: p.positionY }],
+            photoIds: [p.photoId]
+        }));
+    }
+};
+
+// 11. Get nutrition info for manual product entry
 export const getProductNutrition = async (productName: string): Promise<{
     emoji: string;
     caloriesPer100: number;

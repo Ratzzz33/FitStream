@@ -137,11 +137,19 @@ export enum AppTab {
 
 export type StorageType = 'fridge' | 'cabinet' | 'freezer';
 
+export interface StoragePhoto {
+  id: string;
+  base64: string;                  // base64 фото
+  createdAt: string;               // ISO date
+  label?: string;                  // опциональная метка ("верхняя полка", "дверца")
+}
+
 export interface KitchenStorage {
   id: string;
   name: string;                    // "Холодильник", "Шкаф", "Морозилка"
   type: StorageType;
-  photo?: string;                  // base64 или URL фото
+  photo?: string;                  // deprecated: single photo (для обратной совместимости)
+  photos?: StoragePhoto[];         // массив фото для мультифото режима
   lastUpdated: string;             // ISO date
 }
 
@@ -156,8 +164,12 @@ export interface InventoryItem {
   addedAt: string;
   source: 'photo' | 'receipt' | 'manual';
   position?: { x: number; y: number };  // координаты на фото для overlay (0-100%)
+  photoId?: string;                // ID фото на котором распознан продукт (для мультифото)
+  mergedFromPhotoIds?: string[];   // если продукт был на нескольких фото (дедупликация)
   caloriesPer100: number;          // ккал на 100г/мл
   price?: number;                  // цена за единицу
+  depleted?: boolean;              // продукт закончился (показывать X на фото)
+  depletedAt?: string;             // когда закончился
 }
 
 export interface Recipe {
