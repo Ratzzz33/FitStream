@@ -873,16 +873,8 @@ const App = () => {
                     onClick={handleKitchenClick}
                     className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                 >
-                    <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
-                        <img
-                            src="/icons/kitchen-v2.png"
-                            alt="Kitchen"
-                            className="w-14 h-14 object-contain"
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-4xl">🧊</span>';
-                            }}
-                        />
+                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                        <span className="text-4xl">🧊</span>
                     </div>
                     <div className="text-center">
                         <span className="font-bold text-gray-900 dark:text-white">{t('kitchen')}</span>
@@ -893,16 +885,8 @@ const App = () => {
                     onClick={handleCookingClick}
                     className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                 >
-                    <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center">
-                        <img
-                            src="/icons/cooking-v2.png"
-                            alt="Cooking"
-                            className="w-14 h-14 object-contain"
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-4xl">🍳</span>';
-                            }}
-                        />
+                    <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                        <span className="text-4xl">🍳</span>
                     </div>
                     <div className="text-center">
                         <span className="font-bold text-gray-900 dark:text-white">{t('whatToCook')}</span>
