@@ -1118,55 +1118,48 @@ export const StorageService = {
     ApiService.pushLog(userId, 'SAVED_RECIPES' as any, { recipes: savedRecipes }, s.backendUrl);
   },
 
-  // === RECENT/FREQUENT PRODUCTS FOR QUICK ADD ===
-  RECENT_PRODUCTS_KEY: 'fitstream_recent_products',
-
+  // === QUICK-ADD: Recent Products for Autocomplete ===
   getRecentProducts: (): Array<{
     name: string;
     emoji: string;
     unit: string;
     caloriesPer100: number;
     typicalQuantity: number;
-    storageId: string;
-    lastUsed: number;
+    storageId: StorageType;
+    lastUsed: string;
     useCount: number;
   }> => {
-    try {
-      const data = localStorage.getItem(StorageService.RECENT_PRODUCTS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+    const saved = localStorage.getItem('fitstream_recent_products');
+    return saved ? JSON.parse(saved) : [];
   },
 
   trackProductUsage: (item: InventoryItem): void => {
     const recent = StorageService.getRecentProducts();
-    const existing = recent.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+    const existingIndex = recent.findIndex(
+      (p: { name: string }) => p.name.toLowerCase() === item.name.toLowerCase()
+    );
 
-    if (existing) {
-      existing.lastUsed = Date.now();
-      existing.useCount += 1;
-      existing.typicalQuantity = item.quantity;
-      existing.unit = item.unit;
-      existing.storageId = item.storageId;
-      if (item.emoji) existing.emoji = item.emoji;
-      if (item.caloriesPer100) existing.caloriesPer100 = item.caloriesPer100;
-    } else {
-      recent.push({
-        name: item.name,
-        emoji: item.emoji || '🍽️',
-        unit: item.unit,
-        caloriesPer100: item.caloriesPer100 || 0,
-        typicalQuantity: item.quantity,
-        storageId: item.storageId,
-        lastUsed: Date.now(),
-        useCount: 1
-      });
+    const productData = {
+      name: item.name,
+      emoji: item.emoji,
+      unit: item.unit,
+      caloriesPer100: item.caloriesPer100 || 0,
+      typicalQuantity: item.quantity,
+      storageId: item.storageId,
+      lastUsed: new Date().toISOString(),
+      useCount: 1
+    };
+
+    if (existingIndex >= 0) {
+      productData.useCount = recent[existingIndex].useCount + 1;
+      recent.splice(existingIndex, 1);
     }
 
-    recent.sort((a, b) => b.lastUsed - a.lastUsed);
-    const trimmed = recent.slice(0, 20);
-    localStorage.setItem(StorageService.RECENT_PRODUCTS_KEY, JSON.stringify(trimmed));
+    recent.unshift(productData);
+
+    // Keep last 50 products
+    const trimmed = recent.slice(0, 50);
+    localStorage.setItem('fitstream_recent_products', JSON.stringify(trimmed));
   },
 
   getFrequentProducts: (limit: number = 5): Array<{
@@ -1175,12 +1168,22 @@ export const StorageService = {
     unit: string;
     caloriesPer100: number;
     typicalQuantity: number;
-    storageId: string;
+    storageId: StorageType;
   }> => {
     const recent = StorageService.getRecentProducts();
     return recent
-      .sort((a, b) => b.useCount - a.useCount || b.lastUsed - a.lastUsed)
-      .slice(0, limit);
+      .sort((a: { useCount: number }, b: { useCount: number }) => b.useCount - a.useCount)
+      .slice(0, limit)
+      .map(({ name, emoji, unit, caloriesPer100, typicalQuantity, storageId }: {
+        name: string;
+        emoji: string;
+        unit: string;
+        caloriesPer100: number;
+        typicalQuantity: number;
+        storageId: StorageType;
+      }) => ({
+        name, emoji, unit, caloriesPer100, typicalQuantity, storageId
+      }));
   },
 
   searchRecentProducts: (query: string): Array<{
@@ -1189,11 +1192,22 @@ export const StorageService = {
     unit: string;
     caloriesPer100: number;
     typicalQuantity: number;
-    storageId: string;
+    storageId: StorageType;
   }> => {
-    if (!query || query.length < 2) return [];
-    const q = query.toLowerCase();
     const recent = StorageService.getRecentProducts();
-    return recent.filter(p => p.name.toLowerCase().includes(q)).slice(0, 5);
+    const lowerQuery = query.toLowerCase();
+    return recent
+      .filter((p: { name: string }) => p.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 5)
+      .map(({ name, emoji, unit, caloriesPer100, typicalQuantity, storageId }: {
+        name: string;
+        emoji: string;
+        unit: string;
+        caloriesPer100: number;
+        typicalQuantity: number;
+        storageId: StorageType;
+      }) => ({
+        name, emoji, unit, caloriesPer100, typicalQuantity, storageId
+      }));
   }
 };
