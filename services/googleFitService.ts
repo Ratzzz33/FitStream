@@ -16,7 +16,7 @@ import { platformService } from './platformService';
 const getHealthPlugin = async () => {
   try {
     const module = await import('capacitor-health');
-    return module.CapacitorHealth;
+    return module.Health;
   } catch {
     // Fallback to old plugin
     try {
