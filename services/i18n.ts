@@ -2521,3 +2521,12 @@ export const t = (key: keyof typeof translations.en): string => {
     if (entry && entry[key]) return entry[key];
     return translations['en'][key] || key;
 };
+
+// Translation with interpolation: tf('stepOf', { current: 1, total: 5 })
+export const tf = (key: keyof typeof translations.en, params: Record<string, string | number>): string => {
+    let text = t(key);
+    Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    });
+    return text;
+};
