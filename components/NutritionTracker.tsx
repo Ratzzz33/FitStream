@@ -80,6 +80,15 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 <rect x="6" y="8" width="12" height="14" rx="2" /><path d="M12 8V4M9 4h6" /><circle cx="12" cy="14" r="2" />
             </svg>
         )},
+        { id: 'earbuds', label: 'alternativeEarbuds', dimensions: '5.4 x 4.5 x 2.1 cm', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="6" width="16" height="12" rx="4" />
+                <line x1="4" y1="10" x2="20" y2="10" />
+                <circle cx="9" cy="14" r="1.5" />
+                <circle cx="15" cy="14" r="1.5" />
+                <path d="M9 14v-2M15 14v-2" />
+            </svg>
+        )},
     ];
 
     // State for custom reference object modal
