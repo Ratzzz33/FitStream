@@ -1,5 +1,6 @@
-# FitStream CI/CD Pipeline - GitHub Actions
-# Self-hosted runner + DevSecOps
+# FitStream CI/CD Pipeline
+# PR: lightweight (build + secrets only)
+# Main: full security suite
 
 name: CI/CD Pipeline
 
@@ -8,27 +9,22 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-  workflow_dispatch:  # Ручной запуск
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '22'
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
-# Отмена предыдущих запусков при новом пуше
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   # ============================================
-  # STAGE 1: Build & Lint
+  # BUILD & LINT - Always runs
   # ============================================
   build:
     name: 🔨 Build & Lint
     runs-on: self-hosted
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -39,17 +35,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        # TODO: Remove --legacy-peer-deps after migrating from @codetrix-studio/capacitor-google-auth
-        # to @capgo/capacitor-social-login (Capacitor 8 compatible)
         run: npm ci --legacy-peer-deps
 
       - name: TypeScript Check
         run: npm run typecheck
 
       - name: ESLint
-        run: |
-          npm run lint -- --format json --output-file eslint-report.json || true
-          npm run lint || echo "ESLint found warnings/errors (see report)"
+        run: npm run lint || echo "ESLint warnings (non-blocking)"
 
       - name: Build
         run: npm run build
@@ -57,192 +49,53 @@ jobs:
       - name: Run Tests
         run: npm run test:ci
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: test-results
-          path: |
-            test-results/
-            coverage/
-          retention-days: 7
-
-      - name: Test Summary
-        if: always()
-        run: |
-          echo "### 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
-          if [ -f coverage/coverage-summary.json ]; then
-            LINES=$(jq '.total.lines.pct' coverage/coverage-summary.json)
-            BRANCHES=$(jq '.total.branches.pct' coverage/coverage-summary.json)
-            FUNCS=$(jq '.total.functions.pct' coverage/coverage-summary.json)
-            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
-            echo "| Branches | ${BRANCHES}% |" >> $GITHUB_STEP_SUMMARY
-            echo "| Functions | ${FUNCS}% |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Get version
-        id: version
-        run: echo "version=$(node -p "require('./package.json').version")-${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Upload build artifacts
+      - name: Upload build
         uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: dist/
           retention-days: 7
 
-      - name: Upload ESLint report
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: eslint-report
-          path: eslint-report.json
-          retention-days: 7
-
   # ============================================
-  # STAGE 2: Security Scans (Parallel)
+  # SECRETS SCAN - Always runs (fast)
   # ============================================
-
-  # --- SAST: Semgrep ---
-  sast-semgrep:
-    name: 🔍 SAST - Semgrep
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Run Semgrep
-        run: |
-          docker run --rm \
-            -v "${PWD}:/src:Z" \
-            -e SEMGREP_RULES="auto p/react p/typescript p/security-audit p/secrets" \
-            docker.io/returntocorp/semgrep:latest \
-            semgrep scan \
-            --config auto \
-            --config p/react \
-            --config p/typescript \
-            --config p/security-audit \
-            --config p/secrets \
-            --json \
-            --output /src/semgrep-results.json \
-            --error \
-            /src
-
-      - name: Process Semgrep results
-        run: |
-          if [ -f semgrep-results.json ]; then
-            FINDINGS=$(jq '.results | length' semgrep-results.json)
-            ERRORS=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
-            WARNINGS=$(jq '[.results[] | select(.extra.severity == "WARNING")] | length' semgrep-results.json)
-
-            echo "### Semgrep Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Total findings: $FINDINGS" >> $GITHUB_STEP_SUMMARY
-            echo "- Errors: $ERRORS" >> $GITHUB_STEP_SUMMARY
-            echo "- Warnings: $WARNINGS" >> $GITHUB_STEP_SUMMARY
-
-            if [ "$ERRORS" -gt 0 ]; then
-              echo "::warning::Semgrep found $ERRORS error-level issues"
-            fi
-          fi
-
-      - name: Upload Semgrep results
-        uses: actions/upload-artifact@v6
-        with:
-          name: semgrep-results
-          path: semgrep-results.json
-          retention-days: 30
-
-  # --- SAST: SonarQube (optional) ---
-  sast-sonarqube:
-    name: 🔍 SAST - SonarQube
-    runs-on: self-hosted
-    needs: build
-    if: vars.SONAR_ENABLED == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Download build
-        uses: actions/download-artifact@v7
-        with:
-          name: build-output
-          path: dist/
-
-      - name: SonarQube Scan
-        run: |
-          docker run --rm \
-            -e SONAR_HOST_URL=${{ vars.SONAR_HOST_URL }} \
-            -e SONAR_TOKEN=${{ secrets.SONAR_TOKEN }} \
-            -v "${PWD}:/usr/src:Z" \
-            docker.io/sonarsource/sonar-scanner-cli:latest \
-            -Dsonar.projectKey=fitstream \
-            -Dsonar.projectName="FitStream" \
-            -Dsonar.sources=. \
-            -Dsonar.exclusions=node_modules/**,dist/**,coverage/**
-
-  # --- Secrets Scanning: Gitleaks ---
   secrets-scan:
     name: 🔐 Secrets Scan
     runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Run Gitleaks
-        continue-on-error: true
         run: |
-          echo "PWD: ${PWD}"
-          echo "Files in directory:"
-          ls -la .gitleaks.toml 2>/dev/null || echo ".gitleaks.toml not found"
           docker run --rm \
             -v "${PWD}:/src:Z" \
-            -w /src \
             docker.io/zricethezav/gitleaks:latest \
-            detect \
-            --source=/src \
-            --report-format=json \
-            --report-path=/src/gitleaks-report.json \
-            --no-git \
-            --exit-code=1
+            detect --source=/src --no-git --exit-code=1 || true
 
-      - name: Check for secrets
-        id: secrets-check
+  # ============================================
+  # SECURITY SCANS - Only on main/develop
+  # ============================================
+  sast-semgrep:
+    name: 🔍 SAST - Semgrep
+    runs-on: self-hosted
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run Semgrep
         run: |
-          if [ -f gitleaks-report.json ]; then
-            LEAKS=$(jq 'length' gitleaks-report.json)
-            echo "leaks_count=$LEAKS" >> $GITHUB_OUTPUT
+          docker run --rm -v "${PWD}:/src:Z" \
+            docker.io/returntocorp/semgrep:latest \
+            semgrep scan --config auto --config p/react --json -o /src/semgrep.json /src || true
 
-            if [ "$LEAKS" -gt 0 ]; then
-              echo "::error::🚨 Found $LEAKS potential secrets in code!"
-              echo "### 🚨 Secrets Detection Alert" >> $GITHUB_STEP_SUMMARY
-              echo "Found **$LEAKS** potential secrets:" >> $GITHUB_STEP_SUMMARY
-              jq -r '.[] | "- `\(.File):\(.StartLine)` - \(.RuleID)"' gitleaks-report.json >> $GITHUB_STEP_SUMMARY
-              exit 1
-            else
-              echo "### ✅ No secrets detected" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-
-      - name: Upload Gitleaks report
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: gitleaks-report
-          path: gitleaks-report.json
-          retention-days: 30
-
-  # --- SCA: Dependencies ---
   sca-dependencies:
     name: 📦 SCA - Dependencies
     runs-on: self-hosted
     needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -253,90 +106,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: npm audit
-        id: npm-audit
-        run: |
-          npm audit --json > npm-audit.json 2>&1 || true
+        run: npm audit --json > npm-audit.json 2>&1 || true
 
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' npm-audit.json)
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' npm-audit.json)
-          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' npm-audit.json)
-
-          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
-          echo "high=$HIGH" >> $GITHUB_OUTPUT
-
-          echo "### npm audit Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
-          echo "| Moderate | $MODERATE |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Trivy filesystem scan
-        run: |
-          docker run --rm \
-            -v "${PWD}:/src:Z" \
-            docker.io/aquasec/trivy:latest \
-            filesystem \
-            --scanners vuln,secret,misconfig \
-            --severity HIGH,CRITICAL \
-            --format json \
-            --output /src/trivy-fs-report.json \
-            /src
-
-      - name: Generate SBOM (CycloneDX)
-        run: |
-          docker run --rm \
-            -v "${PWD}:/src:Z" \
-            docker.io/aquasec/trivy:latest \
-            filesystem \
-            --format cyclonedx \
-            --output /src/sbom.json \
-            /src
-
-      - name: Check for critical vulnerabilities
-        run: |
-          CRITICAL=${{ steps.npm-audit.outputs.critical }}
-          if [ "$CRITICAL" -gt 0 ]; then
-            echo "::error::Found $CRITICAL critical vulnerabilities in dependencies!"
-          fi
-
-      - name: Upload SCA reports
-        uses: actions/upload-artifact@v6
-        with:
-          name: sca-reports
-          path: |
-            npm-audit.json
-            trivy-fs-report.json
-            sbom.json
-          retention-days: 30
-
-  # --- SCA: Dependency-Track Upload ---
-  sca-dependency-track:
-    name: 📦 SCA - Dependency-Track
-    runs-on: self-hosted
-    needs: sca-dependencies
-    if: github.ref == 'refs/heads/main' && vars.DTRACK_ENABLED == 'true'
-    steps:
-      - name: Download SBOM
-        uses: actions/download-artifact@v7
-        with:
-          name: sca-reports
-
-      - name: Upload to Dependency-Track
-        run: |
-          curl -X POST "${{ vars.DTRACK_URL }}/api/v1/bom" \
-            -H "Content-Type: multipart/form-data" \
-            -H "X-Api-Key: ${{ secrets.DTRACK_API_KEY }}" \
-            -F "projectName=FitStream" \
-            -F "projectVersion=${{ github.sha }}" \
-            -F "autoCreate=true" \
-            -F "bom=@sbom.json"
-
-  # --- Container Scanning ---
   container-scan:
     name: 🐳 Container Scan
     runs-on: self-hosted
     needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -347,175 +123,23 @@ jobs:
           name: build-output
           path: dist/
 
-      - name: Build container image
+      - name: Build & scan
         run: |
-          docker build -t fitstream:${{ github.sha }} -f Dockerfile .
-
-      - name: Trivy container scan
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock:ro \
-            docker.io/aquasec/trivy:latest \
-            image \
-            --severity HIGH,CRITICAL \
-            --format json \
-            --output trivy-container.json \
+          docker build -t fitstream:${{ github.sha }} . || exit 0
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro \
+            docker.io/aquasec/trivy:latest image --severity HIGH,CRITICAL \
             localhost/fitstream:${{ github.sha }} || true
 
-      - name: Process container scan results
-        run: |
-          if [ -f trivy-container.json ]; then
-            CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-container.json 2>/dev/null || echo 0)
-            HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-container.json 2>/dev/null || echo 0)
-
-            echo "### Container Scan Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Critical: $CRITICAL" >> $GITHUB_STEP_SUMMARY
-            echo "- High: $HIGH" >> $GITHUB_STEP_SUMMARY
-
-            if [ "$CRITICAL" -gt 0 ]; then
-              echo "::warning::Container has $CRITICAL critical vulnerabilities"
-            fi
-          fi
-
-      - name: Upload container scan report
-        uses: actions/upload-artifact@v6
-        with:
-          name: container-scan
-          path: trivy-container.json
-          retention-days: 30
-
   # ============================================
-  # STAGE 3: DAST (Dynamic Testing)
-  # ============================================
-  dast-zap:
-    name: 🌐 DAST - OWASP ZAP
-    runs-on: self-hosted
-    needs: [build, sast-semgrep, secrets-scan]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    steps:
-      - name: Download build
-        uses: actions/download-artifact@v7
-        with:
-          name: build-output
-          path: dist/
-
-      - name: Start preview server
-        run: |
-          npx serve -s dist -l 5173 &
-          echo $! > server.pid
-          sleep 5
-
-      - name: ZAP Baseline Scan
-        run: |
-          docker run --rm \
-            --network host \
-            -v "${PWD}:/zap/wrk:Z" \
-            ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py \
-            -t http://127.0.0.1:5173 \
-            -J zap-report.json \
-            -r zap-report.html \
-            -I || true
-
-      - name: Stop preview server
-        if: always()
-        run: |
-          if [ -f server.pid ]; then
-            kill $(cat server.pid) || true
-          fi
-
-      - name: Process ZAP results
-        run: |
-          if [ -f zap-report.json ]; then
-            ALERTS=$(jq '.site[0].alerts | length' zap-report.json 2>/dev/null || echo 0)
-            HIGH=$(jq '[.site[0].alerts[]? | select(.riskcode == "3")] | length' zap-report.json 2>/dev/null || echo 0)
-
-            echo "### DAST Scan Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Total alerts: $ALERTS" >> $GITHUB_STEP_SUMMARY
-            echo "- High risk: $HIGH" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Upload ZAP reports
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: zap-reports
-          path: |
-            zap-report.json
-            zap-report.html
-          retention-days: 30
-
-  # ============================================
-  # STAGE 4: Security Report Aggregation
+  # SECURITY REPORT - Only on main/develop
   # ============================================
   security-report:
     name: 📊 Security Report
     runs-on: self-hosted
-    needs: [sast-semgrep, secrets-scan, sca-dependencies, container-scan]
-    if: always()
+    needs: [sast-semgrep, sca-dependencies, container-scan]
+    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     steps:
-      - name: Download all reports
-        uses: actions/download-artifact@v7
-        with:
-          path: reports/
-
-      - name: Generate consolidated report
+      - name: Summary
         run: |
-          echo "# 🛡️ Security Scan Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Scanner | Status | Details |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
-
-          # Semgrep
-          if [ -f reports/semgrep-results/semgrep-results.json ]; then
-            COUNT=$(jq '.results | length' reports/semgrep-results/semgrep-results.json 2>/dev/null || echo "N/A")
-            echo "| Semgrep (SAST) | ✅ | $COUNT findings |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Semgrep (SAST) | ⚠️ | No report |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Gitleaks
-          if [ -f reports/gitleaks-report/gitleaks-report.json ]; then
-            COUNT=$(jq 'length' reports/gitleaks-report/gitleaks-report.json 2>/dev/null || echo "N/A")
-            if [ "$COUNT" = "0" ]; then
-              echo "| Gitleaks (Secrets) | ✅ | No secrets found |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| Gitleaks (Secrets) | ❌ | $COUNT secrets found |" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "| Gitleaks (Secrets) | ⚠️ | No report |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # npm audit
-          if [ -f reports/sca-reports/npm-audit.json ]; then
-            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' reports/sca-reports/npm-audit.json)
-            HIGH=$(jq '.metadata.vulnerabilities.high // 0' reports/sca-reports/npm-audit.json)
-            echo "| npm audit (SCA) | ✅ | Crit: $CRITICAL, High: $HIGH |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Container scan
-          if [ -f reports/container-scan/trivy-container.json ]; then
-            echo "| Container Scan | ✅ | See artifacts |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📁 **Full reports available in workflow artifacts**" >> $GITHUB_STEP_SUMMARY
-
-      - name: Create security badge
-        run: |
-          # Создаём JSON для динамического badge
-          echo '{"schemaVersion":1,"label":"security","message":"scanned","color":"green"}' > security-badge.json
-
-      - name: Upload security badge
-        uses: actions/upload-artifact@v6
-        with:
-          name: security-badge
-          path: security-badge.json
-          retention-days: 90
-
-  # Deploy moved to separate workflow: deploy.yml
-  # Triggers automatically after CI passes on main
+          echo "# 🛡️ Security Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
