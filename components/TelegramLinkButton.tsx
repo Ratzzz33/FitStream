@@ -24,6 +24,7 @@ const TelegramLinkButton: React.FC<TelegramLinkButtonProps> = ({ userId, backend
     const [isLinking, setIsLinking] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [autoLinkFailed, setAutoLinkFailed] = useState(false);
 
     const isTgApp = isTelegramWebApp();
 
@@ -65,9 +66,13 @@ const TelegramLinkButton: React.FC<TelegramLinkButtonProps> = ({ userId, backend
 
             const tgUser = getTelegramUser();
             const chatId = getTelegramChatId();
-            if (!tgUser || !chatId) return;
+            if (!tgUser || !chatId) {
+                setAutoLinkFailed(true);
+                return;
+            }
 
             setIsLinking(true);
+            setAutoLinkFailed(false);
             try {
                 const url = getEffectiveUrl(backendUrl);
                 const response = await fetch(`${url}/telegram/link`, {
@@ -83,10 +88,14 @@ const TelegramLinkButton: React.FC<TelegramLinkButtonProps> = ({ userId, backend
 
                 if (response.ok) {
                     setStatus({ linked: true, username: tgUser.username, notificationsEnabled: true });
+                    setAutoLinkFailed(false);
                     onLinked?.();
+                } else {
+                    setAutoLinkFailed(true);
                 }
             } catch (e) {
                 console.error('Auto-link failed:', e);
+                setAutoLinkFailed(true);
             } finally {
                 setIsLinking(false);
             }
@@ -183,22 +192,79 @@ const TelegramLinkButton: React.FC<TelegramLinkButtonProps> = ({ userId, backend
         );
     }
 
+    // Retry auto-link handler for TG Mini App
+    const handleRetryAutoLink = async () => {
+        const tgUser = getTelegramUser();
+        const chatId = getTelegramChatId();
+        if (!tgUser || !chatId) return;
+
+        setIsLinking(true);
+        setAutoLinkFailed(false);
+        try {
+            const url = getEffectiveUrl(backendUrl);
+            const response = await fetch(`${url}/telegram/link`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    chatId,
+                    username: tgUser.username,
+                    initData: getInitData()
+                })
+            });
+
+            if (response.ok) {
+                setStatus({ linked: true, username: tgUser.username, notificationsEnabled: true });
+                onLinked?.();
+            } else {
+                setAutoLinkFailed(true);
+            }
+        } catch (e) {
+            console.error('Auto-link retry failed:', e);
+            setAutoLinkFailed(true);
+        } finally {
+            setIsLinking(false);
+        }
+    };
+
     // Inside Telegram - show status only
     if (isTgApp) {
+        const getStatusText = () => {
+            if (status?.linked) return 'Connected & receiving notifications';
+            if (isLinking) return 'Connecting...';
+            if (autoLinkFailed) return 'Connection failed. Tap to retry';
+            return 'Connecting...';
+        };
+
+        const getStatusColor = () => {
+            if (status?.linked) return 'text-green-500';
+            if (autoLinkFailed) return 'text-red-500';
+            return 'text-gray-500 dark:text-gray-400';
+        };
+
         return (
-            <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-900/30 dark:to-cyan-900/30 p-4 rounded-xl border border-blue-500/30">
+            <div
+                className={`bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-900/30 dark:to-cyan-900/30 p-4 rounded-xl border border-blue-500/30 ${autoLinkFailed && !isLinking ? 'cursor-pointer hover:from-blue-500/20 hover:to-cyan-500/20' : ''}`}
+                onClick={autoLinkFailed && !isLinking ? handleRetryAutoLink : undefined}
+            >
                 <div className="flex items-center gap-3">
-                    <div className="bg-blue-500 p-2 rounded-lg text-white">
+                    <div className={`p-2 rounded-lg text-white ${autoLinkFailed ? 'bg-red-500' : 'bg-blue-500'}`}>
                         <Send size={20} />
                     </div>
                     <div className="flex-1">
                         <p className="font-bold text-gray-900 dark:text-white">Telegram Mini App</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {status?.linked ? 'Connected & receiving notifications' : 'Connecting...'}
+                        <p className={`text-xs ${getStatusColor()}`}>
+                            {getStatusText()}
                         </p>
                     </div>
                     {status?.linked && (
                         <Check size={20} className="text-green-500" />
+                    )}
+                    {isLinking && (
+                        <Loader2 size={20} className="text-blue-500 animate-spin" />
+                    )}
+                    {autoLinkFailed && !isLinking && (
+                        <X size={20} className="text-red-500" />
                     )}
                 </div>
             </div>
