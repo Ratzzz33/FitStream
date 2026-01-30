@@ -1003,7 +1003,7 @@ const App = () => {
                         <Coins size={20} className="text-green-500" />
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{t('currency') || 'Валюта'}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {getCurrencyList().map((curr) => (
                             <button
                                 key={curr.code}
@@ -1012,7 +1012,7 @@ const App = () => {
                                     setSettings(updated);
                                     StorageService.saveSettings(updated);
                                 }}
-                                className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all ${
+                                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                                     (settings.currency || 'RUB') === curr.code
                                         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-2 ring-green-500'
                                         : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'

@@ -2,7 +2,7 @@
  * Currency Service - единый сервис для работы с валютами
  */
 
-export type CurrencyCode = 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH';
+export type CurrencyCode = 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH' | 'GEL';
 
 export interface CurrencyConfig {
   code: CurrencyCode;
@@ -62,6 +62,14 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     locale: 'uk-UA',
     position: 'after',
   },
+  GEL: {
+    code: 'GEL',
+    symbol: '₾',
+    name: 'ქართული ლარი',
+    flag: '🇬🇪',
+    locale: 'ka-GE',
+    position: 'after',
+  },
 };
 
 export const DEFAULT_CURRENCY: CurrencyCode = 'RUB';
@@ -114,6 +122,7 @@ export function detectCurrencyByLanguage(language: string): CurrencyCode {
     es: 'EUR',
     uk: 'UAH',
     kk: 'KZT',
+    ka: 'GEL',
   };
   const lang = language.split('-')[0].toLowerCase();
   return langMap[lang] || 'USD';
