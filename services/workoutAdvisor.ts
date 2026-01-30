@@ -19,6 +19,95 @@ export type MuscleGroup =
   | 'cardio'       // Кардио
   | 'flexibility'; // Гибкость/растяжка
 
+// Simple office exercises (no camera tracking, just text instructions)
+export type SimpleExercise =
+  | 'NECK_ROLLS'           // Вращение шеей
+  | 'SHOULDER_ROLLS'       // Вращение плечами
+  | 'WRIST_CIRCLES'        // Круги запястьями
+  | 'SEATED_TWIST'         // Повороты корпуса сидя
+  | 'ARM_STRETCHES'        // Потягивание рук вверх
+  | 'ANKLE_CIRCLES'        // Круги стопами
+  | 'SHOULDER_SHRUGS'      // Подъём плеч
+  | 'CHIN_TUCKS'           // Втягивание подбородка
+  | 'DESK_PUSHUPS'         // Отжимания от стола
+  | 'SEATED_LEG_RAISES'    // Подъём ног сидя
+  | 'STANDING_STRETCH';    // Потягивание стоя
+
+// Simple exercise definitions with instructions
+export const SIMPLE_EXERCISE_INFO: Record<SimpleExercise, {
+  name: string;
+  instruction: string;
+  duration: number; // seconds
+  muscleGroups: MuscleGroup[];
+}> = {
+  NECK_ROLLS: {
+    name: 'Вращение шеей',
+    instruction: 'Медленно вращай головой по кругу: 5 раз в каждую сторону',
+    duration: 30,
+    muscleGroups: ['flexibility']
+  },
+  SHOULDER_ROLLS: {
+    name: 'Вращение плечами',
+    instruction: 'Подними плечи к ушам и вращай назад, затем вперёд',
+    duration: 20,
+    muscleGroups: ['shoulders', 'flexibility']
+  },
+  WRIST_CIRCLES: {
+    name: 'Разминка запястий',
+    instruction: 'Вращай запястьями в обе стороны, затем потряси кистями',
+    duration: 20,
+    muscleGroups: ['arms', 'flexibility']
+  },
+  SEATED_TWIST: {
+    name: 'Повороты корпуса',
+    instruction: 'Сидя, поверни корпус влево, задержись, затем вправо',
+    duration: 30,
+    muscleGroups: ['core', 'back', 'flexibility']
+  },
+  ARM_STRETCHES: {
+    name: 'Потягивание рук',
+    instruction: 'Сцепи руки и потянись вверх, затем в стороны',
+    duration: 20,
+    muscleGroups: ['shoulders', 'arms', 'flexibility']
+  },
+  ANKLE_CIRCLES: {
+    name: 'Разминка стоп',
+    instruction: 'Приподними ногу и вращай стопой в обе стороны',
+    duration: 20,
+    muscleGroups: ['legs', 'flexibility']
+  },
+  SHOULDER_SHRUGS: {
+    name: 'Подъём плеч',
+    instruction: 'Подними плечи к ушам, задержи на 3 сек, резко опусти',
+    duration: 20,
+    muscleGroups: ['shoulders']
+  },
+  CHIN_TUCKS: {
+    name: 'Втягивание подбородка',
+    instruction: 'Втяни подбородок назад, создавая "двойной подбородок", задержи',
+    duration: 20,
+    muscleGroups: ['flexibility']
+  },
+  DESK_PUSHUPS: {
+    name: 'Отжимания от стола',
+    instruction: 'Упрись руками в край стола и сделай отжимания',
+    duration: 30,
+    muscleGroups: ['chest', 'arms', 'shoulders']
+  },
+  SEATED_LEG_RAISES: {
+    name: 'Подъём ног сидя',
+    instruction: 'Сидя на стуле, выпрями ногу параллельно полу, задержи',
+    duration: 30,
+    muscleGroups: ['legs', 'core']
+  },
+  STANDING_STRETCH: {
+    name: 'Потягивание стоя',
+    instruction: 'Встань, потянись руками вверх, затем наклонись к носкам',
+    duration: 20,
+    muscleGroups: ['flexibility', 'back']
+  }
+};
+
 // Session types
 export type SessionType =
   | 'morning_warmup'    // Утренняя разминка (5-7 мин)
@@ -85,6 +174,20 @@ export interface RecommendedExercise {
   note?: string;
 }
 
+// Office exercise can be either camera-tracked or simple text instruction
+export interface OfficeExercise {
+  type: 'simple';
+  exercise: SimpleExercise;
+  note?: string;
+}
+
+export type OfficeBreakExercise = RecommendedExercise | OfficeExercise;
+
+// Extended recommendation for office breaks
+export interface OfficeBreakRecommendation extends Omit<WorkoutRecommendation, 'exercises'> {
+  exercises: OfficeBreakExercise[];
+}
+
 // Mapping exercises to muscle groups
 const EXERCISE_MUSCLE_GROUPS: Record<TrackableExercise, MuscleGroup[]> = {
   SQUATS: ['legs', 'glutes', 'core'],
@@ -104,10 +207,21 @@ const EXERCISE_MUSCLE_GROUPS: Record<TrackableExercise, MuscleGroup[]> = {
   TRICEP_DIPS: ['arms', 'shoulders']
 };
 
-// Office-friendly exercises (can do quietly, no jumping)
-const OFFICE_FRIENDLY: TrackableExercise[] = [
-  'SQUATS', 'LUNGES', 'CALF_RAISES', 'WALL_SIT',
-  'PLANK', 'GLUTE_BRIDGES', 'LEG_RAISES'
+// Truly discreet office exercises - can do at desk without drawing attention
+const DESK_EXERCISES: SimpleExercise[] = [
+  'NECK_ROLLS', 'SHOULDER_ROLLS', 'WRIST_CIRCLES',
+  'SEATED_TWIST', 'SHOULDER_SHRUGS', 'CHIN_TUCKS',
+  'ANKLE_CIRCLES', 'SEATED_LEG_RAISES'
+];
+
+// Standing office exercises - need to stand but still discreet
+const STANDING_OFFICE_EXERCISES: SimpleExercise[] = [
+  'ARM_STRETCHES', 'STANDING_STRETCH', 'DESK_PUSHUPS'
+];
+
+// Camera-tracked exercises that ARE actually quiet (no floor, no jumping)
+const QUIET_TRACKABLE: TrackableExercise[] = [
+  'CALF_RAISES', 'SQUATS'
 ];
 
 // Warmup exercises
@@ -404,24 +518,57 @@ export class WorkoutAdvisor {
     };
   }
 
-  private createOfficeBreak(): WorkoutRecommendation {
-    const exercises = this.pickExercises(OFFICE_FRIENDLY, 3);
+  private createOfficeBreak(): OfficeBreakRecommendation {
+    // Pick 3-4 random desk exercises
+    const deskExercises = this.pickSimpleExercises(DESK_EXERCISES, 3);
+    // Maybe add one standing exercise
+    const standingExercise = Math.random() > 0.5
+      ? this.pickSimpleExercises(STANDING_OFFICE_EXERCISES, 1)[0]
+      : null;
+
+    const exercises: OfficeBreakExercise[] = deskExercises.map(e => ({
+      type: 'simple' as const,
+      exercise: e,
+      note: SIMPLE_EXERCISE_INFO[e].instruction
+    }));
+
+    if (standingExercise) {
+      exercises.push({
+        type: 'simple' as const,
+        exercise: standingExercise,
+        note: SIMPLE_EXERCISE_INFO[standingExercise].instruction
+      });
+    }
+
+    // Calculate total duration
+    const totalDuration = exercises.reduce((sum, e) => {
+      if (e.type === 'simple') {
+        return sum + SIMPLE_EXERCISE_INFO[e.exercise].duration;
+      }
+      return sum + 30;
+    }, 0);
 
     return {
       sessionType: 'office_break',
       title: 'Офисная пауза',
-      description: 'Разомнись не привлекая внимания',
-      duration: 3,
-      exercises: exercises.map(e => ({
-        exercise: e,
-        reps: Math.round(this.getReps(e) * 0.7),
-        note: 'Можно делать тихо'
-      })),
+      description: 'Разомнись прямо за рабочим столом',
+      duration: Math.ceil(totalDuration / 60),
+      exercises,
       includeWarmup: false,
       includeStretch: false,
       reason: 'Пора размяться после сидения',
       priority: 'medium'
     };
+  }
+
+  private pickSimpleExercises(from: SimpleExercise[], count: number): SimpleExercise[] {
+    const shuffled = [...from].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+
+  // Get office break with simple exercises (public method)
+  getOfficeBreak(): OfficeBreakRecommendation {
+    return this.createOfficeBreak();
   }
 
   private createFullWorkout(): WorkoutRecommendation {

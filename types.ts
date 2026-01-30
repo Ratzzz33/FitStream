@@ -90,6 +90,7 @@ export interface ConnectedPlatforms {
 
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'VERY_ACTIVE';
+export type WeightGoal = 'LOSE' | 'MAINTAIN' | 'GAIN';
 
 export interface UserSettings {
   name: string;
@@ -108,6 +109,7 @@ export interface UserSettings {
   phoneWeight?: number; // Weight of the phone in kg
   goals: DailyGoal[];
   targetWeight: number;
+  weightGoal?: WeightGoal; // LOSE, MAINTAIN, GAIN - auto-detected from current vs target weight
   streak: number;
   lastActiveDate: string;
   theme: 'light' | 'dark';
