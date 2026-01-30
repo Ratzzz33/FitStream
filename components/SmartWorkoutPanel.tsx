@@ -15,15 +15,42 @@ import {
   SESSION_TYPE_NAMES,
   FitnessProfile,
   RecommendedExercise,
-  DifficultyFeedback
+  DifficultyFeedback,
+  OfficeBreakRecommendation,
+  OfficeBreakExercise,
+  OfficeExercise,
+  SIMPLE_EXERCISE_INFO,
+  SimpleExercise
 } from '../services/workoutAdvisor';
 import { getExerciseNameRu, TrackableExercise } from '../services/poseTracker';
+
+// Helper to check if exercise is simple (office) type
+function isSimpleExercise(ex: OfficeBreakExercise): ex is OfficeExercise {
+  return 'type' in ex && ex.type === 'simple';
+}
+
+// Helper to get exercise name for any type
+function getExerciseName(ex: OfficeBreakExercise): string {
+  if (isSimpleExercise(ex)) {
+    return SIMPLE_EXERCISE_INFO[ex.exercise].name;
+  }
+  return getExerciseNameRu(ex.exercise);
+}
+
+// Helper to get exercise duration/reps display
+function getExerciseDisplay(ex: OfficeBreakExercise): string {
+  if (isSimpleExercise(ex)) {
+    return `${SIMPLE_EXERCISE_INFO[ex.exercise].duration} сек`;
+  }
+  return ex.duration ? `${ex.duration} сек` : `${ex.reps}×`;
+}
 
 // ==================== TYPES ====================
 
 interface SmartWorkoutPanelProps {
   onStartWorkout: (exercises: RecommendedExercise[], needsWarmup: boolean) => void;
   onStartExercise: (exercise: TrackableExercise, reps: number) => void;
+  onStartOfficeBreak?: (exercises: OfficeBreakExercise[]) => void;
   theme: 'light' | 'dark';
 }
 
@@ -221,26 +248,57 @@ export const WorkoutFeedback: React.FC<WorkoutFeedbackProps> = ({
 export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
   onStartWorkout,
   onStartExercise,
+  onStartOfficeBreak,
   theme
 }) => {
-  const [recommendations, setRecommendations] = useState<WorkoutRecommendation[]>([]);
+  const [recommendations, setRecommendations] = useState<(WorkoutRecommendation | OfficeBreakRecommendation)[]>([]);
   const [profile, setProfile] = useState<FitnessProfile | null>(null);
   const [motivation, setMotivation] = useState('');
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
+  const [activeOfficeExercise, setActiveOfficeExercise] = useState<SimpleExercise | null>(null);
 
   const isDark = theme === 'dark';
 
   useEffect(() => {
     const advisor = getWorkoutAdvisor();
-    setRecommendations(advisor.getRecommendations());
+    const recs = advisor.getRecommendations();
+    // Replace office_break with improved version
+    const improvedRecs = recs.map(rec => {
+      if (rec.sessionType === 'office_break') {
+        return advisor.getOfficeBreak();
+      }
+      return rec;
+    });
+    setRecommendations(improvedRecs);
     setProfile(advisor.getProfile());
     setMotivation(advisor.getMotivation());
   }, []);
 
-  const handleSelectRecommendation = (rec: WorkoutRecommendation) => {
+  const handleSelectRecommendation = (rec: WorkoutRecommendation | OfficeBreakRecommendation) => {
+    // Check if this is an office break with simple exercises
+    if (rec.sessionType === 'office_break' && onStartOfficeBreak) {
+      onStartOfficeBreak((rec as OfficeBreakRecommendation).exercises);
+      return;
+    }
+
+    // Regular workout
     const advisor = getWorkoutAdvisor();
     const needsWarmup = advisor.needsWarmup() && rec.sessionType !== 'morning_warmup';
-    onStartWorkout(rec.exercises, needsWarmup);
+    // Filter only trackable exercises for regular workouts
+    const trackableExercises = rec.exercises.filter(
+      (ex): ex is RecommendedExercise => !('type' in ex)
+    );
+    onStartWorkout(trackableExercises, needsWarmup);
+  };
+
+  const handleExerciseClick = (ex: OfficeBreakExercise) => {
+    if (isSimpleExercise(ex)) {
+      // Show instruction for simple exercise
+      setActiveOfficeExercise(ex.exercise);
+    } else {
+      // Start camera tracking for trackable exercise
+      onStartExercise(ex.exercise, ex.reps);
+    }
   };
 
   return (
@@ -327,21 +385,28 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
                     {rec.exercises.map((ex, exIndex) => (
                       <button
                         key={exIndex}
-                        onClick={() => onStartExercise(ex.exercise, ex.reps)}
+                        onClick={() => handleExerciseClick(ex as OfficeBreakExercise)}
                         className={`w-full p-3 rounded-lg flex items-center justify-between transition-colors ${
                           isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
                         }`}
                       >
-                        <div>
-                          <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {getExerciseNameRu(ex.exercise)}
-                          </div>
-                          {ex.note && (
-                            <div className={`text-xs ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{ex.note}</div>
+                        <div className="flex items-center gap-2">
+                          {isSimpleExercise(ex as OfficeBreakExercise) && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">
+                              без камеры
+                            </span>
                           )}
+                          <div>
+                            <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {getExerciseName(ex as OfficeBreakExercise)}
+                            </div>
+                            {ex.note && (
+                              <div className={`text-xs ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{ex.note}</div>
+                            )}
+                          </div>
                         </div>
                         <div className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                          {ex.duration ? `${ex.duration} сек` : `${ex.reps}×`}
+                          {getExerciseDisplay(ex as OfficeBreakExercise)}
                         </div>
                       </button>
                     ))}
@@ -371,6 +436,43 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
           <p className={`text-xs ${isDark ? 'text-blue-300/70' : 'text-blue-600'}`}>
             Начни с 5-минутных тренировок. После каждой честно отвечай "Как было?" — приложение подстроится под тебя.
           </p>
+        </div>
+      )}
+
+      {/* Simple exercise instruction modal */}
+      {activeOfficeExercise && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className={`w-full max-w-sm rounded-2xl p-6 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {SIMPLE_EXERCISE_INFO[activeOfficeExercise].name}
+              </h3>
+              <button
+                onClick={() => setActiveOfficeExercise(null)}
+                className={`p-1 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+              >
+                <X className={`w-5 h-5 ${isDark ? 'text-white/60' : 'text-gray-500'}`} />
+              </button>
+            </div>
+
+            <div className={`p-4 rounded-xl mb-4 ${isDark ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+              <p className={`text-sm ${isDark ? 'text-blue-200' : 'text-blue-800'}`}>
+                {SIMPLE_EXERCISE_INFO[activeOfficeExercise].instruction}
+              </p>
+            </div>
+
+            <div className={`flex items-center justify-center gap-2 mb-4 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+              <Clock className="w-4 h-4" />
+              <span className="text-sm">{SIMPLE_EXERCISE_INFO[activeOfficeExercise].duration} секунд</span>
+            </div>
+
+            <button
+              onClick={() => setActiveOfficeExercise(null)}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium"
+            >
+              Готово
+            </button>
+          </div>
         </div>
       )}
     </div>
