@@ -647,7 +647,88 @@ const i18n = {
             charts: ["체중 트렌드 차트", "운동 기록 그래프", "시간 경과에 따른 진행", "체성분 추적", "CSV로 데이터 내보내기"],
             offline: ["완전한 오프라인 기능", "온라인 시 자동 동기화", "데이터 손실 없음", "로컬 저장소 백업", "어디서나 작동"],
             shop: ["모든 기간에 대한 AI 식단 계획", "스마트 쇼핑 리스트 생성", "선반 스캐너로 제품 찾기", "사진으로 제품 확인", "제품 건강 점수"],
-            gotIt: "알겠어요!"
+            gotIt: "알겠어요!",
+            close: "닫기"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "실시간", desc: "MediaPipe로 33개 신체 포인트를 30fps로 추적." },
+                exercises: { label: "15가지 운동", desc: "스쿼트, 푸시업, 플랭크, 런지 등." },
+                feedback: { label: "피드백", desc: "자세에 대한 즉각적인 시각 및 음성 안내." },
+                counting: { label: "카운팅", desc: "AI가 자동으로 반복 횟수를 카운트." }
+            },
+            kitchen: {
+                storage: { label: "보관 관리", desc: "냉장고와 냉동실의 제품을 정리." },
+                "ai-scan": { label: "AI 스캔", desc: "카메라를 향하면 AI가 인식하고 추가." },
+                expiry: { label: "유통기한", desc: "유통기한 전 알림. 음식 낭비 감소." },
+                shopping: { label: "리스트", desc: "쇼핑 리스트 자동 생성." }
+            },
+            cooking: {
+                steps: { label: "단계별", desc: "각 요리 단계에 대한 명확한 안내." },
+                timer: { label: "타이머", desc: "내장 타이머. 여러 개 동시 사용 가능." },
+                voice: { label: "음성", desc: "음성 안내로 핸즈프리 요리." },
+                tips: { label: "팁", desc: "셰프 팁과 재료 대체 방법." }
+            },
+            coach: {
+                "voice-guide": { label: "음성 코치", desc: "실시간 동기부여. 남성/여성 음성 선택." },
+                "rep-count": { label: "카운터", desc: "AI가 자동으로 반복 횟수 카운트." },
+                "form-tips": { label: "자세 교정", desc: "자세에 대한 즉각적인 피드백." },
+                history: { label: "기록", desc: "모든 운동을 추적." }
+            },
+            scale: {
+                camera: { label: "카메라", desc: "체중계 디스플레이를 향해 촬영만 하면 됩니다." },
+                "auto-read": { label: "자동 인식", desc: "AI가 즉시 체중을 읽습니다." },
+                "any-scale": { label: "모든 체중계", desc: "디지털 및 아날로그 체중계 모두 지원." },
+                trend: { label: "트렌드", desc: "그래프로 체중 변화 추적." }
+            },
+            food: {
+                calories: { label: "칼로리", desc: "사진을 찍으면 몇 초 만에 칼로리 추정." },
+                macros: { label: "매크로", desc: "단백질, 탄수화물, 지방 분석." },
+                reference: { label: "기준", desc: "카드를 사용해 정확한 분량 추정." },
+                log: { label: "기록", desc: "자동으로 식단 일지 작성." }
+            },
+            receipt: {
+                scan: { label: "스캔", desc: "영수증 촬영. AI가 모두 추출." },
+                extract: { label: "추출", desc: "제품, 가격, 수량 자동 인식." },
+                prices: { label: "가격", desc: "시간에 따른 가격 변화 추적." },
+                budget: { label: "예산", desc: "지출 분석과 절약 팁." }
+            },
+            finance: {
+                spending: { label: "지출", desc: "모든 식품 구매 추적." },
+                "cooking-vs-out": { label: "집밥 vs 외식", desc: "집에서 요리와 외식 비용 비교." },
+                reports: { label: "리포트", desc: "식비 월간 상세 리포트." },
+                savings: { label: "절약", desc: "집에서 요리하면 얼마나 절약되는지 계산." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "걸음, 운동, 심박수 동기화." },
+                "apple-health": { label: "Apple Health", desc: "Apple Health와 완전 연동." },
+                steps: { label: "걸음", desc: "폰이나 스마트워치에서 걸음수 가져오기." },
+                sync: { label: "동기화", desc: "데이터가 백그라운드에서 자동 동기화." }
+            },
+            goals: {
+                custom: { label: "맞춤 목표", desc: "나만의 일일 목표 설정." },
+                exercises: { label: "운동", desc: "걸음, 푸시업, 스쿼트, 물 목표." },
+                streak: { label: "연속", desc: "연속 카운터로 습관 형성." },
+                progress: { label: "링", desc: "일일 진행 상황을 아름다운 링으로 표시." }
+            },
+            charts: {
+                weight: { label: "체중", desc: "주간 및 월간 체중 트렌드." },
+                workouts: { label: "운동", desc: "빈도와 강도 시각화." },
+                body: { label: "체성분", desc: "근육량과 체지방 추적." },
+                export: { label: "내보내기", desc: "모든 데이터를 CSV로 내보내기." }
+            },
+            offline: {
+                "offline-mode": { label: "오프라인", desc: "인터넷 없이도 전체 기능 사용." },
+                "auto-sync": { label: "자동 동기화", desc: "온라인 시 변경사항 자동 동기화." },
+                local: { label: "로컬", desc: "모든 데이터를 기기에 안전하게 저장." },
+                anywhere: { label: "어디서나", desc: "헬스장, 야외, 여행 중에도 사용." }
+            },
+            shop: {
+                planning: { label: "계획", desc: "선호도에 따라 AI가 식사 제안." },
+                list: { label: "스마트 리스트", desc: "매장 섹션별로 자동 정리된 리스트." },
+                scanner: { label: "선반 스캐너", desc: "선반을 스캔해 제품을 빠르게 찾기." },
+                verify: { label: "확인", desc: "장바구니 촬영으로 모든 것을 확인." }
+            }
         }
     },
     zh: {
@@ -717,7 +798,88 @@ const i18n = {
             charts: ["体重趋势图表", "锻炼历史图表", "随时间的进度", "身体成分追踪", "导出CSV数据"],
             offline: ["完全离线功能", "在线时自动同步", "无数据丢失", "本地存储备份", "随处可用"],
             shop: ["任意时期的AI餐食规划", "智能购物清单生成", "货架扫描器查找产品", "照片验证产品", "商品健康评分"],
-            gotIt: "明白了！"
+            gotIt: "明白了！",
+            close: "关闭"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "实时", desc: "通过MediaPipe以30fps追踪33个身体关键点。" },
+                exercises: { label: "15种运动", desc: "深蹲、俯卧撑、平板支撑、弓步等。" },
+                feedback: { label: "反馈", desc: "即时的视觉和音频姿势提示。" },
+                counting: { label: "计数", desc: "AI自动计算重复次数。" }
+            },
+            kitchen: {
+                storage: { label: "储存管理", desc: "整理冰箱和冷冻室中的产品。" },
+                "ai-scan": { label: "AI扫描", desc: "对准相机，AI识别并添加。" },
+                expiry: { label: "保质期", desc: "保质期前提醒。减少食物浪费。" },
+                shopping: { label: "清单", desc: "自动生成购物清单。" }
+            },
+            cooking: {
+                steps: { label: "步骤", desc: "每个烹饪步骤的清晰说明。" },
+                timer: { label: "计时器", desc: "内置计时器。可同时运行多个。" },
+                voice: { label: "语音", desc: "语音指导，解放双手烹饪。" },
+                tips: { label: "技巧", desc: "厨师技巧和食材替代建议。" }
+            },
+            coach: {
+                "voice-guide": { label: "语音教练", desc: "实时激励。可选男声或女声。" },
+                "rep-count": { label: "计数器", desc: "AI自动计算重复次数。" },
+                "form-tips": { label: "姿势纠正", desc: "即时姿势反馈。" },
+                history: { label: "历史", desc: "追踪所有锻炼记录。" }
+            },
+            scale: {
+                camera: { label: "相机", desc: "只需对准体重秤显示屏。" },
+                "auto-read": { label: "自动读取", desc: "AI即时读取体重。" },
+                "any-scale": { label: "任意体重秤", desc: "支持数字和模拟体重秤。" },
+                trend: { label: "趋势", desc: "通过图表追踪体重变化。" }
+            },
+            food: {
+                calories: { label: "卡路里", desc: "拍照即可在几秒内估算卡路里。" },
+                macros: { label: "宏量营养素", desc: "蛋白质、碳水化合物、脂肪分析。" },
+                reference: { label: "参照物", desc: "使用卡片准确估算份量。" },
+                log: { label: "日志", desc: "自动记录饮食日记。" }
+            },
+            receipt: {
+                scan: { label: "扫描", desc: "拍摄小票。AI提取所有数据。" },
+                extract: { label: "提取", desc: "自动识别产品、价格和数量。" },
+                prices: { label: "价格", desc: "追踪价格随时间的变化。" },
+                budget: { label: "预算", desc: "支出分析和省钱建议。" }
+            },
+            finance: {
+                spending: { label: "支出", desc: "追踪每笔食品购买。" },
+                "cooking-vs-out": { label: "在家vs外食", desc: "比较在家做饭和外出就餐的成本。" },
+                reports: { label: "报告", desc: "食品支出月度详细报告。" },
+                savings: { label: "节省", desc: "计算在家做饭能省多少钱。" }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "同步步数、锻炼和心率。" },
+                "apple-health": { label: "Apple Health", desc: "与Apple Health完全集成。" },
+                steps: { label: "步数", desc: "从手机或智能手表导入步数。" },
+                sync: { label: "同步", desc: "数据在后台自动同步。" }
+            },
+            goals: {
+                custom: { label: "自定义目标", desc: "设置您自己的每日目标。" },
+                exercises: { label: "运动", desc: "步数、俯卧撑、深蹲、饮水目标。" },
+                streak: { label: "连续", desc: "通过连续计数器养成习惯。" },
+                progress: { label: "圆环", desc: "美观的每日进度圆环显示。" }
+            },
+            charts: {
+                weight: { label: "体重", desc: "周和月的体重趋势。" },
+                workouts: { label: "锻炼", desc: "可视化频率和强度。" },
+                body: { label: "身体", desc: "追踪肌肉量和体脂。" },
+                export: { label: "导出", desc: "将所有数据导出为CSV。" }
+            },
+            offline: {
+                "offline-mode": { label: "离线", desc: "无需网络也能使用全部功能。" },
+                "auto-sync": { label: "自动同步", desc: "联网后自动同步更改。" },
+                local: { label: "本地", desc: "所有数据安全存储在设备上。" },
+                anywhere: { label: "随处可用", desc: "健身房、户外或旅行时都可使用。" }
+            },
+            shop: {
+                planning: { label: "规划", desc: "AI根据您的偏好推荐餐食。" },
+                list: { label: "智能清单", desc: "按商店区域自动整理的清单。" },
+                scanner: { label: "货架扫描", desc: "扫描货架快速找到您的商品。" },
+                verify: { label: "验证", desc: "拍摄购物车确认已购齐所有商品。" }
+            }
         }
     },
     nl: {
@@ -787,7 +949,88 @@ const i18n = {
             charts: ["Gewichtstrend grafieken", "Trainingsgeschiedenis grafieken", "Voortgang in de tijd", "Lichaamssamenstelling tracking", "Data exporteren als CSV"],
             offline: ["Volledige offline functionaliteit", "Automatische sync wanneer online", "Geen gegevensverlies", "Lokale opslag backup", "Werkt overal"],
             shop: ["AI-maaltijdplanning voor elke periode", "Slimme boodschappenlijst generatie", "Schapscanner vindt producten", "Productverificatie via foto", "Gezondheidsscore voor artikelen"],
-            gotIt: "Begrepen!"
+            gotIt: "Begrepen!",
+            close: "Sluiten"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "Realtime", desc: "Volgt 33 lichaamspunten op 30fps met MediaPipe." },
+                exercises: { label: "15 oefeningen", desc: "Squats, push-ups, planks, lunges en meer." },
+                feedback: { label: "Feedback", desc: "Directe visuele en audio hints over vorm." },
+                counting: { label: "Tellen", desc: "AI telt automatisch herhalingen." }
+            },
+            kitchen: {
+                storage: { label: "Opslag", desc: "Organiseer producten in koelkast en vriezer." },
+                "ai-scan": { label: "AI-scan", desc: "Richt camera — AI herkent en voegt toe." },
+                expiry: { label: "Houdbaar", desc: "Waarschuwingen vóór vervaldatum. Minder verspilling." },
+                shopping: { label: "Lijsten", desc: "Automatisch boodschappenlijsten genereren." }
+            },
+            cooking: {
+                steps: { label: "Stappen", desc: "Duidelijke instructies voor elke kookstap." },
+                timer: { label: "Timers", desc: "Ingebouwde timers. Meerdere tegelijk." },
+                voice: { label: "Stem", desc: "Handsfree koken met spraakinstructies." },
+                tips: { label: "Tips", desc: "Chef-tips en ingrediëntenvervangingen." }
+            },
+            coach: {
+                "voice-guide": { label: "Stemcoach", desc: "Realtime motivatie. Mannelijke of vrouwelijke stem." },
+                "rep-count": { label: "Teller", desc: "AI telt herhalingen automatisch." },
+                "form-tips": { label: "Correctie", desc: "Directe feedback op houding." },
+                history: { label: "Geschiedenis", desc: "Volg al je workouts." }
+            },
+            scale: {
+                camera: { label: "Camera", desc: "Richt gewoon op het weegschaalscherm." },
+                "auto-read": { label: "Auto-lezen", desc: "AI leest gewicht direct." },
+                "any-scale": { label: "Elke weegschaal", desc: "Werkt met digitale en analoge weegschalen." },
+                trend: { label: "Trends", desc: "Volg gewichtsverandering met grafieken." }
+            },
+            food: {
+                calories: { label: "Calorieën", desc: "Maak foto voor calorieënschatting in seconden." },
+                macros: { label: "Macro's", desc: "Uitsplitsing eiwit, koolhydraten, vet." },
+                reference: { label: "Referentie", desc: "Gebruik kaart voor nauwkeurige portieschatting." },
+                log: { label: "Dagboek", desc: "Houd automatisch voedingsdagboek bij." }
+            },
+            receipt: {
+                scan: { label: "Scanner", desc: "Fotografeer bon. AI extraheert alles." },
+                extract: { label: "Extractie", desc: "Producten, prijzen, hoeveelheden automatisch herkend." },
+                prices: { label: "Prijzen", desc: "Volg prijsveranderingen over tijd." },
+                budget: { label: "Budget", desc: "Uitgavenanalyse en besparingstips." }
+            },
+            finance: {
+                spending: { label: "Uitgaven", desc: "Volg elke voedselaankoop." },
+                "cooking-vs-out": { label: "Thuis vs uit", desc: "Vergelijk kosten thuiskoken en restaurants." },
+                reports: { label: "Rapporten", desc: "Maandelijks detail van voedseluitgaven." },
+                savings: { label: "Besparing", desc: "Bereken hoeveel je bespaart door thuis te koken." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "Synchroniseer stappen, workouts, hartslag." },
+                "apple-health": { label: "Apple Health", desc: "Volledige integratie met Apple Health." },
+                steps: { label: "Stappen", desc: "Importeer stappen van telefoon of smartwatch." },
+                sync: { label: "Sync", desc: "Data synchroniseert automatisch op achtergrond." }
+            },
+            goals: {
+                custom: { label: "Eigen doelen", desc: "Stel je eigen dagelijkse doelen in." },
+                exercises: { label: "Oefeningen", desc: "Doelen voor stappen, push-ups, squats, water." },
+                streak: { label: "Reeksen", desc: "Bouw gewoontes met reeksteller." },
+                progress: { label: "Ringen", desc: "Mooie ringvisualisatie van dagelijkse voortgang." }
+            },
+            charts: {
+                weight: { label: "Gewicht", desc: "Gewichtstrends over weken en maanden." },
+                workouts: { label: "Trainingen", desc: "Visualiseer frequentie en intensiteit." },
+                body: { label: "Lichaam", desc: "Volg spiermassa en lichaamsvet." },
+                export: { label: "Exporteer", desc: "Exporteer alle data naar CSV." }
+            },
+            offline: {
+                "offline-mode": { label: "Offline", desc: "Volledige app zonder internetverbinding." },
+                "auto-sync": { label: "Auto-sync", desc: "Wijzigingen synchroniseren wanneer online." },
+                local: { label: "Lokaal", desc: "Alle data veilig opgeslagen op apparaat." },
+                anywhere: { label: "Overal", desc: "Gebruik in sportschool, buiten of op reis." }
+            },
+            shop: {
+                planning: { label: "Planning", desc: "AI suggereert maaltijden op basis van voorkeuren." },
+                list: { label: "Slimme lijsten", desc: "Auto-lijsten georganiseerd per winkelafdeling." },
+                scanner: { label: "Schapscanner", desc: "Scan schappen om producten snel te vinden." },
+                verify: { label: "Verificatie", desc: "Fotografeer winkelwagen om alles te controleren." }
+            }
         }
     },
     sv: {
@@ -857,7 +1100,88 @@ const i18n = {
             charts: ["Vikttrenddiagram", "Träningshistorikgrafer", "Framsteg över tid", "Kroppssammansättningsspårning", "Exportera data som CSV"],
             offline: ["Full offline-funktionalitet", "Automatisk synk när online", "Ingen dataförlust", "Lokal lagringsbackup", "Fungerar överallt"],
             shop: ["AI-måltidsplanering för valfri period", "Smart inköpslista-generering", "Hyllskanner hittar produkter", "Produktverifiering via foto", "Hälsopoäng för varor"],
-            gotIt: "Uppfattat!"
+            gotIt: "Uppfattat!",
+            close: "Stäng"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "Realtid", desc: "Spårar 33 kroppspunkter vid 30fps med MediaPipe." },
+                exercises: { label: "15 övningar", desc: "Squats, armhävningar, plankor, utfall med mera." },
+                feedback: { label: "Feedback", desc: "Direkta visuella och ljudsignaler om form." },
+                counting: { label: "Räkning", desc: "AI räknar automatiskt repetitioner." }
+            },
+            kitchen: {
+                storage: { label: "Förvaring", desc: "Organisera produkter i kyl och frys." },
+                "ai-scan": { label: "AI-skanning", desc: "Rikta kameran — AI känner igen och lägger till." },
+                expiry: { label: "Utgångsdatum", desc: "Varningar innan utgångsdatum. Mindre svinn." },
+                shopping: { label: "Listor", desc: "Automatisk generering av inköpslistor." }
+            },
+            cooking: {
+                steps: { label: "Steg", desc: "Tydliga instruktioner för varje tillagningssteg." },
+                timer: { label: "Timers", desc: "Inbyggda timers. Flera samtidigt." },
+                voice: { label: "Röst", desc: "Handsfree matlagning med röstinstruktioner." },
+                tips: { label: "Tips", desc: "Kocktips och ingrediensersättningar." }
+            },
+            coach: {
+                "voice-guide": { label: "Röstcoach", desc: "Realtidsmotivation. Manlig eller kvinnlig röst." },
+                "rep-count": { label: "Räknare", desc: "AI räknar repetitioner automatiskt." },
+                "form-tips": { label: "Korrigering", desc: "Direkt feedback på hållning." },
+                history: { label: "Historik", desc: "Spåra alla dina träningspass." }
+            },
+            scale: {
+                camera: { label: "Kamera", desc: "Rikta bara mot vågens display." },
+                "auto-read": { label: "Autoläsning", desc: "AI läser vikten direkt." },
+                "any-scale": { label: "Alla vågar", desc: "Fungerar med digitala och analoga vågar." },
+                trend: { label: "Trender", desc: "Spåra viktförändring med grafer." }
+            },
+            food: {
+                calories: { label: "Kalorier", desc: "Ta ett foto för kaloriuppskattning på sekunder." },
+                macros: { label: "Makros", desc: "Fördelning av protein, kolhydrater, fett." },
+                reference: { label: "Referens", desc: "Använd kort för exakt portionsuppskattning." },
+                log: { label: "Dagbok", desc: "Håll automatiskt matdagbok." }
+            },
+            receipt: {
+                scan: { label: "Skanner", desc: "Fotografera kvitto. AI extraherar allt." },
+                extract: { label: "Extraktion", desc: "Produkter, priser, mängder identifieras automatiskt." },
+                prices: { label: "Priser", desc: "Spåra prisförändringar över tid." },
+                budget: { label: "Budget", desc: "Utgiftsanalys och spartips." }
+            },
+            finance: {
+                spending: { label: "Utgifter", desc: "Spåra varje matinköp." },
+                "cooking-vs-out": { label: "Hemma vs ute", desc: "Jämför kostnader för hemlagat och restauranger." },
+                reports: { label: "Rapporter", desc: "Månadsvis detalj av matutgifter." },
+                savings: { label: "Besparing", desc: "Beräkna hur mycket du sparar genom att laga mat hemma." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "Synkronisera steg, träning, puls." },
+                "apple-health": { label: "Apple Health", desc: "Full integration med Apple Health." },
+                steps: { label: "Steg", desc: "Importera steg från telefon eller smartklocka." },
+                sync: { label: "Synk", desc: "Data synkroniseras automatiskt i bakgrunden." }
+            },
+            goals: {
+                custom: { label: "Egna mål", desc: "Sätt dina egna dagliga mål." },
+                exercises: { label: "Övningar", desc: "Mål för steg, armhävningar, squats, vatten." },
+                streak: { label: "Serier", desc: "Bygg vanor med serieräknare." },
+                progress: { label: "Ringar", desc: "Vacker ringvisualisering av dagliga framsteg." }
+            },
+            charts: {
+                weight: { label: "Vikt", desc: "Vikttrender över veckor och månader." },
+                workouts: { label: "Träning", desc: "Visualisera frekvens och intensitet." },
+                body: { label: "Kropp", desc: "Spåra muskelmassa och kroppsfett." },
+                export: { label: "Exportera", desc: "Exportera all data till CSV." }
+            },
+            offline: {
+                "offline-mode": { label: "Offline", desc: "Full app utan internetanslutning." },
+                "auto-sync": { label: "Autosynk", desc: "Ändringar synkroniseras när online." },
+                local: { label: "Lokal", desc: "All data lagras säkert på enheten." },
+                anywhere: { label: "Överallt", desc: "Använd på gym, utomhus eller på resa." }
+            },
+            shop: {
+                planning: { label: "Planering", desc: "AI föreslår måltider baserat på preferenser." },
+                list: { label: "Smarta listor", desc: "Autolistor organiserade efter butiksavdelning." },
+                scanner: { label: "Hyllskanner", desc: "Skanna hyllor för att hitta produkter snabbt." },
+                verify: { label: "Verifiering", desc: "Fotografera kundvagn för att bekräfta allt." }
+            }
         }
     },
     pl: {
@@ -927,7 +1251,88 @@ const i18n = {
             charts: ["Wykresy trendu wagi", "Wykresy historii treningów", "Postępy w czasie", "Śledzenie składu ciała", "Eksport danych do CSV"],
             offline: ["Pełna funkcjonalność offline", "Automatyczna synchronizacja online", "Bez utraty danych", "Kopia zapasowa lokalnego magazynu", "Działa wszędzie"],
             shop: ["Planowanie posiłków AI na dowolny okres", "Inteligentna generacja listy zakupów", "Skaner półek znajduje produkty", "Weryfikacja produktu przez zdjęcie", "Ocena zdrowotna produktów"],
-            gotIt: "Rozumiem!"
+            gotIt: "Rozumiem!",
+            close: "Zamknij"
+        },
+        tiles: {
+            pose: {
+                realtime: { label: "Czas rzecz.", desc: "Śledzi 33 punkty ciała przy 30fps z MediaPipe." },
+                exercises: { label: "15 ćwiczeń", desc: "Przysiady, pompki, deska, wykroki i więcej." },
+                feedback: { label: "Feedback", desc: "Natychmiastowe wizualne i dźwiękowe wskazówki." },
+                counting: { label: "Liczenie", desc: "AI automatycznie liczy powtórzenia." }
+            },
+            kitchen: {
+                storage: { label: "Przechow.", desc: "Organizuj produkty w lodówce i zamrażarce." },
+                "ai-scan": { label: "Skan AI", desc: "Skieruj aparat — AI rozpozna i doda." },
+                expiry: { label: "Ważność", desc: "Powiadomienia przed upływem terminu. Mniej marnotrawstwa." },
+                shopping: { label: "Listy", desc: "Automatyczne generowanie list zakupów." }
+            },
+            cooking: {
+                steps: { label: "Kroki", desc: "Jasne instrukcje dla każdego etapu gotowania." },
+                timer: { label: "Timery", desc: "Wbudowane timery. Wiele jednocześnie." },
+                voice: { label: "Głos", desc: "Gotowanie bez użycia rąk z instrukcjami głosowymi." },
+                tips: { label: "Wskazówki", desc: "Porady szefa i zamienniki składników." }
+            },
+            coach: {
+                "voice-guide": { label: "Trener głos.", desc: "Motywacja w czasie rzeczywistym. Męski lub żeński głos." },
+                "rep-count": { label: "Licznik", desc: "AI automatycznie liczy powtórzenia." },
+                "form-tips": { label: "Korekta", desc: "Natychmiastowa informacja o postawie." },
+                history: { label: "Historia", desc: "Śledź wszystkie treningi." }
+            },
+            scale: {
+                camera: { label: "Kamera", desc: "Wystarczy skierować na wyświetlacz wagi." },
+                "auto-read": { label: "Auto-odczyt", desc: "AI natychmiast odczytuje wagę." },
+                "any-scale": { label: "Każda waga", desc: "Działa z wagami cyfrowymi i analogowymi." },
+                trend: { label: "Trendy", desc: "Śledź zmiany wagi za pomocą wykresów." }
+            },
+            food: {
+                calories: { label: "Kalorie", desc: "Zrób zdjęcie, uzyskaj kalorie w sekundach." },
+                macros: { label: "Makro", desc: "Podział na białko, węglowodany, tłuszcze." },
+                reference: { label: "Odniesienie", desc: "Użyj karty do dokładnej oceny porcji." },
+                log: { label: "Dziennik", desc: "Automatycznie prowadź dziennik jedzenia." }
+            },
+            receipt: {
+                scan: { label: "Skaner", desc: "Zrób zdjęcie paragonu. AI wyodrębni wszystko." },
+                extract: { label: "Ekstrakcja", desc: "Produkty, ceny, ilości rozpoznane automatycznie." },
+                prices: { label: "Ceny", desc: "Śledź zmiany cen w czasie." },
+                budget: { label: "Budżet", desc: "Analiza wydatków i porady oszczędnościowe." }
+            },
+            finance: {
+                spending: { label: "Wydatki", desc: "Śledź każdy zakup jedzenia." },
+                "cooking-vs-out": { label: "Dom vs miasto", desc: "Porównaj koszty gotowania w domu i restauracji." },
+                reports: { label: "Raporty", desc: "Miesięczny szczegół wydatków na jedzenie." },
+                savings: { label: "Oszczędność", desc: "Oblicz ile oszczędzasz gotując w domu." }
+            },
+            health: {
+                "google-fit": { label: "Google Fit", desc: "Synchronizuj kroki, treningi, puls." },
+                "apple-health": { label: "Apple Health", desc: "Pełna integracja z Apple Health." },
+                steps: { label: "Kroki", desc: "Importuj kroki z telefonu lub smartwatcha." },
+                sync: { label: "Sync", desc: "Dane synchronizują się automatycznie w tle." }
+            },
+            goals: {
+                custom: { label: "Własne cele", desc: "Ustaw własne dzienne cele." },
+                exercises: { label: "Ćwiczenia", desc: "Cele dla kroków, pompek, przysiadów, wody." },
+                streak: { label: "Serie", desc: "Buduj nawyki z licznikiem serii." },
+                progress: { label: "Pierścienie", desc: "Piękna wizualizacja dziennych postępów." }
+            },
+            charts: {
+                weight: { label: "Waga", desc: "Trendy wagowe w tygodniach i miesiącach." },
+                workouts: { label: "Treningi", desc: "Wizualizuj częstotliwość i intensywność." },
+                body: { label: "Ciało", desc: "Śledź masę mięśniową i tłuszcz." },
+                export: { label: "Eksport", desc: "Eksportuj wszystkie dane do CSV." }
+            },
+            offline: {
+                "offline-mode": { label: "Offline", desc: "Pełna aplikacja bez połączenia z internetem." },
+                "auto-sync": { label: "Auto-sync", desc: "Zmiany synchronizują się gdy online." },
+                local: { label: "Lokalnie", desc: "Wszystkie dane bezpiecznie na urządzeniu." },
+                anywhere: { label: "Wszędzie", desc: "Używaj na siłowni, na zewnątrz lub w podróży." }
+            },
+            shop: {
+                planning: { label: "Planowanie", desc: "AI sugeruje posiłki na podstawie preferencji." },
+                list: { label: "Smart listy", desc: "Autolisty zorganizowane według działów sklepu." },
+                scanner: { label: "Skaner półek", desc: "Skanuj półki aby szybko znaleźć produkty." },
+                verify: { label: "Weryfikacja", desc: "Zrób zdjęcie koszyka by sprawdzić czy masz wszystko." }
+            }
         }
     },
     tr: {
