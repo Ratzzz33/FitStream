@@ -59,6 +59,21 @@ const i18n = {
             water: "Water Intake", glasses: "glasses", calories: "Calories Burned", kcal: "kcal",
             leaderboard: "Leaderboard", you: "YOU", points: "pts",
             theme: "Theme", dark: "Dark", light: "Light", lang: "Language"
+        },
+        modal: {
+            pose: ["Real-time pose detection with MediaPipe", "15 different exercises supported", "Instant feedback on form", "Rep counting with AI", "Works on any camera"],
+            kitchen: ["Track products in fridge, pantry & freezer", "AI recognizes products from photos", "Expiry date tracking", "Smart shopping lists", "Low stock notifications"],
+            cooking: ["Step-by-step recipe guidance", "Built-in cooking timers", "Voice reminders", "Troubleshooting tips", "Ingredient substitutions"],
+            coach: ["Real-time voice guidance", "Automatic rep counting", "Form correction tips", "Customizable voice (male/female)", "Workout history tracking"],
+            scale: ["Point camera at any scale", "AI reads weight automatically", "Works with digital & analog scales", "Phone tare weight support", "Trend tracking"],
+            food: ["Instant calorie estimation", "Macro breakdown (protein, carbs, fat)", "Reference object for accuracy", "Meal history logging", "Daily nutrition summary"],
+            receipt: ["Scan grocery receipts", "Auto-extract products & prices", "Expiry date estimation", "Price history tracking", "Budget insights"],
+            finance: ["Track food spending", "Home cooking vs eating out", "Monthly budget reports", "Savings calculator", "Cost per meal analysis"],
+            health: ["Google Fit integration", "Apple Health sync", "Samsung Health Connect", "Steps & activity data", "Sleep tracking import"],
+            goals: ["Custom daily goals", "Steps, pushups, squats & more", "Streak tracking", "Progress visualization", "Reminder notifications"],
+            charts: ["Weight trend charts", "Workout history graphs", "Progress over time", "Body composition tracking", "Export data as CSV"],
+            offline: ["Full offline functionality", "Automatic sync when online", "No data loss", "Local storage backup", "Works anywhere"],
+            gotIt: "Got it!"
         }
     },
     ru: {
@@ -118,6 +133,21 @@ const i18n = {
             water: "Вода", glasses: "стак.", calories: "Сожжено", kcal: "ккал",
             leaderboard: "Рейтинг", you: "ВЫ", points: "очк",
             theme: "Тема", dark: "Тёмная", light: "Светлая", lang: "Язык"
+        },
+        modal: {
+            pose: ["Отслеживание позы в реальном времени с MediaPipe", "Поддержка 15 упражнений", "Мгновенная обратная связь по форме", "Подсчёт повторений с ИИ", "Работает с любой камерой"],
+            kitchen: ["Отслеживание продуктов в холодильнике и морозилке", "ИИ распознаёт продукты по фото", "Контроль сроков годности", "Умные списки покупок", "Уведомления о заканчивающихся продуктах"],
+            cooking: ["Пошаговые инструкции рецептов", "Встроенные таймеры готовки", "Голосовые напоминания", "Советы по устранению проблем", "Замена ингредиентов"],
+            coach: ["Голосовое сопровождение в реальном времени", "Автоматический подсчёт повторений", "Советы по коррекции формы", "Настраиваемый голос (муж/жен)", "История тренировок"],
+            scale: ["Наведите камеру на любые весы", "ИИ автоматически считывает вес", "Работает с цифровыми и аналоговыми весами", "Поддержка тары телефона", "Отслеживание трендов"],
+            food: ["Мгновенная оценка калорий", "Разбивка по макросам (белки, углеводы, жиры)", "Эталонный объект для точности", "Журнал приёмов пищи", "Дневная сводка питания"],
+            receipt: ["Сканирование чеков из магазина", "Автоизвлечение продуктов и цен", "Оценка сроков годности", "История цен", "Аналитика бюджета"],
+            finance: ["Отслеживание расходов на еду", "Домашняя готовка vs кафе", "Месячные отчёты по бюджету", "Калькулятор экономии", "Анализ стоимости за приём пищи"],
+            health: ["Интеграция с Google Fit", "Синхронизация с Apple Health", "Samsung Health Connect", "Данные о шагах и активности", "Импорт трекинга сна"],
+            goals: ["Пользовательские дневные цели", "Шаги, отжимания, приседания и др.", "Отслеживание серий", "Визуализация прогресса", "Напоминания"],
+            charts: ["Графики динамики веса", "Графики истории тренировок", "Прогресс со временем", "Отслеживание состава тела", "Экспорт данных в CSV"],
+            offline: ["Полная работа офлайн", "Автосинхронизация при подключении", "Без потери данных", "Локальное резервное копирование", "Работает везде"],
+            gotIt: "Понятно!"
         }
     },
     de: {
@@ -177,6 +207,21 @@ const i18n = {
             water: "Wasser", glasses: "Gläser", calories: "Verbrannt", kcal: "kcal",
             leaderboard: "Rangliste", you: "DU", points: "Pkt",
             theme: "Design", dark: "Dunkel", light: "Hell", lang: "Sprache"
+        },
+        modal: {
+            pose: ["Echtzeit-Haltungserkennung mit MediaPipe", "15 verschiedene Übungen unterstützt", "Sofortiges Feedback zur Form", "Rep-Zählung mit KI", "Funktioniert mit jeder Kamera"],
+            kitchen: ["Produkte in Kühlschrank & Gefrierschrank verfolgen", "KI erkennt Produkte auf Fotos", "Ablaufdatum-Tracking", "Intelligente Einkaufslisten", "Benachrichtigungen bei niedrigem Bestand"],
+            cooking: ["Schritt-für-Schritt Rezeptanleitung", "Eingebaute Kochtimer", "Spracherinnerungen", "Problemlösungstipps", "Zutatenaustausch"],
+            coach: ["Echtzeit-Sprachanleitung", "Automatische Rep-Zählung", "Tipps zur Formkorrektur", "Anpassbare Stimme (m/w)", "Trainingshistorie"],
+            scale: ["Kamera auf jede Waage richten", "KI liest Gewicht automatisch", "Funktioniert mit digitalen & analogen Waagen", "Telefon-Tara-Unterstützung", "Trend-Tracking"],
+            food: ["Sofortige Kalorienschätzung", "Makro-Aufschlüsselung (Protein, Kohlenhydrate, Fett)", "Referenzobjekt für Genauigkeit", "Mahlzeiten-Protokoll", "Tägliche Ernährungsübersicht"],
+            receipt: ["Kassenzettel scannen", "Produkte & Preise automatisch extrahieren", "Ablaufdatum-Schätzung", "Preishistorie", "Budget-Einblicke"],
+            finance: ["Lebensmittelausgaben verfolgen", "Selbstkochen vs. Auswärts essen", "Monatliche Budgetberichte", "Spar-Rechner", "Kosten pro Mahlzeit"],
+            health: ["Google Fit Integration", "Apple Health Sync", "Samsung Health Connect", "Schritte & Aktivitätsdaten", "Schlaf-Tracking Import"],
+            goals: ["Benutzerdefinierte Tagesziele", "Schritte, Liegestütze, Kniebeugen & mehr", "Streak-Tracking", "Fortschrittsvisualisierung", "Erinnerungsbenachrichtigungen"],
+            charts: ["Gewichtstrend-Diagramme", "Trainingshistorie-Grafiken", "Fortschritt über Zeit", "Körperzusammensetzung-Tracking", "Daten als CSV exportieren"],
+            offline: ["Volle Offline-Funktionalität", "Automatische Sync wenn online", "Kein Datenverlust", "Lokale Speicher-Backup", "Funktioniert überall"],
+            gotIt: "Verstanden!"
         }
     },
     fr: {
@@ -230,6 +275,21 @@ const i18n = {
             water: "Eau", glasses: "verres", calories: "Brûlées", kcal: "kcal",
             leaderboard: "Classement", you: "VOUS", points: "pts",
             theme: "Thème", dark: "Sombre", light: "Clair", lang: "Langue"
+        },
+        modal: {
+            pose: ["Détection de pose en temps réel avec MediaPipe", "15 exercices différents supportés", "Feedback instantané sur la forme", "Comptage des reps avec IA", "Fonctionne avec n'importe quelle caméra"],
+            kitchen: ["Suivez les produits au frigo et congélateur", "L'IA reconnaît les produits sur photos", "Suivi des dates d'expiration", "Listes de courses intelligentes", "Notifications de stock bas"],
+            cooking: ["Guidance de recette étape par étape", "Minuteries de cuisson intégrées", "Rappels vocaux", "Conseils de dépannage", "Substitutions d'ingrédients"],
+            coach: ["Guidance vocale en temps réel", "Comptage automatique des reps", "Conseils de correction de forme", "Voix personnalisable (h/f)", "Historique d'entraînement"],
+            scale: ["Pointez la caméra vers n'importe quelle balance", "L'IA lit le poids automatiquement", "Fonctionne avec balances numériques et analogiques", "Support de tare téléphone", "Suivi des tendances"],
+            food: ["Estimation instantanée des calories", "Répartition des macros (protéines, glucides, lipides)", "Objet de référence pour précision", "Journal des repas", "Résumé nutritionnel quotidien"],
+            receipt: ["Scanner les tickets de caisse", "Extraction auto des produits et prix", "Estimation date d'expiration", "Historique des prix", "Aperçus budget"],
+            finance: ["Suivre les dépenses alimentaires", "Cuisine maison vs restaurant", "Rapports budget mensuels", "Calculateur d'économies", "Analyse coût par repas"],
+            health: ["Intégration Google Fit", "Sync Apple Health", "Samsung Health Connect", "Données de pas et activité", "Import suivi sommeil"],
+            goals: ["Objectifs quotidiens personnalisés", "Pas, pompes, squats et plus", "Suivi des séries", "Visualisation du progrès", "Notifications de rappel"],
+            charts: ["Graphiques tendance de poids", "Graphiques historique d'entraînement", "Progrès dans le temps", "Suivi composition corporelle", "Export données en CSV"],
+            offline: ["Fonctionnalité offline complète", "Sync auto quand en ligne", "Pas de perte de données", "Sauvegarde stockage local", "Fonctionne partout"],
+            gotIt: "Compris!"
         }
     },
     es: {
@@ -283,6 +343,21 @@ const i18n = {
             water: "Agua", glasses: "vasos", calories: "Quemadas", kcal: "kcal",
             leaderboard: "Ranking", you: "TÚ", points: "pts",
             theme: "Tema", dark: "Oscuro", light: "Claro", lang: "Idioma"
+        },
+        modal: {
+            pose: ["Detección de postura en tiempo real con MediaPipe", "15 ejercicios diferentes soportados", "Feedback instantáneo sobre la forma", "Conteo de reps con IA", "Funciona con cualquier cámara"],
+            kitchen: ["Rastrea productos en nevera y congelador", "IA reconoce productos en fotos", "Seguimiento de fechas de caducidad", "Listas de compras inteligentes", "Notificaciones de stock bajo"],
+            cooking: ["Guía de recetas paso a paso", "Temporizadores de cocina integrados", "Recordatorios por voz", "Consejos de solución de problemas", "Sustituciones de ingredientes"],
+            coach: ["Guía de voz en tiempo real", "Conteo automático de reps", "Consejos de corrección de forma", "Voz personalizable (h/m)", "Historial de entrenamientos"],
+            scale: ["Apunta la cámara a cualquier báscula", "IA lee el peso automáticamente", "Funciona con básculas digitales y analógicas", "Soporte de tara de teléfono", "Seguimiento de tendencias"],
+            food: ["Estimación instantánea de calorías", "Desglose de macros (proteína, carbos, grasa)", "Objeto de referencia para precisión", "Registro de comidas", "Resumen nutricional diario"],
+            receipt: ["Escanear tickets de compra", "Extracción automática de productos y precios", "Estimación de fecha de caducidad", "Historial de precios", "Perspectivas de presupuesto"],
+            finance: ["Rastrear gastos en comida", "Cocina casera vs comer fuera", "Informes de presupuesto mensual", "Calculadora de ahorros", "Análisis de costo por comida"],
+            health: ["Integración con Google Fit", "Sync con Apple Health", "Samsung Health Connect", "Datos de pasos y actividad", "Importar seguimiento de sueño"],
+            goals: ["Metas diarias personalizadas", "Pasos, flexiones, sentadillas y más", "Seguimiento de rachas", "Visualización de progreso", "Notificaciones de recordatorio"],
+            charts: ["Gráficos de tendencia de peso", "Gráficos de historial de entrenamiento", "Progreso en el tiempo", "Seguimiento de composición corporal", "Exportar datos a CSV"],
+            offline: ["Funcionalidad offline completa", "Sync automático cuando en línea", "Sin pérdida de datos", "Copia de seguridad local", "Funciona en cualquier lugar"],
+            gotIt: "¡Entendido!"
         }
     },
     it: {
@@ -336,6 +411,21 @@ const i18n = {
             water: "Acqua", glasses: "bicch.", calories: "Bruciate", kcal: "kcal",
             leaderboard: "Classifica", you: "TU", points: "pti",
             theme: "Tema", dark: "Scuro", light: "Chiaro", lang: "Lingua"
+        },
+        modal: {
+            pose: ["Rilevamento postura in tempo reale con MediaPipe", "15 esercizi diversi supportati", "Feedback istantaneo sulla forma", "Conteggio rep con IA", "Funziona con qualsiasi fotocamera"],
+            kitchen: ["Traccia prodotti in frigo e freezer", "IA riconosce prodotti dalle foto", "Tracciamento date di scadenza", "Liste della spesa intelligenti", "Notifiche scorte basse"],
+            cooking: ["Guida ricette passo passo", "Timer cottura integrati", "Promemoria vocali", "Consigli risoluzione problemi", "Sostituzioni ingredienti"],
+            coach: ["Guida vocale in tempo reale", "Conteggio automatico rep", "Consigli correzione forma", "Voce personalizzabile (m/f)", "Cronologia allenamenti"],
+            scale: ["Punta la fotocamera su qualsiasi bilancia", "IA legge il peso automaticamente", "Funziona con bilance digitali e analogiche", "Supporto tara telefono", "Tracciamento tendenze"],
+            food: ["Stima istantanea calorie", "Ripartizione macro (proteine, carbo, grassi)", "Oggetto riferimento per precisione", "Registro pasti", "Riepilogo nutrizionale giornaliero"],
+            receipt: ["Scansiona scontrini", "Estrazione auto prodotti e prezzi", "Stima data scadenza", "Storico prezzi", "Approfondimenti budget"],
+            finance: ["Traccia spese alimentari", "Cucina casalinga vs fuori", "Report budget mensili", "Calcolatore risparmi", "Analisi costo per pasto"],
+            health: ["Integrazione Google Fit", "Sync Apple Health", "Samsung Health Connect", "Dati passi e attività", "Importa tracciamento sonno"],
+            goals: ["Obiettivi giornalieri personalizzati", "Passi, flessioni, squat e altro", "Tracciamento serie", "Visualizzazione progressi", "Notifiche promemoria"],
+            charts: ["Grafici tendenza peso", "Grafici cronologia allenamenti", "Progressi nel tempo", "Tracciamento composizione corporea", "Esporta dati in CSV"],
+            offline: ["Funzionalità offline completa", "Sync automatico quando online", "Nessuna perdita dati", "Backup storage locale", "Funziona ovunque"],
+            gotIt: "Capito!"
         }
     },
     pt: {
@@ -389,6 +479,21 @@ const i18n = {
             water: "Água", glasses: "copos", calories: "Queimadas", kcal: "kcal",
             leaderboard: "Ranking", you: "VOCÊ", points: "pts",
             theme: "Tema", dark: "Escuro", light: "Claro", lang: "Idioma"
+        },
+        modal: {
+            pose: ["Detecção de postura em tempo real com MediaPipe", "15 exercícios diferentes suportados", "Feedback instantâneo sobre forma", "Contagem de reps com IA", "Funciona com qualquer câmera"],
+            kitchen: ["Rastreie produtos na geladeira e freezer", "IA reconhece produtos em fotos", "Rastreamento de validade", "Listas de compras inteligentes", "Notificações de estoque baixo"],
+            cooking: ["Guia de receitas passo a passo", "Timers de cozinha integrados", "Lembretes por voz", "Dicas de solução de problemas", "Substituições de ingredientes"],
+            coach: ["Orientação por voz em tempo real", "Contagem automática de reps", "Dicas de correção de forma", "Voz personalizável (m/f)", "Histórico de treinos"],
+            scale: ["Aponte a câmera para qualquer balança", "IA lê o peso automaticamente", "Funciona com balanças digitais e analógicas", "Suporte de tara do telefone", "Rastreamento de tendências"],
+            food: ["Estimativa instantânea de calorias", "Divisão de macros (proteína, carbos, gordura)", "Objeto de referência para precisão", "Registro de refeições", "Resumo nutricional diário"],
+            receipt: ["Escanear recibos de compras", "Extração automática de produtos e preços", "Estimativa de data de validade", "Histórico de preços", "Insights de orçamento"],
+            finance: ["Rastrear gastos com comida", "Cozinhar em casa vs comer fora", "Relatórios de orçamento mensal", "Calculadora de economia", "Análise de custo por refeição"],
+            health: ["Integração Google Fit", "Sync Apple Health", "Samsung Health Connect", "Dados de passos e atividade", "Importar rastreamento de sono"],
+            goals: ["Metas diárias personalizadas", "Passos, flexões, agachamentos e mais", "Rastreamento de sequências", "Visualização de progresso", "Notificações de lembrete"],
+            charts: ["Gráficos de tendência de peso", "Gráficos de histórico de treinos", "Progresso ao longo do tempo", "Rastreamento de composição corporal", "Exportar dados para CSV"],
+            offline: ["Funcionalidade offline completa", "Sync automático quando online", "Sem perda de dados", "Backup de armazenamento local", "Funciona em qualquer lugar"],
+            gotIt: "Entendi!"
         }
     },
     ja: {
@@ -442,6 +547,21 @@ const i18n = {
             water: "水分", glasses: "杯", calories: "消費", kcal: "kcal",
             leaderboard: "ランキング", you: "あなた", points: "pt",
             theme: "テーマ", dark: "ダーク", light: "ライト", lang: "言語"
+        },
+        modal: {
+            pose: ["MediaPipeによるリアルタイム姿勢検出", "15種類のエクササイズに対応", "フォームへの即時フィードバック", "AIによるレップカウント", "どのカメラでも動作"],
+            kitchen: ["冷蔵庫と冷凍庫の製品を追跡", "AIが写真から製品を認識", "賞味期限の追跡", "スマート買い物リスト", "在庫低下通知"],
+            cooking: ["ステップバイステップのレシピガイド", "内蔵調理タイマー", "音声リマインダー", "トラブルシューティングのヒント", "材料の代替"],
+            coach: ["リアルタイム音声ガイダンス", "自動レップカウント", "フォーム修正のヒント", "カスタマイズ可能な声（男/女）", "ワークアウト履歴"],
+            scale: ["どの体重計にもカメラを向ける", "AIが自動的に体重を読み取り", "デジタル・アナログ両方の体重計に対応", "電話風袋サポート", "トレンド追跡"],
+            food: ["即時カロリー推定", "マクロ内訳（タンパク質、炭水化物、脂肪）", "精度のための参照オブジェクト", "食事ログ", "毎日の栄養サマリー"],
+            receipt: ["レシートをスキャン", "製品と価格の自動抽出", "賞味期限の推定", "価格履歴", "予算インサイト"],
+            finance: ["食費を追跡", "自炊vs外食", "月間予算レポート", "節約計算機", "一食あたりのコスト分析"],
+            health: ["Google Fit連携", "Apple Health同期", "Samsung Health Connect", "歩数とアクティビティデータ", "睡眠追跡インポート"],
+            goals: ["カスタムデイリー目標", "歩数、腕立て、スクワットなど", "ストリーク追跡", "進捗の可視化", "リマインダー通知"],
+            charts: ["体重トレンドチャート", "ワークアウト履歴グラフ", "時間経過での進捗", "体組成追跡", "CSVでデータエクスポート"],
+            offline: ["完全オフライン機能", "オンライン時に自動同期", "データ損失なし", "ローカルストレージバックアップ", "どこでも動作"],
+            gotIt: "了解！"
         }
     },
     ko: {
@@ -495,6 +615,21 @@ const i18n = {
             water: "물", glasses: "잔", calories: "소모", kcal: "kcal",
             leaderboard: "리더보드", you: "나", points: "점",
             theme: "테마", dark: "다크", light: "라이트", lang: "언어"
+        },
+        modal: {
+            pose: ["MediaPipe로 실시간 자세 감지", "15가지 운동 지원", "폼에 대한 즉각적인 피드백", "AI로 횟수 카운트", "모든 카메라에서 작동"],
+            kitchen: ["냉장고와 냉동고 제품 추적", "AI가 사진에서 제품 인식", "유통기한 추적", "스마트 쇼핑 리스트", "재고 부족 알림"],
+            cooking: ["단계별 레시피 안내", "내장 요리 타이머", "음성 알림", "문제 해결 팁", "재료 대체"],
+            coach: ["실시간 음성 안내", "자동 횟수 카운트", "폼 교정 팁", "커스터마이즈 가능한 음성 (남/여)", "운동 기록"],
+            scale: ["아무 체중계에나 카메라를 대세요", "AI가 자동으로 체중 읽기", "디지털 및 아날로그 체중계 작동", "휴대폰 영점 지원", "트렌드 추적"],
+            food: ["즉각적인 칼로리 추정", "매크로 분석 (단백질, 탄수화물, 지방)", "정확도를 위한 참조 객체", "식사 기록", "일일 영양 요약"],
+            receipt: ["영수증 스캔", "제품 및 가격 자동 추출", "유통기한 추정", "가격 기록", "예산 인사이트"],
+            finance: ["식비 추적", "집밥 vs 외식", "월간 예산 리포트", "절약 계산기", "식사당 비용 분석"],
+            health: ["Google Fit 연동", "Apple Health 동기화", "Samsung Health Connect", "걸음 및 활동 데이터", "수면 추적 가져오기"],
+            goals: ["맞춤 일일 목표", "걸음, 푸시업, 스쿼트 등", "연속 기록 추적", "진행 시각화", "알림"],
+            charts: ["체중 트렌드 차트", "운동 기록 그래프", "시간 경과에 따른 진행", "체성분 추적", "CSV로 데이터 내보내기"],
+            offline: ["완전한 오프라인 기능", "온라인 시 자동 동기화", "데이터 손실 없음", "로컬 저장소 백업", "어디서나 작동"],
+            gotIt: "알겠어요!"
         }
     },
     zh: {
@@ -548,6 +683,21 @@ const i18n = {
             water: "饮水", glasses: "杯", calories: "消耗", kcal: "千卡",
             leaderboard: "排行榜", you: "你", points: "分",
             theme: "主题", dark: "深色", light: "浅色", lang: "语言"
+        },
+        modal: {
+            pose: ["使用MediaPipe实时姿势检测", "支持15种不同运动", "即时动作反馈", "AI次数计数", "适用于任何相机"],
+            kitchen: ["追踪冰箱和冷冻室的产品", "AI从照片识别产品", "保质期追踪", "智能购物清单", "低库存通知"],
+            cooking: ["分步食谱指导", "内置烹饪计时器", "语音提醒", "问题解决技巧", "食材替换"],
+            coach: ["实时语音指导", "自动次数计数", "动作纠正提示", "可定制声音（男/女）", "锻炼历史"],
+            scale: ["将相机对准任何体重秤", "AI自动读取体重", "适用于数字和模拟体重秤", "手机去皮支持", "趋势追踪"],
+            food: ["即时卡路里估算", "宏量营养素分解（蛋白质、碳水、脂肪）", "参考物体提高精度", "餐食记录", "每日营养摘要"],
+            receipt: ["扫描购物小票", "自动提取产品和价格", "保质期估算", "价格历史", "预算洞察"],
+            finance: ["追踪食物支出", "在家做饭vs外出就餐", "月度预算报告", "节省计算器", "每餐成本分析"],
+            health: ["Google Fit集成", "Apple Health同步", "Samsung Health Connect", "步数和活动数据", "导入睡眠追踪"],
+            goals: ["自定义每日目标", "步数、俯卧撑、深蹲等", "连续打卡追踪", "进度可视化", "提醒通知"],
+            charts: ["体重趋势图表", "锻炼历史图表", "随时间的进度", "身体成分追踪", "导出CSV数据"],
+            offline: ["完全离线功能", "在线时自动同步", "无数据丢失", "本地存储备份", "随处可用"],
+            gotIt: "明白了！"
         }
     },
     nl: {
@@ -601,6 +751,21 @@ const i18n = {
             water: "Water", glasses: "glazen", calories: "Verbrand", kcal: "kcal",
             leaderboard: "Ranglijst", you: "JIJ", points: "ptn",
             theme: "Thema", dark: "Donker", light: "Licht", lang: "Taal"
+        },
+        modal: {
+            pose: ["Realtime houdingsdetectie met MediaPipe", "15 verschillende oefeningen ondersteund", "Directe feedback op vorm", "Rep-telling met AI", "Werkt met elke camera"],
+            kitchen: ["Volg producten in koelkast en vriezer", "AI herkent producten op foto's", "Houdbaarheidsdatum tracking", "Slimme boodschappenlijsten", "Meldingen bij lage voorraad"],
+            cooking: ["Stap-voor-stap receptbegeleiding", "Ingebouwde kooktimers", "Spraakherinneringen", "Probleemoplossingstips", "Ingrediëntenvervangingen"],
+            coach: ["Realtime spraakbegeleiding", "Automatische rep-telling", "Tips voor vormcorrectie", "Aanpasbare stem (m/v)", "Trainingsgeschiedenis"],
+            scale: ["Richt camera op elke weegschaal", "AI leest gewicht automatisch", "Werkt met digitale en analoge weegschalen", "Telefoon tarra-ondersteuning", "Trend tracking"],
+            food: ["Directe calorieënschatting", "Macro-uitsplitsing (eiwit, koolhydraten, vet)", "Referentieobject voor nauwkeurigheid", "Maaltijdlog", "Dagelijks voedingsoverzicht"],
+            receipt: ["Kassabonnen scannen", "Auto-extractie producten en prijzen", "Houdbaarheidsschatting", "Prijsgeschiedenis", "Budgetinzichten"],
+            finance: ["Voedseluitgaven volgen", "Thuiskoken vs uit eten", "Maandelijkse budgetrapporten", "Besparingscalculator", "Kosten per maaltijd analyse"],
+            health: ["Google Fit integratie", "Apple Health sync", "Samsung Health Connect", "Stappen en activiteitsgegevens", "Slaaptracking importeren"],
+            goals: ["Aangepaste dagelijkse doelen", "Stappen, push-ups, squats en meer", "Reeksregistratie", "Voortgangsvisualisatie", "Herinneringsmeldingen"],
+            charts: ["Gewichtstrend grafieken", "Trainingsgeschiedenis grafieken", "Voortgang in de tijd", "Lichaamssamenstelling tracking", "Data exporteren als CSV"],
+            offline: ["Volledige offline functionaliteit", "Automatische sync wanneer online", "Geen gegevensverlies", "Lokale opslag backup", "Werkt overal"],
+            gotIt: "Begrepen!"
         }
     },
     sv: {
@@ -654,6 +819,21 @@ const i18n = {
             water: "Vatten", glasses: "glas", calories: "Förbrända", kcal: "kcal",
             leaderboard: "Topplista", you: "DU", points: "pkt",
             theme: "Tema", dark: "Mörkt", light: "Ljust", lang: "Språk"
+        },
+        modal: {
+            pose: ["Realtids hållningsdetektering med MediaPipe", "15 olika övningar stöds", "Omedelbar feedback på form", "Rep-räkning med AI", "Fungerar med vilken kamera som helst"],
+            kitchen: ["Spåra produkter i kyl och frys", "AI känner igen produkter på foton", "Utgångsdatumsspårning", "Smarta inköpslistor", "Meddelanden vid lågt lager"],
+            cooking: ["Steg-för-steg receptvägledning", "Inbyggda kocktimers", "Röstpåminnelser", "Felsökningstips", "Ingrediensersättningar"],
+            coach: ["Realtids röstvägledning", "Automatisk rep-räkning", "Tips för formkorrigering", "Anpassningsbar röst (m/k)", "Träningshistorik"],
+            scale: ["Rikta kameran mot valfri våg", "AI läser vikt automatiskt", "Fungerar med digitala och analoga vågar", "Telefon tara-stöd", "Trendspårning"],
+            food: ["Omedelbar kaloriuppskattning", "Makro-uppdelning (protein, kolhydrater, fett)", "Referensobjekt för noggrannhet", "Måltidslogg", "Daglig näringssammanfattning"],
+            receipt: ["Skanna kvitton", "Auto-extrahera produkter och priser", "Utgångsdatumuppskattning", "Prishistorik", "Budgetinsikter"],
+            finance: ["Spåra matutgifter", "Hemlagad mat vs äta ute", "Månadsbudgetrapporter", "Sparkalkylator", "Kostnad per måltid analys"],
+            health: ["Google Fit integration", "Apple Health synk", "Samsung Health Connect", "Steg och aktivitetsdata", "Importera sömnspårning"],
+            goals: ["Anpassade dagliga mål", "Steg, armhävningar, knäböj och mer", "Seriespårning", "Framstegsvisualisering", "Påminnelsenotifikationer"],
+            charts: ["Vikttrenddiagram", "Träningshistorikgrafer", "Framsteg över tid", "Kroppssammansättningsspårning", "Exportera data som CSV"],
+            offline: ["Full offline-funktionalitet", "Automatisk synk när online", "Ingen dataförlust", "Lokal lagringsbackup", "Fungerar överallt"],
+            gotIt: "Uppfattat!"
         }
     },
     pl: {
@@ -707,6 +887,21 @@ const i18n = {
             water: "Woda", glasses: "szkl.", calories: "Spalone", kcal: "kcal",
             leaderboard: "Ranking", you: "TY", points: "pkt",
             theme: "Motyw", dark: "Ciemny", light: "Jasny", lang: "Język"
+        },
+        modal: {
+            pose: ["Wykrywanie postawy w czasie rzeczywistym z MediaPipe", "Obsługa 15 różnych ćwiczeń", "Natychmiastowa informacja zwrotna o formie", "Liczenie powtórzeń z AI", "Działa z każdą kamerą"],
+            kitchen: ["Śledź produkty w lodówce i zamrażarce", "AI rozpoznaje produkty ze zdjęć", "Śledzenie dat ważności", "Inteligentne listy zakupów", "Powiadomienia o niskim stanie"],
+            cooking: ["Przewodnik po przepisach krok po kroku", "Wbudowane timery gotowania", "Przypomnienia głosowe", "Wskazówki rozwiązywania problemów", "Zamienniki składników"],
+            coach: ["Prowadzenie głosowe w czasie rzeczywistym", "Automatyczne liczenie powtórzeń", "Wskazówki korekty formy", "Konfigurowalny głos (m/k)", "Historia treningów"],
+            scale: ["Skieruj kamerę na dowolną wagę", "AI automatycznie odczytuje wagę", "Działa z wagami cyfrowymi i analogowymi", "Obsługa tary telefonu", "Śledzenie trendów"],
+            food: ["Natychmiastowe szacowanie kalorii", "Rozkład makro (białko, węglowodany, tłuszcz)", "Obiekt odniesienia dla dokładności", "Dziennik posiłków", "Dzienny przegląd żywieniowy"],
+            receipt: ["Skanowanie paragonów", "Automatyczna ekstrakcja produktów i cen", "Szacowanie daty ważności", "Historia cen", "Wgląd w budżet"],
+            finance: ["Śledzenie wydatków na jedzenie", "Gotowanie w domu vs jedzenie na mieście", "Miesięczne raporty budżetowe", "Kalkulator oszczędności", "Analiza kosztu posiłku"],
+            health: ["Integracja z Google Fit", "Synchronizacja Apple Health", "Samsung Health Connect", "Dane o krokach i aktywności", "Import śledzenia snu"],
+            goals: ["Niestandardowe cele dzienne", "Kroki, pompki, przysiady i więcej", "Śledzenie serii", "Wizualizacja postępów", "Powiadomienia przypominające"],
+            charts: ["Wykresy trendu wagi", "Wykresy historii treningów", "Postępy w czasie", "Śledzenie składu ciała", "Eksport danych do CSV"],
+            offline: ["Pełna funkcjonalność offline", "Automatyczna synchronizacja online", "Bez utraty danych", "Kopia zapasowa lokalnego magazynu", "Działa wszędzie"],
+            gotIt: "Rozumiem!"
         }
     },
     tr: {
@@ -760,6 +955,21 @@ const i18n = {
             water: "Su", glasses: "bardak", calories: "Yakılan", kcal: "kcal",
             leaderboard: "Sıralama", you: "SEN", points: "puan",
             theme: "Tema", dark: "Koyu", light: "Açık", lang: "Dil"
+        },
+        modal: {
+            pose: ["MediaPipe ile gerçek zamanlı duruş algılama", "15 farklı egzersiz destekleniyor", "Form hakkında anında geri bildirim", "AI ile tekrar sayımı", "Her kamerayla çalışır"],
+            kitchen: ["Buzdolabı ve dondurucudaki ürünleri takip edin", "AI fotoğraflardan ürünleri tanır", "Son kullanma tarihi takibi", "Akıllı alışveriş listeleri", "Düşük stok bildirimleri"],
+            cooking: ["Adım adım tarif rehberi", "Dahili pişirme zamanlayıcıları", "Sesli hatırlatmalar", "Sorun giderme ipuçları", "Malzeme değişimleri"],
+            coach: ["Gerçek zamanlı sesli rehberlik", "Otomatik tekrar sayımı", "Form düzeltme ipuçları", "Özelleştirilebilir ses (e/k)", "Antrenman geçmişi"],
+            scale: ["Kamerayı herhangi bir tartıya doğrultun", "AI ağırlığı otomatik okur", "Dijital ve analog tartılarla çalışır", "Telefon dara desteği", "Trend takibi"],
+            food: ["Anında kalori tahmini", "Makro dağılımı (protein, karbonhidrat, yağ)", "Doğruluk için referans nesnesi", "Öğün kaydı", "Günlük beslenme özeti"],
+            receipt: ["Fiş tarama", "Ürün ve fiyatların otomatik çıkarılması", "Son kullanma tarihi tahmini", "Fiyat geçmişi", "Bütçe içgörüleri"],
+            finance: ["Yemek harcamalarını takip edin", "Evde pişirme vs dışarıda yeme", "Aylık bütçe raporları", "Tasarruf hesaplayıcı", "Öğün başına maliyet analizi"],
+            health: ["Google Fit entegrasyonu", "Apple Health senkronizasyonu", "Samsung Health Connect", "Adım ve aktivite verileri", "Uyku takibi içe aktarma"],
+            goals: ["Özel günlük hedefler", "Adımlar, şınavlar, squat ve daha fazlası", "Seri takibi", "İlerleme görselleştirme", "Hatırlatma bildirimleri"],
+            charts: ["Kilo trend grafikleri", "Antrenman geçmişi grafikleri", "Zaman içinde ilerleme", "Vücut kompozisyonu takibi", "CSV olarak veri dışa aktarma"],
+            offline: ["Tam çevrimdışı işlevsellik", "Çevrimiçi olduğunda otomatik senkronizasyon", "Veri kaybı yok", "Yerel depolama yedeklemesi", "Her yerde çalışır"],
+            gotIt: "Anladım!"
         }
     },
     ar: {
@@ -813,6 +1023,21 @@ const i18n = {
             water: "ماء", glasses: "كوب", calories: "محروقة", kcal: "سعرة",
             leaderboard: "الترتيب", you: "أنت", points: "نقطة",
             theme: "المظهر", dark: "داكن", light: "فاتح", lang: "اللغة"
+        },
+        modal: {
+            pose: ["كشف الوضعية في الوقت الفعلي مع MediaPipe", "دعم 15 تمرينًا مختلفًا", "ردود فعل فورية على الشكل", "عد التكرارات بالذكاء الاصطناعي", "يعمل مع أي كاميرا"],
+            kitchen: ["تتبع المنتجات في الثلاجة والمجمد", "الذكاء الاصطناعي يتعرف على المنتجات من الصور", "تتبع تاريخ انتهاء الصلاحية", "قوائم تسوق ذكية", "إشعارات المخزون المنخفض"],
+            cooking: ["إرشادات الوصفات خطوة بخطوة", "مؤقتات الطبخ المدمجة", "تذكيرات صوتية", "نصائح استكشاف الأخطاء", "بدائل المكونات"],
+            coach: ["إرشاد صوتي في الوقت الفعلي", "عد التكرارات التلقائي", "نصائح تصحيح الشكل", "صوت قابل للتخصيص (ذ/أ)", "سجل التمارين"],
+            scale: ["وجه الكاميرا إلى أي ميزان", "الذكاء الاصطناعي يقرأ الوزن تلقائيًا", "يعمل مع الموازين الرقمية والتناظرية", "دعم وزن الهاتف", "تتبع الاتجاهات"],
+            food: ["تقدير السعرات الحرارية الفوري", "تفصيل الماكرو (بروتين، كربوهيدرات، دهون)", "كائن مرجعي للدقة", "سجل الوجبات", "ملخص التغذية اليومي"],
+            receipt: ["مسح الفواتير", "استخراج المنتجات والأسعار تلقائيًا", "تقدير تاريخ انتهاء الصلاحية", "سجل الأسعار", "رؤى الميزانية"],
+            finance: ["تتبع نفقات الطعام", "الطبخ المنزلي مقابل الأكل خارجًا", "تقارير الميزانية الشهرية", "حاسبة التوفير", "تحليل التكلفة لكل وجبة"],
+            health: ["تكامل Google Fit", "مزامنة Apple Health", "Samsung Health Connect", "بيانات الخطوات والنشاط", "استيراد تتبع النوم"],
+            goals: ["أهداف يومية مخصصة", "الخطوات والضغط والقرفصاء والمزيد", "تتبع السلاسل", "تصور التقدم", "إشعارات التذكير"],
+            charts: ["مخططات اتجاه الوزن", "رسوم بيانية لسجل التمارين", "التقدم عبر الزمن", "تتبع تركيب الجسم", "تصدير البيانات كـ CSV"],
+            offline: ["وظائف كاملة بدون اتصال", "مزامنة تلقائية عند الاتصال", "لا فقدان للبيانات", "نسخ احتياطي للتخزين المحلي", "يعمل في أي مكان"],
+            gotIt: "فهمت!"
         }
     },
     ka: {
@@ -872,6 +1097,21 @@ const i18n = {
             water: "წყალი", glasses: "ჭიქა", calories: "დაწვა", kcal: "კკალ",
             leaderboard: "რეიტინგი", you: "შენ", points: "ქულა",
             theme: "თემა", dark: "მუქი", light: "ნათელი", lang: "ენა"
+        },
+        modal: {
+            pose: ["რეალურ დროში პოზის აღმოჩენა MediaPipe-ით", "15 სხვადასხვა ვარჯიში მხარდაჭერილია", "მყისიერი უკუკავშირი ფორმაზე", "გამეორებების დათვლა AI-ით", "მუშაობს ნებისმიერ კამერაზე"],
+            kitchen: ["თვალყური ადევნე პროდუქტებს მაცივარსა და საყინულეში", "AI ცნობს პროდუქტებს ფოტოებზე", "ვადის გასვლის თვალყურისდევნება", "ჭკვიანი საყიდლების სიები", "დაბალი მარაგის შეტყობინებები"],
+            cooking: ["ნაბიჯ-ნაბიჯ რეცეპტის სახელმძღვანელო", "ჩაშენებული მზარეულობის ტაიმერები", "ხმოვანი შეხსენებები", "პრობლემების მოგვარების რჩევები", "ინგრედიენტების ჩანაცვლება"],
+            coach: ["რეალურ დროში ხმოვანი მითითება", "ავტომატური გამეორებების დათვლა", "ფორმის გასწორების რჩევები", "მორგებადი ხმა (მ/ქ)", "ვარჯიშის ისტორია"],
+            scale: ["მიმართე კამერა ნებისმიერ სასწორზე", "AI ავტომატურად კითხულობს წონას", "მუშაობს ციფრულ და ანალოგურ სასწორებზე", "ტელეფონის ტარა მხარდაჭერა", "ტრენდების თვალყურისდევნება"],
+            food: ["მყისიერი კალორიების შეფასება", "მაკროების დაშლა (ცილა, ნახშირწყლები, ცხიმი)", "საორიენტაციო ობიექტი სიზუსტისთვის", "კვების ჟურნალი", "ყოველდღიური კვების შეჯამება"],
+            receipt: ["ჩეკების სკანირება", "პროდუქტებისა და ფასების ავტომატური ამოღება", "ვადის გასვლის შეფასება", "ფასების ისტორია", "ბიუჯეტის ინსაიტები"],
+            finance: ["საკვებზე დანახარჯების თვალყურისდევნება", "სახლში მზადება vs გარეთ ჭამა", "ყოველთვიური ბიუჯეტის ანგარიშები", "დანაზოგის კალკულატორი", "ერთ კვებაზე ხარჯების ანალიზი"],
+            health: ["Google Fit ინტეგრაცია", "Apple Health სინქრონიზაცია", "Samsung Health Connect", "ნაბიჯების და აქტივობის მონაცემები", "ძილის თვალყურისდევნების იმპორტი"],
+            goals: ["მორგებული ყოველდღიური მიზნები", "ნაბიჯები, ბრუნვები, სკვოტები და სხვა", "სერიების თვალყურისდევნება", "პროგრესის ვიზუალიზაცია", "შეხსენების შეტყობინებები"],
+            charts: ["წონის ტრენდის დიაგრამები", "ვარჯიშის ისტორიის გრაფიკები", "პროგრესი დროთა განმავლობაში", "სხეულის შემადგენლობის თვალყურისდევნება", "მონაცემების ექსპორტი CSV-ში"],
+            offline: ["სრული ოფლაინ ფუნქციონალობა", "ავტომატური სინქრონიზაცია ონლაინ რეჟიმში", "მონაცემთა დაკარგვა არ ხდება", "ლოკალური შენახვის სარეზერვო ასლი", "მუშაობს ყველგან"],
+            gotIt: "გასაგებია!"
         }
     }
 };

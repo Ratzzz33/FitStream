@@ -1,36 +1,20 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .body {
-      animation: lunge-down 1.2s ease-in-out infinite;
-    }
-    .front-leg {
-      transform-origin: 38px 34px;
-      animation: front-bend 1.2s ease-in-out infinite;
-    }
-    .back-leg {
-      transform-origin: 26px 34px;
-      animation: back-extend 1.2s ease-in-out infinite;
-    }
-    @keyframes lunge-down {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(6px); }
-    }
-    @keyframes front-bend {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-15deg); }
-    }
-    @keyframes back-extend {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(20deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <g class="body">
-    <circle cx="32" cy="10" r="6" class="body-part"/>
-    <rect x="28" y="17" width="8" height="14" rx="3" class="body-part"/>
-    <rect x="20" y="18" width="10" height="4" rx="2" class="body-part"/>
-    <rect x="34" y="18" width="10" height="4" rx="2" class="body-part"/>
-  </g>
-  <rect x="36" y="32" width="5" height="20" rx="2" class="body-part front-leg"/>
-  <rect x="23" y="32" width="5" height="22" rx="2" class="body-part back-leg"/>
+  <!-- Выпад - боковой вид -->
+  <!-- Голова -->
+  <circle cx="32" cy="8" r="5" class="head"/>
+  <!-- Туловище вертикально -->
+  <line x1="32" y1="13" x2="32" y2="28" class="stick"/>
+  <!-- Руки на поясе -->
+  <line x1="32" y1="18" x2="26" y2="22" class="stick"/>
+  <line x1="32" y1="18" x2="38" y2="22" class="stick"/>
+  <!-- Передняя нога согнута 90° -->
+  <line x1="32" y1="28" x2="20" y2="40" class="stick"/>
+  <line x1="20" y1="40" x2="18" y2="54" class="stick"/>
+  <!-- Задняя нога вытянута назад -->
+  <line x1="32" y1="28" x2="46" y2="38" class="stick"/>
+  <line x1="46" y1="38" x2="52" y2="54" class="stick"/>
 </svg>

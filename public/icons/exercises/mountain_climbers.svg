@@ -1,28 +1,21 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .left-leg {
-      transform-origin: 40px 34px;
-      animation: climb-left 0.5s ease-in-out infinite;
-    }
-    .right-leg {
-      transform-origin: 40px 34px;
-      animation: climb-right 0.5s ease-in-out infinite;
-    }
-    @keyframes climb-left {
-      0%, 100% { transform: translateX(-20px) rotate(-30deg); }
-      50% { transform: translateX(0) rotate(0deg); }
-    }
-    @keyframes climb-right {
-      0%, 100% { transform: translateX(0) rotate(0deg); }
-      50% { transform: translateX(-20px) rotate(-30deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <rect x="4" y="52" width="56" height="2" fill="#666"/>
-  <circle cx="10" cy="28" r="5" class="body-part"/>
-  <rect x="12" y="26" width="28" height="6" rx="3" class="body-part"/>
-  <rect x="14" y="32" width="4" height="20" rx="2" class="body-part"/>
-  <rect x="24" y="32" width="4" height="20" rx="2" class="body-part"/>
-  <rect x="40" y="28" width="16" height="4" rx="2" class="body-part left-leg"/>
-  <rect x="40" y="32" width="16" height="4" rx="2" class="body-part right-leg"/>
+  <!-- Скалолаз - упор лёжа с коленом к груди -->
+  <!-- Голова -->
+  <circle cx="10" cy="20" r="5" class="head"/>
+  <!-- Туловище под углом -->
+  <line x1="15" y1="22" x2="38" y2="34" class="stick"/>
+  <!-- Руки прямые вниз -->
+  <line x1="18" y1="23" x2="16" y2="50" class="stick"/>
+  <!-- Колено подтянуто к груди -->
+  <line x1="38" y1="34" x2="28" y2="38" class="stick"/>
+  <line x1="28" y1="38" x2="26" y2="50" class="stick"/>
+  <!-- Задняя нога вытянута -->
+  <line x1="38" y1="34" x2="54" y2="40" class="stick"/>
+  <line x1="54" y1="40" x2="56" y2="50" class="stick"/>
+  <!-- Пол -->
+  <line x1="4" y1="52" x2="60" y2="52" stroke="#666" stroke-width="2"/>
 </svg>

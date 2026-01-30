@@ -1,43 +1,17 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .left-arm {
-      transform-origin: 28px 20px;
-      animation: arm-left 0.6s ease-in-out infinite;
-    }
-    .right-arm {
-      transform-origin: 36px 20px;
-      animation: arm-right 0.6s ease-in-out infinite;
-    }
-    .left-leg {
-      transform-origin: 28px 38px;
-      animation: leg-left 0.6s ease-in-out infinite;
-    }
-    .right-leg {
-      transform-origin: 36px 38px;
-      animation: leg-right 0.6s ease-in-out infinite;
-    }
-    @keyframes arm-left {
-      0%, 100% { transform: rotate(-60deg); }
-      50% { transform: rotate(0deg); }
-    }
-    @keyframes arm-right {
-      0%, 100% { transform: rotate(60deg); }
-      50% { transform: rotate(0deg); }
-    }
-    @keyframes leg-left {
-      0%, 100% { transform: rotate(-20deg); }
-      50% { transform: rotate(0deg); }
-    }
-    @keyframes leg-right {
-      0%, 100% { transform: rotate(20deg); }
-      50% { transform: rotate(0deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <circle cx="32" cy="10" r="6" class="body-part"/>
-  <rect x="28" y="17" width="8" height="16" rx="3" class="body-part"/>
-  <rect x="26" y="18" width="4" height="14" rx="2" class="body-part left-arm"/>
-  <rect x="34" y="18" width="4" height="14" rx="2" class="body-part right-arm"/>
-  <rect x="26" y="34" width="5" height="20" rx="2" class="body-part left-leg"/>
-  <rect x="33" y="34" width="5" height="20" rx="2" class="body-part right-leg"/>
+  <!-- Джампинг джек - ноги и руки в стороны -->
+  <!-- Голова -->
+  <circle cx="32" cy="8" r="5" class="head"/>
+  <!-- Туловище -->
+  <line x1="32" y1="13" x2="32" y2="30" class="stick"/>
+  <!-- Руки подняты в стороны вверх -->
+  <line x1="32" y1="18" x2="18" y2="8" class="stick"/>
+  <line x1="32" y1="18" x2="46" y2="8" class="stick"/>
+  <!-- Ноги широко в стороны -->
+  <line x1="32" y1="30" x2="18" y2="54" class="stick"/>
+  <line x1="32" y1="30" x2="46" y2="54" class="stick"/>
 </svg>

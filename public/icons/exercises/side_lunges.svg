@@ -1,42 +1,20 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .body {
-      animation: side-lunge 1.4s ease-in-out infinite;
-    }
-    .left-leg {
-      transform-origin: 24px 32px;
-      animation: leg-bend 1.4s ease-in-out infinite;
-    }
-    .right-leg {
-      transform-origin: 40px 32px;
-      animation: leg-extend 1.4s ease-in-out infinite;
-    }
-    @keyframes side-lunge {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(-6px); }
-    }
-    @keyframes leg-bend {
-      0%, 100% { transform: rotate(0deg) scaleY(1); }
-      50% { transform: rotate(-20deg) scaleY(0.7); }
-    }
-    @keyframes leg-extend {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(15deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <rect x="4" y="56" width="56" height="2" fill="#666"/>
-  <g class="body">
-    <!-- Head -->
-    <circle cx="32" cy="8" r="5" class="body-part"/>
-    <!-- Torso -->
-    <rect x="28" y="14" width="8" height="16" rx="3" class="body-part"/>
-    <!-- Arms out for balance -->
-    <rect x="16" y="18" width="12" height="4" rx="2" class="body-part"/>
-    <rect x="36" y="18" width="12" height="4" rx="2" class="body-part"/>
-  </g>
-  <!-- Left leg (bending) -->
-  <rect x="22" y="30" width="5" height="24" rx="2" class="body-part left-leg"/>
-  <!-- Right leg (extending) -->
-  <rect x="37" y="30" width="5" height="24" rx="2" class="body-part right-leg"/>
+  <!-- Боковой выпад - фронтальный вид -->
+  <!-- Голова -->
+  <circle cx="24" cy="8" r="5" class="head"/>
+  <!-- Туловище наклонено в сторону -->
+  <line x1="24" y1="13" x2="24" y2="28" class="stick"/>
+  <!-- Руки вытянуты для баланса -->
+  <line x1="24" y1="18" x2="12" y2="16" class="stick"/>
+  <line x1="24" y1="18" x2="36" y2="20" class="stick"/>
+  <!-- Согнутая нога (в сторону выпада) -->
+  <line x1="24" y1="28" x2="12" y2="40" class="stick"/>
+  <line x1="12" y1="40" x2="10" y2="54" class="stick"/>
+  <!-- Прямая нога (вытянута в другую сторону) -->
+  <line x1="24" y1="28" x2="48" y2="36" class="stick"/>
+  <line x1="48" y1="36" x2="54" y2="54" class="stick"/>
 </svg>

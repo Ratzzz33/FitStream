@@ -1,43 +1,22 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .left-leg {
-      transform-origin: 28px 34px;
-      animation: knee-left 0.4s ease-in-out infinite;
-    }
-    .right-leg {
-      transform-origin: 36px 34px;
-      animation: knee-right 0.4s ease-in-out infinite;
-    }
-    .left-arm {
-      transform-origin: 26px 20px;
-      animation: arm-left 0.4s ease-in-out infinite;
-    }
-    .right-arm {
-      transform-origin: 38px 20px;
-      animation: arm-right 0.4s ease-in-out infinite;
-    }
-    @keyframes knee-left {
-      0%, 100% { transform: rotate(-70deg); }
-      50% { transform: rotate(0deg); }
-    }
-    @keyframes knee-right {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-70deg); }
-    }
-    @keyframes arm-left {
-      0%, 100% { transform: rotate(30deg); }
-      50% { transform: rotate(-30deg); }
-    }
-    @keyframes arm-right {
-      0%, 100% { transform: rotate(-30deg); }
-      50% { transform: rotate(30deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <circle cx="32" cy="10" r="6" class="body-part"/>
-  <rect x="28" y="17" width="8" height="14" rx="3" class="body-part"/>
-  <rect x="22" y="18" width="6" height="4" rx="2" class="body-part left-arm"/>
-  <rect x="36" y="18" width="6" height="4" rx="2" class="body-part right-arm"/>
-  <rect x="26" y="32" width="5" height="18" rx="2" class="body-part left-leg"/>
-  <rect x="33" y="32" width="5" height="18" rx="2" class="body-part right-leg"/>
+  <!-- Высокие колени - бег на месте -->
+  <!-- Голова -->
+  <circle cx="32" cy="8" r="5" class="head"/>
+  <!-- Туловище -->
+  <line x1="32" y1="13" x2="32" y2="30" class="stick"/>
+  <!-- Руки согнуты в беге -->
+  <line x1="32" y1="18" x2="24" y2="22" class="stick"/>
+  <line x1="24" y1="22" x2="22" y2="16" class="stick"/>
+  <line x1="32" y1="18" x2="40" y2="24" class="stick"/>
+  <line x1="40" y1="24" x2="44" y2="20" class="stick"/>
+  <!-- Левая нога поднята высоко -->
+  <line x1="32" y1="30" x2="24" y2="34" class="stick"/>
+  <line x1="24" y1="34" x2="22" y2="44" class="stick"/>
+  <!-- Правая нога стоит -->
+  <line x1="32" y1="30" x2="38" y2="42" class="stick"/>
+  <line x1="38" y1="42" x2="40" y2="54" class="stick"/>
 </svg>

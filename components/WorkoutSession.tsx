@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles, Dumbbell, Timer, Flame, Activity, Footprints, ArrowUp, ArrowDown, Move, Zap } from 'lucide-react';
+import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles, Cpu, ChevronRight } from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
@@ -21,28 +21,35 @@ const LOCAL_EXERCISES: TrackableExercise[] = [
   'GLUTE_BRIDGES', 'CALF_RAISES', 'WALL_SIT', 'SIDE_LUNGES', 'TRICEP_DIPS'
 ];
 
-// Exercise icon component - uses Lucide icons (temporary until custom pack is found)
-const ExerciseIcon: React.FC<{ exercise: TrackableExercise; className?: string }> = ({ exercise, className = "w-8 h-8" }) => {
-  const iconProps = { className, strokeWidth: 1.5 };
+// Exercise icon component - uses custom SVG icons from public/icons/exercises/
+const EXERCISE_SVG_MAP: Record<TrackableExercise, string> = {
+  'SQUATS': '/icons/exercises/squats.svg',
+  'PUSHUPS': '/icons/exercises/pushups.svg',
+  'PLANK': '/icons/exercises/plank.svg',
+  'LUNGES': '/icons/exercises/lunges.svg',
+  'SITUPS': '/icons/exercises/situps.svg',
+  'BURPEES': '/icons/exercises/burpees.svg',
+  'JUMPING_JACKS': '/icons/exercises/jumping_jacks.svg',
+  'HIGH_KNEES': '/icons/exercises/high_knees.svg',
+  'MOUNTAIN_CLIMBERS': '/icons/exercises/mountain_climbers.svg',
+  'LEG_RAISES': '/icons/exercises/leg_raises.svg',
+  'GLUTE_BRIDGES': '/icons/exercises/glute_bridges.svg',
+  'CALF_RAISES': '/icons/exercises/calf_raises.svg',
+  'WALL_SIT': '/icons/exercises/wall_sit.svg',
+  'SIDE_LUNGES': '/icons/exercises/side_lunges.svg',
+  'TRICEP_DIPS': '/icons/exercises/tricep_dips.svg',
+};
 
-  switch (exercise) {
-    case 'SQUATS': return <Dumbbell {...iconProps} />;
-    case 'PUSHUPS': return <ArrowDown {...iconProps} />;
-    case 'PLANK': return <Timer {...iconProps} />;
-    case 'LUNGES': return <Footprints {...iconProps} />;
-    case 'SITUPS': return <ArrowUp {...iconProps} />;
-    case 'BURPEES': return <Zap {...iconProps} />;
-    case 'JUMPING_JACKS': return <Move {...iconProps} />;
-    case 'HIGH_KNEES': return <Flame {...iconProps} />;
-    case 'MOUNTAIN_CLIMBERS': return <Activity {...iconProps} />;
-    case 'LEG_RAISES': return <ArrowUp {...iconProps} />;
-    case 'GLUTE_BRIDGES': return <ArrowUp {...iconProps} />;
-    case 'CALF_RAISES': return <ArrowUp {...iconProps} />;
-    case 'WALL_SIT': return <Timer {...iconProps} />;
-    case 'SIDE_LUNGES': return <Footprints {...iconProps} />;
-    case 'TRICEP_DIPS': return <ArrowDown {...iconProps} />;
-    default: return <Dumbbell {...iconProps} />;
-  }
+const ExerciseIcon: React.FC<{ exercise: TrackableExercise; className?: string }> = ({ exercise, className = "w-8 h-8" }) => {
+  const svgPath = EXERCISE_SVG_MAP[exercise] || '/icons/exercises/squats.svg';
+  return (
+    <img
+      src={svgPath}
+      alt={exercise}
+      className={className}
+      style={{ filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.3))' }}
+    />
+  );
 };
 
 // Function declaration for the model

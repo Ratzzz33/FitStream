@@ -1,18 +1,19 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .core {
-      animation: plank-hold 2s ease-in-out infinite;
-    }
-    @keyframes plank-hold {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.85; }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <rect x="4" y="52" width="56" height="2" fill="#666"/>
-  <circle cx="10" cy="30" r="5" class="body-part core"/>
-  <rect x="12" y="28" width="36" height="6" rx="3" class="body-part core"/>
-  <rect x="48" y="30" width="10" height="4" rx="2" class="body-part"/>
-  <rect x="16" y="34" width="4" height="18" rx="2" class="body-part"/>
-  <rect x="30" y="34" width="4" height="18" rx="2" class="body-part"/>
+  <!-- Планка - боковой вид на локтях -->
+  <!-- Голова -->
+  <circle cx="10" cy="22" r="5" class="head"/>
+  <!-- Туловище прямое под углом -->
+  <line x1="15" y1="24" x2="44" y2="32" class="stick"/>
+  <!-- Рука на локте -->
+  <line x1="18" y1="25" x2="14" y2="36" class="stick"/>
+  <line x1="14" y1="36" x2="14" y2="50" class="stick"/>
+  <!-- Ноги прямые -->
+  <line x1="44" y1="32" x2="56" y2="36" class="stick"/>
+  <line x1="56" y1="36" x2="56" y2="50" class="stick"/>
+  <!-- Пол -->
+  <line x1="4" y1="52" x2="60" y2="52" stroke="#666" stroke-width="2"/>
 </svg>

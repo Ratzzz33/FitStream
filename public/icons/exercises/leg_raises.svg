@@ -1,21 +1,20 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .body-part { fill: #FFFFFF; }
-    .legs {
-      transform-origin: 32px 36px;
-      animation: raise-legs 1.2s ease-in-out infinite;
-    }
-    @keyframes raise-legs {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-70deg); }
-    }
+    .stick { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .head { fill: #FFFFFF; }
   </style>
-  <rect x="4" y="52" width="56" height="2" fill="#666"/>
-  <circle cx="12" cy="44" r="5" class="body-part"/>
-  <rect x="14" y="42" width="20" height="6" rx="3" class="body-part"/>
-  <rect x="8" y="38" width="8" height="3" rx="1.5" class="body-part"/>
-  <g class="legs">
-    <rect x="34" y="40" width="22" height="5" rx="2" class="body-part"/>
-    <rect x="34" y="46" width="22" height="5" rx="2" class="body-part"/>
-  </g>
+  <!-- Подъём ног - лёжа на спине, ноги подняты -->
+  <!-- Голова на полу -->
+  <circle cx="10" cy="42" r="5" class="head"/>
+  <!-- Туловище лежит горизонтально -->
+  <line x1="15" y1="42" x2="34" y2="42" class="stick"/>
+  <!-- Руки вдоль тела -->
+  <line x1="12" y1="40" x2="8" y2="36" class="stick"/>
+  <!-- Ноги подняты вверх под углом -->
+  <line x1="34" y1="42" x2="44" y2="18" class="stick"/>
+  <line x1="44" y1="18" x2="50" y2="10" class="stick"/>
+  <line x1="34" y1="42" x2="48" y2="22" class="stick"/>
+  <line x1="48" y1="22" x2="56" y2="14" class="stick"/>
+  <!-- Пол -->
+  <line x1="4" y1="50" x2="60" y2="50" stroke="#666" stroke-width="2"/>
 </svg>

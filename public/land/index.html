@@ -575,8 +575,9 @@ function openFeatureModal(featureKey) {
     };
     iconBg.className = `w-20 h-20 ${colorClasses[feature.color]} border-2 rounded-2xl flex items-center justify-center text-4xl`;
 
-    // Build feature list
-    featureList.innerHTML = feature.features.map(f =>
+    // Build feature list with translations
+    const modalFeatures = i18n[lang]?.modal?.[featureKey] || feature.features;
+    featureList.innerHTML = modalFeatures.map(f =>
         `<li class="flex items-start gap-3">
             <span class="text-${feature.color}-500 mt-0.5">✓</span>
             <span class="text-slate-300">${f}</span>
@@ -637,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <ul data-modal-features class="space-y-3 mb-6">
             <!-- Features will be populated by JS -->
         </ul>
-        <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition">
+        <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
             Got it!
         </button>
     </div>
