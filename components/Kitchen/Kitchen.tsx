@@ -245,9 +245,16 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
       // Update state
       setStorages(StorageService.getStorages());
       setInventory(StorageService.getInventory());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scanning storage:', error);
-      alert('Не удалось распознать продукты. Попробуйте ещё раз.');
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('API Key')) {
+        alert('Ошибка API ключа. Проверьте настройки.');
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        alert('Ошибка сети. Проверьте подключение к интернету.');
+      } else {
+        alert('Не удалось распознать продукты. Попробуйте ещё раз.\n\n' + errorMsg);
+      }
     } finally {
       setIsScanning(false);
       setScanProgress('');

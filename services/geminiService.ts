@@ -20,6 +20,15 @@ const cleanBase64 = (b64: string) => {
     return b64.includes(',') ? b64.split(',')[1] : b64;
 };
 
+// Helper to extract mime type from data URL
+const getMimeType = (b64: string): string => {
+    if (b64.startsWith('data:')) {
+        const match = b64.match(/^data:([^;]+);/);
+        if (match) return match[1];
+    }
+    return 'image/jpeg'; // default
+};
+
 // 1. Vision Service for Weight Scale Reading
 export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: number | null, confidence: string }> => {
   const apiKey = getApiKey();
@@ -486,12 +495,13 @@ export const scanStoragePhoto = async (
     };
 
     try {
+        const mimeType = getMimeType(base64Image);
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [
                 {
                     parts: [
-                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        { inlineData: { mimeType, data: cleanBase64(base64Image) } },
                         {
                             text: `Распознай ВСЕ продукты на фото ${storageNames[storageType]}.
                             Для каждого продукта определи:
