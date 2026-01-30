@@ -125,7 +125,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [expandedDays, setExpandedDays] = useState<number[]>([1]);
 
     // Generation progress state
-    const [generationStage, setGenerationStage] = useState<1 | 2 | 3>(1);
+    const [generationStage, setGenerationStage] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
     const [generationProgress, setGenerationProgress] = useState(0);
 
     // Meal replacement state
@@ -161,21 +161,34 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         setGenerationStage(1);
         setGenerationProgress(0);
 
-        // Animate progress through stages
+        // Animate progress through stages - slower with more stages
         const progressInterval = setInterval(() => {
             setGenerationProgress(prev => {
-                if (prev < 30) {
-                    return prev + 2;
-                } else if (prev < 70) {
-                    setGenerationStage(2);
-                    return prev + 1.5;
-                } else if (prev < 95) {
-                    setGenerationStage(3);
+                if (prev < 12) {
+                    setGenerationStage(1); // Analyzing fridge
+                    return prev + 0.8;
+                } else if (prev < 25) {
+                    setGenerationStage(2); // Checking expiry dates
+                    return prev + 0.6;
+                } else if (prev < 40) {
+                    setGenerationStage(3); // Calculating nutrients
+                    return prev + 0.7;
+                } else if (prev < 55) {
+                    setGenerationStage(4); // Selecting recipes
                     return prev + 0.5;
+                } else if (prev < 70) {
+                    setGenerationStage(5); // Optimizing portions
+                    return prev + 0.4;
+                } else if (prev < 85) {
+                    setGenerationStage(6); // Creating shopping list
+                    return prev + 0.3;
+                } else if (prev < 95) {
+                    setGenerationStage(7); // Calculating prices
+                    return prev + 0.2;
                 }
                 return prev;
             });
-        }, 100);
+        }, 150);
 
         try {
             const result = await generateMealPlanForShopping(inventory, preferences);
@@ -750,6 +763,10 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                             {generationStage === 1 && t('generatingStage1')}
                             {generationStage === 2 && t('generatingStage2')}
                             {generationStage === 3 && t('generatingStage3')}
+                            {generationStage === 4 && t('generatingStage4')}
+                            {generationStage === 5 && t('generatingStage5')}
+                            {generationStage === 6 && t('generatingStage6')}
+                            {generationStage === 7 && t('generatingStage7')}
                         </span>
                         <span className="text-sm font-bold text-emerald-500">
                             {Math.round(generationProgress)}%
@@ -763,13 +780,16 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     </div>
                     <div className="flex justify-between text-xs text-gray-400">
                         <span className={generationStage >= 1 ? 'text-emerald-500 font-medium' : ''}>
-                            🔍 Холодильник
-                        </span>
-                        <span className={generationStage >= 2 ? 'text-emerald-500 font-medium' : ''}>
-                            📋 Меню
+                            {t('stageIcon1')}
                         </span>
                         <span className={generationStage >= 3 ? 'text-emerald-500 font-medium' : ''}>
-                            🛒 Продукты
+                            {t('stageIcon2')}
+                        </span>
+                        <span className={generationStage >= 5 ? 'text-emerald-500 font-medium' : ''}>
+                            {t('stageIcon3')}
+                        </span>
+                        <span className={generationStage >= 7 ? 'text-emerald-500 font-medium' : ''}>
+                            {t('stageIcon4')}
                         </span>
                     </div>
                 </div>
@@ -1268,8 +1288,8 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             {/* Header */}
             <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                    <button onClick={() => setView('shopping')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
-                        <X size={24} className="text-gray-500" />
+                    <button onClick={() => setView('shopping')} className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                        <X size={24} className="text-gray-700 dark:text-gray-300" />
                     </button>
                     <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
                         <span className="text-blue-700 dark:text-blue-300 font-bold flex items-center gap-2">
@@ -1297,6 +1317,12 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                 className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
                             >
                                 <Camera size={20} /> {t('takePhoto')}
+                            </button>
+                            <button
+                                onClick={() => setView('shopping')}
+                                className="w-full mt-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium"
+                            >
+                                {t('backToList')}
                             </button>
                         </div>
                     </div>
