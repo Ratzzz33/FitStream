@@ -1,0 +1,21 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body-part { fill: #FFFFFF; }
+    .legs {
+      transform-origin: 32px 36px;
+      animation: raise-legs 1.2s ease-in-out infinite;
+    }
+    @keyframes raise-legs {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-70deg); }
+    }
+  </style>
+  <rect x="4" y="52" width="56" height="2" fill="#666"/>
+  <circle cx="12" cy="44" r="5" class="body-part"/>
+  <rect x="14" y="42" width="20" height="6" rx="3" class="body-part"/>
+  <rect x="8" y="38" width="8" height="3" rx="1.5" class="body-part"/>
+  <g class="legs">
+    <rect x="34" y="40" width="22" height="5" rx="2" class="body-part"/>
+    <rect x="34" y="46" width="22" height="5" rx="2" class="body-part"/>
+  </g>
+</svg>

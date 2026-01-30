@@ -1,0 +1,36 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body-part { fill: #FFFFFF; }
+    .body {
+      animation: lunge-down 1.2s ease-in-out infinite;
+    }
+    .front-leg {
+      transform-origin: 38px 34px;
+      animation: front-bend 1.2s ease-in-out infinite;
+    }
+    .back-leg {
+      transform-origin: 26px 34px;
+      animation: back-extend 1.2s ease-in-out infinite;
+    }
+    @keyframes lunge-down {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+    @keyframes front-bend {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-15deg); }
+    }
+    @keyframes back-extend {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(20deg); }
+    }
+  </style>
+  <g class="body">
+    <circle cx="32" cy="10" r="6" class="body-part"/>
+    <rect x="28" y="17" width="8" height="14" rx="3" class="body-part"/>
+    <rect x="20" y="18" width="10" height="4" rx="2" class="body-part"/>
+    <rect x="34" y="18" width="10" height="4" rx="2" class="body-part"/>
+  </g>
+  <rect x="36" y="32" width="5" height="20" rx="2" class="body-part front-leg"/>
+  <rect x="23" y="32" width="5" height="22" rx="2" class="body-part back-leg"/>
+</svg>

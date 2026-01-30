@@ -1,0 +1,28 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body-part { fill: #FFFFFF; }
+    .legs {
+      animation: shake 0.3s ease-in-out infinite;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(1px); }
+    }
+  </style>
+  <!-- Wall -->
+  <rect x="4" y="4" width="4" height="56" fill="#666"/>
+  <!-- Floor -->
+  <rect x="4" y="58" width="56" height="2" fill="#666"/>
+  <!-- Head against wall -->
+  <circle cx="14" cy="14" r="5" class="body-part"/>
+  <!-- Back against wall -->
+  <rect x="8" y="20" width="6" height="18" rx="2" class="body-part"/>
+  <!-- Arms at sides -->
+  <rect x="14" y="22" width="10" height="4" rx="2" class="body-part"/>
+  <!-- Thighs (horizontal - 90 degrees) -->
+  <g class="legs">
+    <rect x="14" y="36" width="18" height="5" rx="2" class="body-part"/>
+    <!-- Lower legs (vertical) -->
+    <rect x="30" y="41" width="5" height="16" rx="2" class="body-part"/>
+  </g>
+</svg>

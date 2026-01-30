@@ -1,0 +1,42 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .body { fill: #FFFFFF; }
+    .legs {
+      fill: #FFFFFF;
+      transform-origin: 32px 38px;
+      animation: squat 1.2s ease-in-out infinite;
+    }
+    .torso {
+      fill: #FFFFFF;
+      transform-origin: 32px 28px;
+      animation: torso-squat 1.2s ease-in-out infinite;
+    }
+    .arms {
+      fill: #FFFFFF;
+      transform-origin: 32px 24px;
+      animation: arms-squat 1.2s ease-in-out infinite;
+    }
+    @keyframes squat {
+      0%, 100% { transform: scaleY(1) translateY(0); }
+      50% { transform: scaleY(0.6) translateY(6px); }
+    }
+    @keyframes torso-squat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(10px); }
+    }
+    @keyframes arms-squat {
+      0%, 100% { transform: rotate(0deg) translateY(0); }
+      50% { transform: rotate(-30deg) translateY(8px); }
+    }
+  </style>
+  <circle cx="32" cy="10" r="6" class="body"/>
+  <rect x="27" y="17" width="10" height="14" rx="3" class="torso"/>
+  <g class="arms">
+    <rect x="12" y="19" width="14" height="4" rx="2"/>
+    <rect x="38" y="19" width="14" height="4" rx="2"/>
+  </g>
+  <g class="legs">
+    <rect x="23" y="32" width="5" height="20" rx="2"/>
+    <rect x="36" y="32" width="5" height="20" rx="2"/>
+  </g>
+</svg>
