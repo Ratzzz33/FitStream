@@ -539,6 +539,22 @@ const App = () => {
       setActiveTab(AppTab.NUTRITION);
   };
 
+  const handleKitchenClick = () => {
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'medium');
+      }
+      setActiveTab(AppTab.NUTRITION);
+      // Kitchen tab will be opened via NutritionTracker's default state
+  };
+
+  const handleCookingClick = () => {
+      if (isTelegramApp) {
+          hapticFeedback('impact', 'medium');
+      }
+      setActiveTab(AppTab.NUTRITION);
+      // Recipes/Cooking tab will be opened via NutritionTracker
+  };
+
   const handleMockUpgrade = () => {
       const newSettings = { ...settings, isPro: true };
       setSettings(newSettings);
