@@ -1284,29 +1284,41 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     {/* Kitchen Card */}
                     <button
                         onClick={() => setActiveToolSheet('kitchen')}
-                        className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.02] transition-all active:scale-[0.98] group"
+                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                     >
-                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                            <Package size={20} className="text-white" />
+                        <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400">
+                                <rect x="5" y="2" width="14" height="20" rx="2" />
+                                <line x1="5" y1="9" x2="19" y2="9" />
+                                <line x1="15" y1="5" x2="15" y2="7" />
+                                <line x1="15" y1="12" x2="15" y2="16" />
+                            </svg>
                         </div>
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('kitchen') || 'Кухня'}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                            {t('kitchenDesc') || 'Что есть в холодильнике'}
-                        </p>
+                        <div className="text-center">
+                            <span className="font-bold text-gray-900 dark:text-white">{t('kitchen') || 'Кухня'}</span>
+                            <p className="text-xs text-gray-500">{t('inventory') || 'Инвентарь'}</p>
+                        </div>
                     </button>
 
                     {/* Recipes Card */}
                     <button
                         onClick={() => setActiveToolSheet('recipes')}
-                        className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 border border-green-200 dark:border-green-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.02] transition-all active:scale-[0.98] group"
+                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                     >
-                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                            <ChefHat size={20} className="text-white" />
+                        <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
+                                <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
+                                <line x1="4" y1="10" x2="2" y2="10" />
+                                <line x1="14" y1="10" x2="16" y2="10" />
+                                <path d="M6 10V8a3 3 0 016 0v2" />
+                                <ellipse cx="25" cy="16" rx="6" ry="3" />
+                                <line x1="31" y1="15" x2="36" y2="14" />
+                            </svg>
                         </div>
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">{t('recipes') || 'Рецепты'}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                            {t('recipesDesc') || 'Готовь с учётом КБЖУ'}
-                        </p>
+                        <div className="text-center">
+                            <span className="font-bold text-gray-900 dark:text-white">{t('recipes') || 'Рецепты'}</span>
+                            <p className="text-xs text-gray-500">{t('cookingDesc') || 'Что приготовить'}</p>
+                        </div>
                     </button>
 
                     {/* Finance Card - Full Width */}
