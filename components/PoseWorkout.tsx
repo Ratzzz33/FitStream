@@ -8,6 +8,7 @@ import {
   isTimeBased,
   getCameraPlacementTips,
   getCameraPlacementNameRu,
+  getBodyOrientationNameRu,
   CameraPlacement,
   CameraCalibration,
   BodyOrientation
@@ -57,15 +58,25 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showTips, setShowTips] = useState(true);
 
+  // Countdown states
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const countdownDuration = 5; // seconds to get into position
+
   // Audio for rep counting
   const beepAudio = useRef<HTMLAudioElement | null>(null);
+  const countdownAudio = useRef<HTMLAudioElement | null>(null);
+  const calibrationInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Get camera tips for this exercise
   const cameraTips = getCameraPlacementTips(exercise);
 
   useEffect(() => {
-    // Create beep sound
+    // Create beep sound for reps
     beepAudio.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAw/l9zZo3gMP5fc2aN4DD+X3NmjeAw/l9zZo3gMP5fc2aN4DD+X3NmjeAw/');
+    // Create countdown beep (shorter, higher pitch)
+    countdownAudio.current = new Audio('data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoFAABhgoODg4WIioqLi4uLioqIhoOBfXt5eHd4eXt9f4KFh4mKioqKiomHhYJ/');
   }, []);
 
   // Initialize tracker
@@ -134,6 +145,9 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
     return () => {
       tracker.stop();
+      if (calibrationInterval.current) {
+        clearInterval(calibrationInterval.current);
+      }
     };
   }, [exercise, cameraFacing, cameraPlacement]);
 
@@ -174,16 +188,82 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     });
   }, []);
 
+  // Start countdown with calibration
   const handleStart = async () => {
     if (!trackerRef.current || !isInitialized) return;
-    await trackerRef.current.start();
-    setIsRunning(true);
+
+    // Start countdown
+    setCountdown(countdownDuration);
+    setIsCalibrating(true);
+    setCalibrationProgress(0);
+    setShowTips(false);
+    setShowSettings(false);
+
+    // Start the tracker in calibration mode (process frames without counting)
+    trackerRef.current.startCalibration();
+
+    // Start calibration frame processing
+    if (videoRef.current) {
+      calibrationInterval.current = setInterval(async () => {
+        if (trackerRef.current && videoRef.current) {
+          await trackerRef.current.processCalibrationFrame(videoRef.current);
+          setCalibrationProgress(prev => Math.min(100, prev + 10));
+        }
+      }, 200); // Process 5 frames per second during calibration
+    }
+
+    // Countdown timer
+    let remaining = countdownDuration;
+
+    const countdownTimer = setInterval(() => {
+      remaining--;
+      setCountdown(remaining);
+
+      // Play countdown beep
+      if (soundEnabled && countdownAudio.current && remaining > 0) {
+        countdownAudio.current.currentTime = 0;
+        countdownAudio.current.play().catch(() => {});
+      }
+
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+
+        // Stop calibration interval
+        if (calibrationInterval.current) {
+          clearInterval(calibrationInterval.current);
+          calibrationInterval.current = null;
+        }
+
+        setCountdown(null);
+        setIsCalibrating(false);
+
+        // Play start sound (louder/different)
+        if (soundEnabled && beepAudio.current) {
+          beepAudio.current.currentTime = 0;
+          beepAudio.current.play().catch(() => {});
+        }
+
+        // Actually start the workout
+        trackerRef.current?.start();
+        setIsRunning(true);
+      }
+    }, 1000);
   };
 
   const handlePause = () => {
     if (!trackerRef.current) return;
     trackerRef.current.stop();
     setIsRunning(false);
+
+    // Cancel countdown if running
+    if (countdown !== null) {
+      setCountdown(null);
+      setIsCalibrating(false);
+      if (calibrationInterval.current) {
+        clearInterval(calibrationInterval.current);
+        calibrationInterval.current = null;
+      }
+    }
   };
 
   const handleReset = () => {
@@ -193,6 +273,9 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     setFormScore(100);
     setPlankTime(0);
     setFeedback([]);
+    setCountdown(null);
+    setIsCalibrating(false);
+    setCalibrationProgress(0);
   };
 
   const handleComplete = () => {
@@ -277,21 +360,71 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           style={{ transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none' }}
         />
 
-        {/* Rep counter overlay */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-          {isTimeBased(exercise) ? (
-            <div className="text-8xl font-bold text-white drop-shadow-lg">
-              {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
+        {/* Countdown overlay */}
+        {countdown !== null && (
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-30">
+            <div className="text-center">
+              <div className="text-9xl font-bold text-white animate-pulse">
+                {countdown}
+              </div>
+              <div className="text-2xl text-white/90 mt-4">
+                Займите позицию
+              </div>
+
+              {/* Calibration status */}
+              <div className="mt-8 bg-white/10 rounded-xl p-4 mx-4 max-w-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white/80 text-sm">Калибровка камеры</span>
+                  <span className="text-green-400 text-sm">
+                    {calibration?.isCalibrated ? '✓' : `${calibrationProgress}%`}
+                  </span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 transition-all duration-200"
+                    style={{ width: `${calibrationProgress}%` }}
+                  />
+                </div>
+
+                {bodyOrientation !== 'unknown' && (
+                  <div className="mt-3 text-white/70 text-sm">
+                    Позиция: {getBodyOrientationNameRu(bodyOrientation)}
+                  </div>
+                )}
+
+                {calibration?.placement && calibration.placement !== 'auto' && (
+                  <div className="mt-1 text-blue-300 text-sm">
+                    Камера: {getCameraPlacementNameRu(calibration.placement)}
+                  </div>
+                )}
+
+                {activeSide !== 'both' && (
+                  <div className="mt-1 text-amber-300 text-sm">
+                    Видна {activeSide === 'left' ? 'левая' : 'правая'} сторона
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-9xl font-bold text-white drop-shadow-lg">
-              {repCount}
-            </div>
-          )}
-          <div className="text-xl text-white/80 mt-2">
-            {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
           </div>
-        </div>
+        )}
+
+        {/* Rep counter overlay (only when running, not during countdown) */}
+        {countdown === null && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+            {isTimeBased(exercise) ? (
+              <div className="text-8xl font-bold text-white drop-shadow-lg">
+                {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
+              </div>
+            ) : (
+              <div className="text-9xl font-bold text-white drop-shadow-lg">
+                {repCount}
+              </div>
+            )}
+            <div className="text-xl text-white/80 mt-2">
+              {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
+            </div>
+          </div>
+        )}
 
         {/* Angle indicator with bilateral info */}
         <div className="absolute top-20 right-4 bg-black/60 rounded-lg px-3 py-2 backdrop-blur-sm">
@@ -315,7 +448,11 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           {bodyOrientation !== 'unknown' && (
             <div className="text-purple-300 text-xs">
               {bodyOrientation === 'front' ? '👤 Спереди' :
+               bodyOrientation === 'front_left' ? '↖️ Спереди-слева' :
+               bodyOrientation === 'front_right' ? '↗️ Спереди-справа' :
                bodyOrientation === 'back' ? '🔙 Сзади' :
+               bodyOrientation === 'back_left' ? '↙️ Сзади-слева' :
+               bodyOrientation === 'back_right' ? '↘️ Сзади-справа' :
                bodyOrientation === 'left_side' ? '◀️ Левый бок' :
                bodyOrientation === 'right_side' ? '▶️ Правый бок' : ''}
             </div>
@@ -429,13 +566,20 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
             <RotateCcw className="w-6 h-6 text-white" />
           </button>
 
-          {!isRunning ? (
+          {!isRunning && countdown === null ? (
             <button
               onClick={handleStart}
               disabled={!isInitialized}
               className="p-6 rounded-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 transition-colors"
             >
               <Play className="w-10 h-10 text-white" fill="white" />
+            </button>
+          ) : countdown !== null ? (
+            <button
+              onClick={handlePause}
+              className="p-6 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+            >
+              <X className="w-10 h-10 text-white" />
             </button>
           ) : (
             <button

@@ -42,11 +42,15 @@ export type TrackableExercise =
 
 // Camera placement options
 export type CameraPlacement =
-  | 'floor_front'      // Phone on floor, looking up at front of person
-  | 'floor_side'       // Phone on floor, looking up at side of person
-  | 'chest_front'      // Phone at chest level, front view
-  | 'chest_side'       // Phone at chest level, side view
-  | 'auto';            // Automatically detect
+  | 'floor_front'       // Phone on floor, looking up at front of person
+  | 'floor_front_left'  // Phone on floor, front-left diagonal
+  | 'floor_front_right' // Phone on floor, front-right diagonal
+  | 'floor_side'        // Phone on floor, looking up at side of person
+  | 'chest_front'       // Phone at chest level, front view
+  | 'chest_front_left'  // Phone at chest level, front-left diagonal
+  | 'chest_front_right' // Phone at chest level, front-right diagonal
+  | 'chest_side'        // Phone at chest level, side view
+  | 'auto';             // Automatically detect
 
 // Landmark indices (MediaPipe Pose has 33 landmarks)
 const LANDMARKS = {
@@ -89,7 +93,16 @@ const LANDMARKS = {
 type RepPhase = 'up' | 'down' | 'transition';
 
 // Detected orientation of the person relative to camera
-type BodyOrientation = 'front' | 'back' | 'left_side' | 'right_side' | 'unknown';
+type BodyOrientation =
+  | 'front'           // Facing camera directly
+  | 'front_left'      // Facing camera from front-left diagonal
+  | 'front_right'     // Facing camera from front-right diagonal
+  | 'back'            // Back to camera
+  | 'back_left'       // Back to camera from back-left diagonal
+  | 'back_right'      // Back to camera from back-right diagonal
+  | 'left_side'       // Left side to camera
+  | 'right_side'      // Right side to camera
+  | 'unknown';
 
 interface ExerciseState {
   phase: RepPhase;
@@ -143,9 +156,13 @@ const EXERCISE_CONFIG: Record<TrackableExercise, {
     jointC_R: 'RIGHT_ANKLE',
     use3D: true,        // Important for floor camera
     angleAdjustments: {
-      floor_front: { upOffset: -10, downOffset: -15 },  // Floor camera sees more bent angles
+      floor_front: { upOffset: -10, downOffset: -15 },       // Floor camera sees more bent angles
+      floor_front_left: { upOffset: -8, downOffset: -12 },   // Diagonal has less distortion
+      floor_front_right: { upOffset: -8, downOffset: -12 },
       floor_side: { upOffset: -5, downOffset: -10 },
       chest_front: { upOffset: 0, downOffset: 0 },
+      chest_front_left: { upOffset: -3, downOffset: -5 },
+      chest_front_right: { upOffset: -3, downOffset: -5 },
       chest_side: { upOffset: 0, downOffset: 0 },
     },
     formChecks: (landmarks, orientation) => {
@@ -582,7 +599,7 @@ function getMoreVisibleSide(landmarks: NormalizedLandmark[]): 'left' | 'right' |
   return leftVis > rightVis ? 'left' : 'right';
 }
 
-// Detect body orientation relative to camera
+// Detect body orientation relative to camera (including diagonals)
 function detectBodyOrientation(landmarks: NormalizedLandmark[]): BodyOrientation {
   const leftShoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
   const rightShoulder = landmarks[LANDMARKS.RIGHT_SHOULDER];
@@ -592,40 +609,55 @@ function detectBodyOrientation(landmarks: NormalizedLandmark[]): BodyOrientation
 
   // Calculate shoulder width in normalized coords
   const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x);
-  const shoulderCenter = (leftShoulder.x + rightShoulder.x) / 2;
 
   // Use z-depth to determine facing direction
   const leftZ = leftShoulder.z || 0;
   const rightZ = rightShoulder.z || 0;
-  const zDiff = leftZ - rightZ;
-
-  // Very narrow shoulder width suggests side view
-  if (shoulderWidth < 0.1) {
-    // Use z-depth to determine which side
-    if (zDiff > 0.05) return 'right_side';
-    if (zDiff < -0.05) return 'left_side';
-    return 'unknown';
-  }
-
-  // Check if nose is between shoulders (front/back view)
-  const noseRelative = nose.x - shoulderCenter;
+  const zDiff = leftZ - rightZ; // Positive = left shoulder further from camera
 
   // Use nose z relative to shoulders to determine front/back
   const noseZ = nose.z || 0;
   const shoulderAvgZ = (leftZ + rightZ) / 2;
+  const isFacingCamera = noseZ < shoulderAvgZ - 0.02;
+  const isFacingAway = noseZ > shoulderAvgZ + 0.02;
 
-  if (shoulderWidth > 0.15) {
-    // Wide shoulders = front or back view
-    if (noseZ < shoulderAvgZ - 0.05) {
-      return 'front'; // Nose closer to camera
-    } else if (noseZ > shoulderAvgZ + 0.05) {
-      return 'back';  // Nose further from camera
-    }
-    // Default to front if can't determine
-    return 'front';
+  // Categorize by shoulder width (visibility)
+  // Very narrow = side view, wide = front/back, medium = diagonal
+
+  if (shoulderWidth < 0.08) {
+    // Pure side view - shoulders almost aligned
+    if (zDiff > 0.03) return 'right_side';
+    if (zDiff < -0.03) return 'left_side';
+    return 'unknown';
   }
 
-  // Medium width = angled view
+  if (shoulderWidth > 0.18) {
+    // Wide shoulders = mostly front or back view
+    if (isFacingCamera) {
+      // Check for slight diagonal
+      if (zDiff > 0.02) return 'front_right'; // Left shoulder further = person's right side closer
+      if (zDiff < -0.02) return 'front_left';  // Right shoulder further = person's left side closer
+      return 'front';
+    } else if (isFacingAway) {
+      if (zDiff > 0.02) return 'back_left';
+      if (zDiff < -0.02) return 'back_right';
+      return 'back';
+    }
+    return 'front'; // Default
+  }
+
+  // Medium width (0.08 - 0.18) = diagonal view
+  if (isFacingCamera) {
+    if (zDiff > 0.01) return 'front_right';
+    if (zDiff < -0.01) return 'front_left';
+    return 'front';
+  } else if (isFacingAway) {
+    if (zDiff > 0.01) return 'back_left';
+    if (zDiff < -0.01) return 'back_right';
+    return 'back';
+  }
+
+  // Can't determine front/back - use side indicators
   if (zDiff > 0.03) return 'right_side';
   if (zDiff < -0.03) return 'left_side';
 
@@ -637,36 +669,63 @@ function detectCameraPlacement(landmarks: NormalizedLandmark[]): CameraPlacement
   const nose = landmarks[LANDMARKS.NOSE];
   const leftAnkle = landmarks[LANDMARKS.LEFT_ANKLE];
   const rightAnkle = landmarks[LANDMARKS.RIGHT_ANKLE];
-  const leftHip = landmarks[LANDMARKS.LEFT_HIP];
-  const rightHip = landmarks[LANDMARKS.RIGHT_HIP];
+  const leftShoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
+  const rightShoulder = landmarks[LANDMARKS.RIGHT_SHOULDER];
 
   const ankleY = (leftAnkle.y + rightAnkle.y) / 2;
-  const hipY = (leftHip.y + rightHip.y) / 2;
-  const noseY = nose.y;
 
-  // Calculate relative positions
-  const bodyHeight = Math.abs(noseY - ankleY);
+  // Determine vertical position (floor vs chest level)
+  const isFloorLevel = ankleY < 0.75; // Ankles not at very bottom = camera low
 
-  // If ankles are near bottom of frame and head near top = chest level camera
-  // If ankles are near middle and head at top = floor camera looking up
-  const anklePosition = ankleY; // 0 = top, 1 = bottom
+  // Check shoulder width to determine angle
+  const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
 
-  if (anklePosition > 0.8) {
-    // Ankles near bottom - likely chest level or higher camera
-    return 'chest_front';
-  } else if (anklePosition > 0.5 && anklePosition < 0.8) {
-    // Ankles in middle-lower area - could be floor camera
-    return 'floor_front';
+  // Check z-depth difference for diagonal detection
+  const leftZ = leftShoulder.z || 0;
+  const rightZ = rightShoulder.z || 0;
+  const zDiff = leftZ - rightZ;
+
+  // Determine horizontal angle
+  let horizontalType: 'front' | 'front_left' | 'front_right' | 'side';
+
+  if (shoulderWidth < 0.1) {
+    // Very narrow = side view
+    horizontalType = 'side';
+  } else if (shoulderWidth > 0.16) {
+    // Wide = mostly front
+    if (Math.abs(zDiff) < 0.02) {
+      horizontalType = 'front';
+    } else if (zDiff > 0) {
+      horizontalType = 'front_right'; // Left shoulder further = camera on person's right
+    } else {
+      horizontalType = 'front_left';
+    }
+  } else {
+    // Medium = diagonal
+    if (zDiff > 0.01) {
+      horizontalType = 'front_right';
+    } else if (zDiff < -0.01) {
+      horizontalType = 'front_left';
+    } else {
+      horizontalType = 'front';
+    }
   }
 
-  // Check shoulder width to determine side vs front
-  const shoulderWidth = Math.abs(
-    landmarks[LANDMARKS.LEFT_SHOULDER].x -
-    landmarks[LANDMARKS.RIGHT_SHOULDER].x
-  );
-
-  if (shoulderWidth < 0.12) {
-    return anklePosition > 0.6 ? 'chest_side' : 'floor_side';
+  // Combine vertical and horizontal
+  if (isFloorLevel) {
+    switch (horizontalType) {
+      case 'front': return 'floor_front';
+      case 'front_left': return 'floor_front_left';
+      case 'front_right': return 'floor_front_right';
+      case 'side': return 'floor_side';
+    }
+  } else {
+    switch (horizontalType) {
+      case 'front': return 'chest_front';
+      case 'front_left': return 'chest_front_left';
+      case 'front_right': return 'chest_front_right';
+      case 'side': return 'chest_side';
+    }
   }
 
   return 'auto';
@@ -774,6 +833,68 @@ export class PoseTracker {
   // Get current calibration status
   getCalibration(): CameraCalibration {
     return { ...this.calibration };
+  }
+
+  // Start calibration mode - collects samples during countdown
+  startCalibration(): void {
+    this.calibration.isCalibrated = false;
+    this.calibrationSamples = [];
+    // Reduce sample count for faster calibration during countdown
+    this.isRunning = true; // Enable processing but don't count reps
+  }
+
+  // Force calibration from current frame
+  calibrateNow(landmarks: NormalizedLandmark[]): void {
+    const placement = detectCameraPlacement(landmarks);
+    const orientation = detectBodyOrientation(landmarks);
+
+    this.calibration.placement = placement;
+    this.calibration.isCalibrated = true;
+
+    this.state.bodyOrientation = orientation;
+    this.state.activeSide = getMoreVisibleSide(landmarks);
+
+    this.callbacks.onCalibrationUpdate?.(this.calibration);
+    this.callbacks.onOrientationDetected?.(orientation, this.state.activeSide);
+  }
+
+  // Process a single frame for calibration (without rep counting)
+  processCalibrationFrame(videoElement: HTMLVideoElement): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.pose) {
+        resolve();
+        return;
+      }
+
+      // Temporarily store original callback
+      const originalOnResults = this.pose.onResults.bind(this.pose);
+
+      this.pose.onResults = (results: Results) => {
+        if (results.poseLandmarks) {
+          // Update calibration
+          this.updateCalibration(results.poseLandmarks);
+
+          // Detect and report orientation
+          const orientation = detectBodyOrientation(results.poseLandmarks);
+          const visibleSide = getMoreVisibleSide(results.poseLandmarks);
+
+          if (orientation !== this.state.bodyOrientation) {
+            this.state.bodyOrientation = orientation;
+            this.state.activeSide = visibleSide;
+            this.callbacks.onOrientationDetected?.(orientation, visibleSide);
+          }
+
+          // Draw pose without counting
+          this.callbacks.onPoseUpdate(results.poseLandmarks, 0, 0, 0);
+        }
+        resolve();
+      };
+
+      this.pose.send({ image: videoElement }).then(() => {
+        // Restore original callback
+        this.pose!.onResults = (results: Results) => this.processResults(results);
+      });
+    });
   }
 
   async initialize(videoElement: HTMLVideoElement): Promise<void> {
@@ -1117,12 +1238,12 @@ export function getCameraPlacementTips(exercise: TrackableExercise): {
 } {
   const tips: Record<TrackableExercise, { recommended: CameraPlacement[]; tips: string[] }> = {
     SQUATS: {
-      recommended: ['floor_side', 'chest_side', 'floor_front'],
+      recommended: ['floor_front_left', 'floor_front_right', 'floor_side', 'chest_front'],
       tips: [
-        'Боковое расположение камеры даёт лучший угол для отслеживания глубины приседа',
-        'Поставьте телефон на пол сбоку от себя на расстоянии 1.5-2м',
-        'Убедитесь, что видно колени и бёдра полностью',
-        'Фронтальная камера хороша для проверки выравнивания коленей'
+        'Диагональный вид (спереди-сбоку) — лучший для приседаний',
+        'Видно и глубину приседа, и выравнивание коленей',
+        'Поставьте телефон на пол под углом 45° на расстоянии 2м',
+        'После нажатия "Начать" у вас будет 5 секунд занять позицию'
       ]
     },
     PUSHUPS: {
@@ -1232,15 +1353,36 @@ export function getCameraPlacementTips(exercise: TrackableExercise): {
 export function getCameraPlacementNameRu(placement: CameraPlacement): string {
   const names: Record<CameraPlacement, string> = {
     floor_front: 'На полу спереди',
+    floor_front_left: 'На полу спереди-слева',
+    floor_front_right: 'На полу спереди-справа',
     floor_side: 'На полу сбоку',
     chest_front: 'На уровне груди спереди',
+    chest_front_left: 'На уровне груди спереди-слева',
+    chest_front_right: 'На уровне груди спереди-справа',
     chest_side: 'На уровне груди сбоку',
     auto: 'Автоопределение'
   };
   return names[placement];
 }
 
-// Export types
+// Utility: Get body orientation name in Russian
+export function getBodyOrientationNameRu(orientation: BodyOrientation): string {
+  const names: Record<BodyOrientation, string> = {
+    front: 'Лицом к камере',
+    front_left: 'Лицом, левым боком ближе',
+    front_right: 'Лицом, правым боком ближе',
+    back: 'Спиной к камере',
+    back_left: 'Спиной, левым боком ближе',
+    back_right: 'Спиной, правым боком ближе',
+    left_side: 'Левым боком',
+    right_side: 'Правым боком',
+    unknown: 'Не определено'
+  };
+  return names[orientation];
+}
+
+// Export types and functions
 export type { CameraCalibration, BodyOrientation, ExerciseState };
+export { detectBodyOrientation, detectCameraPlacement, getMoreVisibleSide };
 
 export default PoseTracker;
