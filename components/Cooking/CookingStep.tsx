@@ -7,6 +7,7 @@ interface StepData {
   timerSeconds?: number;
   heatLevel?: 1 | 2 | 3;
   tip?: string;
+  technique?: string; // Советы по технике
   doneWhen?: string;
   reminders?: {
     type: string;
@@ -21,12 +22,14 @@ interface StepData {
   }[];
 }
 
+export type TimerState = 'idle' | 'running' | 'completed';
+
 interface CookingStepProps {
   step: StepData;
   stepNumber: number;
   imageUrl?: string;
   timerSeconds: number;
-  timerActive: boolean;
+  timerState: TimerState; // Заменяет timerActive
   onStartTimer: () => void;
   isCompleted: boolean;
 }
@@ -36,7 +39,7 @@ export const CookingStep: React.FC<CookingStepProps> = ({
   stepNumber,
   imageUrl,
   timerSeconds,
-  timerActive,
+  timerState,
   onStartTimer,
   isCompleted
 }) => {
@@ -160,7 +163,7 @@ export const CookingStep: React.FC<CookingStepProps> = ({
         {/* Timer display */}
         {step.timerSeconds && (
           <div className="mb-4">
-            {timerActive ? (
+            {timerState === 'running' ? (
               <div className="space-y-2">
                 {/* Progress bar */}
                 <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -177,7 +180,7 @@ export const CookingStep: React.FC<CookingStepProps> = ({
                   </span>
                 </div>
               </div>
-            ) : timerSeconds === 0 && timerProgress > 0 ? (
+            ) : timerState === 'completed' ? (
               <div className="text-center py-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <span className="text-green-700 dark:text-green-300 font-medium">
                   ✅ Таймер завершён!
@@ -192,6 +195,17 @@ export const CookingStep: React.FC<CookingStepProps> = ({
                 Запустить таймер ({Math.floor(step.timerSeconds / 60)} мин)
               </button>
             )}
+          </div>
+        )}
+
+        {/* Technique tip */}
+        {step.technique && (
+          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
+            <span className="text-lg">🔪</span>
+            <div>
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Техника:</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">{step.technique}</div>
+            </div>
           </div>
         )}
       </div>
@@ -229,8 +243,8 @@ export const CookingStep: React.FC<CookingStepProps> = ({
             className="w-full flex items-center justify-between p-4"
           >
             <div className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-red-500" />
-              <span className="font-medium text-red-700 dark:text-red-300">Что-то не так?</span>
+              <span className="text-lg">🆘</span>
+              <span className="font-medium text-red-700 dark:text-red-300">Помощь</span>
             </div>
             {showTroubleshoot ? (
               <ChevronUp className="w-5 h-5 text-red-500" />
@@ -256,4 +270,5 @@ export const CookingStep: React.FC<CookingStepProps> = ({
   );
 };
 
+export { CookingStep };
 export default CookingStep;

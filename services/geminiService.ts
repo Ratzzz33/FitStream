@@ -518,6 +518,12 @@ export interface RecipeGenerationContext {
 
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard';
 
+export interface RecipeEquipment {
+    name: string;
+    emoji: string;
+    essential: boolean; // true = обязательно, false = желательно
+}
+
 export interface GeneratedRecipe {
     name: string;
     description: string;
@@ -531,6 +537,10 @@ export interface GeneratedRecipe {
     // Сложность
     difficulty: RecipeDifficulty;
     difficultyReason?: string; // "Много шагов" / "Нужен опыт" / "Простые ингредиенты"
+    // Новые поля для UX
+    equipment: RecipeEquipment[]; // Необходимые инструменты
+    messyLevel: 1 | 2 | 3; // 1=чисто, 2=умеренно, 3=много брызг/мусора
+    messyWarning?: string; // "Брызги масла" / "Много отходов"
     ingredients: {
         name: string;
         emoji: string;
@@ -545,6 +555,7 @@ export interface GeneratedRecipe {
         timerSeconds?: number;
         heatLevel?: 1 | 2 | 3;
         tip?: string;
+        technique?: string; // "Режь от корня, не срезая его — меньше слёз"
         doneWhen?: string;
         reminders: {
             type: string;
@@ -634,11 +645,15 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
 2. difficulty: "easy" / "medium" / "hard"
 3. difficultyReason: почему такая сложность (1-2 слова)
 4. nutritionNote: если утром ел углеводы — порекомендуй белковое, и наоборот
+5. equipment: массив инструментов [{name, emoji, essential}] — сковорода🍳, нож🔪, кастрюля🍲, блендер и т.д.
+6. messyLevel: 1 (чисто), 2 (умеренно), 3 (много брызг/мусора)
+7. messyWarning: если messyLevel >= 2, объясни что будет (брызги масла, много отходов)
 
 ВАЖНО для шагов готовки:
 1. Пиши ПРОСТЫМ языком для новичков
 2. Указывай время и уровень огня (1=слабый, 2=средний, 3=сильный)
 3. Добавляй tip, doneWhen, troubleshoot
+4. technique: советы по технике (как резать лук без слёз, как проверить готовность и т.д.)
 
 ЭКОНОМИКА:
 - costEstimate: себестоимость в рублях
@@ -667,6 +682,20 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                             difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] },
                             difficultyReason: { type: Type.STRING },
                             nutritionNote: { type: Type.STRING },
+                            equipment: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        name: { type: Type.STRING },
+                                        emoji: { type: Type.STRING },
+                                        essential: { type: Type.BOOLEAN }
+                                    },
+                                    required: ["name", "emoji", "essential"]
+                                }
+                            },
+                            messyLevel: { type: Type.NUMBER },
+                            messyWarning: { type: Type.STRING },
                             costEstimate: { type: Type.NUMBER },
                             restaurantPrice: { type: Type.NUMBER },
                             priorityReason: { type: Type.STRING },
@@ -694,6 +723,7 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                                         timerSeconds: { type: Type.NUMBER },
                                         heatLevel: { type: Type.NUMBER },
                                         tip: { type: Type.STRING },
+                                        technique: { type: Type.STRING },
                                         doneWhen: { type: Type.STRING },
                                         reminders: {
                                             type: Type.ARRAY,
@@ -725,7 +755,7 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
                                 }
                             }
                         },
-                        required: ["name", "description", "servings", "totalTimeMinutes", "caloriesPerServing", "proteinPerServing", "carbsPerServing", "fatPerServing", "difficulty", "ingredients", "steps"]
+                        required: ["name", "description", "servings", "totalTimeMinutes", "caloriesPerServing", "proteinPerServing", "carbsPerServing", "fatPerServing", "difficulty", "equipment", "messyLevel", "ingredients", "steps"]
                     }
                 }
             }
