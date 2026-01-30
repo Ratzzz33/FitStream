@@ -852,6 +852,189 @@ app.post('/api/telegram/notify', async (req, res) => {
     }
 });
 
+// --- PRODUCT PRICES API ---
+
+// Get all currencies
+app.get('/api/prices/currencies', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM currencies ORDER BY code');
+        res.json(result.rows);
+    } catch (e) {
+        console.error('Currencies fetch error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get products by country (with optional category filter)
+app.get('/api/prices/:countryCode', async (req, res) => {
+    const { countryCode } = req.params;
+    const { category, search, limit = 500 } = req.query;
+
+    try {
+        let query = `
+            SELECT p.*, c.symbol as currency_symbol, c.rate_to_usd
+            FROM product_prices p
+            JOIN currencies c ON p.currency_code = c.code
+            WHERE p.country_code = $1
+        `;
+        const params = [countryCode.toUpperCase()];
+
+        if (category) {
+            query += ` AND p.category = $${params.length + 1}`;
+            params.push(category);
+        }
+
+        if (search) {
+            query += ` AND (p.name ILIKE $${params.length + 1} OR p.name_en ILIKE $${params.length + 1})`;
+            params.push(`%${search}%`);
+        }
+
+        query += ` ORDER BY p.category, p.name LIMIT $${params.length + 1}`;
+        params.push(parseInt(limit));
+
+        const result = await pool.query(query, params);
+        res.json({
+            country: countryCode.toUpperCase(),
+            count: result.rows.length,
+            products: result.rows
+        });
+    } catch (e) {
+        console.error('Products fetch error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get price stats by country
+app.get('/api/prices/:countryCode/stats', async (req, res) => {
+    const { countryCode } = req.params;
+
+    try {
+        const result = await pool.query(`
+            SELECT
+                category,
+                COUNT(*) as count,
+                MIN(price) as min_price,
+                MAX(price) as max_price,
+                AVG(price)::numeric(10,2) as avg_price
+            FROM product_prices
+            WHERE country_code = $1
+            GROUP BY category
+            ORDER BY category
+        `, [countryCode.toUpperCase()]);
+
+        const total = await pool.query(`
+            SELECT COUNT(*) as total, MAX(updated_at) as last_update
+            FROM product_prices WHERE country_code = $1
+        `, [countryCode.toUpperCase()]);
+
+        res.json({
+            country: countryCode.toUpperCase(),
+            totalProducts: parseInt(total.rows[0].total),
+            lastUpdate: total.rows[0].last_update,
+            byCategory: result.rows
+        });
+    } catch (e) {
+        console.error('Stats fetch error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Search product by name (across all countries)
+app.get('/api/prices/search/:query', async (req, res) => {
+    const { query } = req.params;
+    const { country, limit = 20 } = req.query;
+
+    try {
+        let sql = `
+            SELECT p.*, c.symbol as currency_symbol
+            FROM product_prices p
+            JOIN currencies c ON p.currency_code = c.code
+            WHERE (p.name ILIKE $1 OR p.name_en ILIKE $1 OR p.name_local ILIKE $1)
+        `;
+        const params = [`%${query}%`];
+
+        if (country) {
+            sql += ` AND p.country_code = $2`;
+            params.push(country.toUpperCase());
+        }
+
+        sql += ` ORDER BY p.confidence DESC LIMIT $${params.length + 1}`;
+        params.push(parseInt(limit));
+
+        const result = await pool.query(sql, params);
+        res.json(result.rows);
+    } catch (e) {
+        console.error('Search error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Update currency rate
+app.put('/api/prices/currencies/:code', async (req, res) => {
+    const { code } = req.params;
+    const { rate_to_usd } = req.body;
+
+    if (!rate_to_usd || rate_to_usd <= 0) {
+        return res.status(400).json({ error: 'Invalid rate' });
+    }
+
+    try {
+        await pool.query(`
+            UPDATE currencies SET rate_to_usd = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE code = $2
+        `, [rate_to_usd, code.toUpperCase()]);
+        res.json({ success: true });
+    } catch (e) {
+        console.error('Currency update error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Bulk update/insert products (for weekly sync)
+app.post('/api/prices/sync', async (req, res) => {
+    const { products, countryCode, currencyCode } = req.body;
+
+    if (!products || !Array.isArray(products) || !countryCode || !currencyCode) {
+        return res.status(400).json({ error: 'Missing products, countryCode or currencyCode' });
+    }
+
+    try {
+        let inserted = 0;
+        let updated = 0;
+
+        for (const p of products) {
+            const result = await pool.query(`
+                INSERT INTO product_prices
+                    (id, name, name_en, name_local, emoji, category, price, currency_code, unit, price_per_unit, country_code, source, store_name, confidence)
+                VALUES
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                ON CONFLICT (id) DO UPDATE SET
+                    price = EXCLUDED.price,
+                    price_per_unit = EXCLUDED.price_per_unit,
+                    confidence = EXCLUDED.confidence,
+                    source = EXCLUDED.source,
+                    store_name = EXCLUDED.store_name,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING (xmax = 0) as is_insert
+            `, [
+                p.id || `${countryCode}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+                p.name, p.nameEn || p.name, p.nameLocal, p.emoji || '📦',
+                p.category, p.price, currencyCode, p.unit,
+                p.pricePerUnit || p.price, countryCode,
+                p.source || 'manual', p.storeName, p.confidence || 80
+            ]);
+
+            if (result.rows[0].is_insert) inserted++;
+            else updated++;
+        }
+
+        res.json({ success: true, inserted, updated, total: products.length });
+    } catch (e) {
+        console.error('Sync error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Legacy endpoint - redirects to PayPal
 app.post('/api/create-checkout-session', async (req, res) => {
     // Redirect old Stripe calls to PayPal

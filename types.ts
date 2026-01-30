@@ -119,6 +119,7 @@ export interface UserSettings {
   coachVoice: string; // 'Fenrir' | 'Kore' etc.
   currency?: 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH' | 'GEL'; // Currency for displaying prices
   language?: 'auto' | 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh'; // UI language
+  shoppingPreferences?: ShoppingPreferences; // Shopping assistant preferences
 }
 
 export interface Friend {

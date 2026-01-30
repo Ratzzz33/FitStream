@@ -143,7 +143,14 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   isPro: false,
   backendUrl: 'https://api.fitstream.health',
-  coachVoice: 'Fenrir' // Default to Male voice
+  coachVoice: 'Fenrir', // Default to Male voice
+  shoppingPreferences: {
+    daysCount: 3,
+    peopleCount: 2,
+    cookingDifficulty: 'easy' as const,
+    maxCookingTime: 'quick' as const,
+    budget: undefined
+  }
 };
 
 export const StorageService = {
