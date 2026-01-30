@@ -1311,63 +1311,53 @@ const App = () => {
 
                 {/* Language Selection */}
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-3 mb-3">
-                        <Globe size={20} className="text-blue-500" />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{t('languageSelection')}</span>
-                    </div>
-                    <div className="space-y-2">
-                        {getLanguageList().map((lang) => (
-                            <label
-                                key={lang.code}
-                                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                            >
-                                <input
-                                    type="radio"
-                                    name="language"
-                                    checked={getSavedLanguage() === lang.code}
-                                    onChange={() => {
-                                        setLanguage(lang.code);
-                                        const updated = { ...settings, language: lang.code };
-                                        setSettings(updated);
-                                        StorageService.saveSettings(updated);
-                                        window.location.reload();
-                                    }}
-                                    className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
-                                />
-                                <span className="text-lg">{lang.flag}</span>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">{t(lang.label)}</span>
-                            </label>
-                        ))}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Globe size={20} className="text-blue-500" />
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{t('languageSelection')}</span>
+                        </div>
+                        <select
+                            value={getSavedLanguage()}
+                            onChange={(e) => {
+                                setLanguage(e.target.value);
+                                const updated = { ...settings, language: e.target.value };
+                                setSettings(updated);
+                                StorageService.saveSettings(updated);
+                                window.location.reload();
+                            }}
+                            className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        >
+                            {getLanguageList().map((lang) => (
+                                <option key={lang.code} value={lang.code}>
+                                    {lang.flag} {t(lang.label)}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
                 {/* Currency Selection */}
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center gap-3 mb-3">
-                        <Coins size={20} className="text-green-500" />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{t('currency') || 'Валюта'}</span>
-                    </div>
-                    <div className="space-y-2">
-                        {getCurrencyList().map((curr) => (
-                            <label
-                                key={curr.code}
-                                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                            >
-                                <input
-                                    type="radio"
-                                    name="currency"
-                                    checked={(settings.currency || 'RUB') === curr.code}
-                                    onChange={() => {
-                                        const updated = { ...settings, currency: curr.code as CurrencyCode };
-                                        setSettings(updated);
-                                        StorageService.saveSettings(updated);
-                                    }}
-                                    className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
-                                />
-                                <span className="text-lg">{curr.flag}</span>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">{curr.symbol} {curr.code}</span>
-                            </label>
-                        ))}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Coins size={20} className="text-green-500" />
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{t('currency') || 'Валюта'}</span>
+                        </div>
+                        <select
+                            value={settings.currency || 'RUB'}
+                            onChange={(e) => {
+                                const updated = { ...settings, currency: e.target.value as CurrencyCode };
+                                setSettings(updated);
+                                StorageService.saveSettings(updated);
+                            }}
+                            className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500 outline-none"
+                        >
+                            {getCurrencyList().map((curr) => (
+                                <option key={curr.code} value={curr.code}>
+                                    {curr.flag} {curr.symbol} {curr.code}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
