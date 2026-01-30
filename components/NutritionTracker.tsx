@@ -1,9 +1,9 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, Heart, Clock, DollarSign, RotateCcw, Edit3 } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
+import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, analyzeFoodWithCost, FoodAnalysisWithCost, isCostSupported } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
@@ -27,6 +27,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
+    const [scannedFoodCost, setScannedFoodCost] = useState<FoodAnalysisWithCost | null>(null);
     const [menuRecommendations, setMenuRecommendations] = useState<MenuRecommendation[]>([]);
 
     // Offline States
@@ -169,7 +170,25 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
         try {
             if (currentMode === 'CAMERA_FOOD') {
-                const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
+                const currency = settings.currency || 'RUB';
+                const showCost = isCostSupported(currency);
+
+                let result;
+                if (showCost) {
+                    // Use cost analysis for supported currencies
+                    result = await analyzeFoodWithCost(
+                        base64,
+                        settings.referenceObject || 'Hand',
+                        settings.referenceDimensions,
+                        currency
+                    );
+                    setScannedFoodCost(result);
+                } else {
+                    // Use basic analysis for unsupported currencies
+                    result = await analyzeFood(base64, settings.referenceObject || 'Hand');
+                    setScannedFoodCost(null);
+                }
+
                 const foodLog: NutritionLog = {
                     id: Date.now().toString(),
                     date: new Date().toISOString().split('T')[0],
@@ -202,8 +221,34 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         if (scannedFood) {
             StorageService.saveNutrition(scannedFood);
             setScannedFood(null);
+            setScannedFoodCost(null);
+            setCapturedPhotoBase64(null);
             setMode('IDLE');
             setNeedsUpdate(prev => prev + 1);
+        }
+    };
+
+    // Retake photo - go back to camera
+    const retakePhoto = () => {
+        setScannedFood(null);
+        setScannedFoodCost(null);
+        setCapturedPhotoBase64(null);
+        startCamera('CAMERA_FOOD');
+    };
+
+    // Edit scanned food - open manual entry with pre-filled data
+    const editScannedFood = () => {
+        if (scannedFood) {
+            setManualName(scannedFood.name);
+            setManualCals(scannedFood.calories.toString());
+            setManualProt((scannedFood.protein || 0).toString());
+            setManualCarbs((scannedFood.carbs || 0).toString());
+            setManualFat((scannedFood.fat || 0).toString());
+            setManualAmount('');
+            setScannedFood(null);
+            setScannedFoodCost(null);
+            setMode('IDLE');
+            setShowManualEntry(true);
         }
     };
 
@@ -588,6 +633,29 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 {/* --- 4. RESULT: FOOD --- */}
                 {mode === 'RESULT_FOOD' && scannedFood && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-orange-200 dark:border-orange-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
+                        {/* Photo Preview */}
+                        {capturedPhotoBase64 && (
+                            <div className="relative rounded-lg overflow-hidden mb-4 aspect-video max-h-40 mx-auto">
+                                <img
+                                    src={`data:image/jpeg;base64,${capturedPhotoBase64}`}
+                                    alt="Captured food"
+                                    className="w-full h-full object-cover"
+                                />
+                                <button
+                                    onClick={retakePhoto}
+                                    className="absolute top-2 left-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                                <button
+                                    onClick={editScannedFood}
+                                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
+                                >
+                                    <Edit3 size={16} />
+                                </button>
+                            </div>
+                        )}
+
                         <div className="flex justify-between items-start mb-4">
                              <div>
                                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">{scannedFood.name}</h4>
@@ -597,7 +665,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                  {t('aiEst')}
                              </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 mb-6">
+
+                        {/* КБЖУ */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
                                 <span className="block text-xs text-gray-500">{t('protShort')}</span>
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.protein}{t('unitG')}</span>
@@ -611,14 +681,122 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.fat}{t('unitG')}</span>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setMode('IDLE')} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
-                                {t('dismiss')}
+
+                        {/* Cost Breakdown - only if supported currency */}
+                        {scannedFoodCost && scannedFoodCost.ingredients.length > 0 && (
+                            <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h5 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        {t('ingredients') || 'Ингредиенты'}
+                                    </h5>
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                        <span className="flex items-center gap-1">
+                                            <Clock size={12} />
+                                            {scannedFoodCost.cookingTimeMinutes} {t('min') || 'мин'}
+                                        </span>
+                                        <span className={`px-1.5 py-0.5 rounded ${
+                                            scannedFoodCost.difficulty === 'easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                            scannedFoodCost.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>
+                                            {scannedFoodCost.difficulty === 'easy' ? (t('easy') || 'легко') :
+                                             scannedFoodCost.difficulty === 'medium' ? (t('medium') || 'средне') :
+                                             (t('hard') || 'сложно')}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                                    {scannedFoodCost.ingredients.map((ing, idx) => (
+                                        <div key={idx} className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-700 dark:text-gray-300">
+                                                {ing.emoji} {ing.name}
+                                                <span className="text-gray-400 ml-1">
+                                                    {ing.quantity}{ing.unit}
+                                                </span>
+                                            </span>
+                                            <span className="font-mono text-gray-600 dark:text-gray-400">
+                                                {Math.round(ing.totalPrice)}₽
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Total Cost */}
+                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                    <span className="font-bold text-gray-800 dark:text-white flex items-center gap-1">
+                                        <DollarSign size={16} className="text-green-600" />
+                                        {t('totalCost') || 'Себестоимость'}
+                                    </span>
+                                    <span className="font-bold font-mono text-lg text-green-600">
+                                        ~{Math.round(scannedFoodCost.totalCost)}₽
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2 mb-3">
+                            <button
+                                onClick={retakePhoto}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1.5 text-sm"
+                            >
+                                <RotateCcw size={14} />
+                                {t('retake') || 'Переснять'}
                             </button>
-                            <button onClick={saveFood} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20">
-                                {t('save')}
+                            <button
+                                onClick={editScannedFood}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1.5 text-sm"
+                            >
+                                <Edit3 size={14} />
+                                {t('edit') || 'Изменить'}
                             </button>
+                            {scannedFoodCost && (
+                                <button
+                                    onClick={() => {
+                                        const recipe = {
+                                            id: Date.now().toString(),
+                                            name: scannedFoodCost.name,
+                                            description: scannedFoodCost.briefRecipe,
+                                            servings: 1,
+                                            totalTime: scannedFoodCost.cookingTimeMinutes,
+                                            caloriesPerServing: scannedFoodCost.calories,
+                                            ingredients: scannedFoodCost.ingredients.map(i => ({
+                                                name: i.name,
+                                                emoji: i.emoji,
+                                                quantity: i.quantity,
+                                                unit: i.unit,
+                                                available: false
+                                            })),
+                                            steps: [],
+                                            createdAt: new Date().toISOString()
+                                        };
+                                        StorageService.addSavedRecipe(recipe as any);
+                                        alert(t('savedToFavorites') || 'Сохранено в избранное!');
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl border border-pink-200 dark:border-pink-800 text-pink-600 dark:text-pink-400 font-medium hover:bg-pink-50 dark:hover:bg-pink-900/30 flex items-center justify-center gap-1.5 text-sm"
+                                >
+                                    <Heart size={14} />
+                                    {t('favorite') || 'В избранное'}
+                                </button>
+                            )}
                         </div>
+
+                        {/* Dismiss */}
+                        <button
+                            onClick={() => {
+                                setScannedFood(null);
+                                setScannedFoodCost(null);
+                                setCapturedPhotoBase64(null);
+                                setMode('IDLE');
+                            }}
+                            className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-2"
+                        >
+                            {t('dismiss')}
+                        </button>
+
+                        {/* Save button */}
+                        <button onClick={saveFood} className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20">
+                            {t('save')}
+                        </button>
                     </div>
                 )}
 
