@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, RotateCcw, Edit3 } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
 import { NutritionLog, NutritionSubTab } from '../types';
@@ -166,6 +166,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
         setMode('ANALYZING');
 
+        // Save photo for preview in result screen
+        setCapturedPhotoBase64(base64);
+
         try {
             if (currentMode === 'CAMERA_FOOD') {
                 const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
@@ -201,11 +204,34 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         if (scannedFood) {
             StorageService.saveNutrition(scannedFood);
             setScannedFood(null);
+            setCapturedPhotoBase64(null);
             setMode('IDLE');
             setNeedsUpdate(prev => prev + 1);
         }
     };
-    
+
+    // Retake photo - go back to camera
+    const retakePhoto = () => {
+        setScannedFood(null);
+        setCapturedPhotoBase64(null);
+        startCamera('CAMERA_FOOD');
+    };
+
+    // Edit scanned food - open manual entry with pre-filled data
+    const editScannedFood = () => {
+        if (scannedFood) {
+            setManualName(scannedFood.name);
+            setManualCals(scannedFood.calories.toString());
+            setManualProt((scannedFood.protein || 0).toString());
+            setManualCarbs((scannedFood.carbs || 0).toString());
+            setManualFat((scannedFood.fat || 0).toString());
+            setManualAmount('');
+            setScannedFood(null);
+            setMode('IDLE');
+            setShowManualEntry(true);
+        }
+    };
+
     const selectMenuRecommendation = (dish: MenuRecommendation) => {
         setManualName(dish.dishName);
         setManualCals(dish.calories.toString());
@@ -588,13 +614,21 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <span className="font-bold">{t('offlineMode') || 'Offline Mode'}</span>
                         </div>
 
-                        {/* Photo Preview */}
+                        {/* Photo Preview with retake button */}
                         <div className="relative rounded-lg overflow-hidden mb-4 aspect-square max-h-48 mx-auto">
                             <img
                                 src={`data:image/jpeg;base64,${capturedPhotoBase64}`}
                                 alt="Captured food"
                                 className="w-full h-full object-cover"
                             />
+                            {/* Retake button overlay */}
+                            <button
+                                onClick={retakePhoto}
+                                className="absolute top-2 left-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
+                                title={t('retake') || 'Retake'}
+                            >
+                                <RotateCcw size={16} />
+                            </button>
                             <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-white text-xs flex items-center gap-1">
                                 <Image size={12} />
                                 {t('photoSaved') || 'Photo saved'}
@@ -606,6 +640,15 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         </p>
 
                         <div className="space-y-3">
+                            {/* Retake button - prominent option */}
+                            <button
+                                onClick={retakePhoto}
+                                className="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-600"
+                            >
+                                <RotateCcw size={18} />
+                                {t('retake') || 'Retake Photo'}
+                            </button>
+
                             <button
                                 onClick={openManualWithPhoto}
                                 className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
@@ -638,6 +681,33 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 {/* --- 4. RESULT: FOOD --- */}
                 {mode === 'RESULT_FOOD' && scannedFood && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-orange-200 dark:border-orange-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
+                        {/* Photo Preview with action buttons */}
+                        {capturedPhotoBase64 && (
+                            <div className="relative rounded-lg overflow-hidden mb-4 aspect-video max-h-40 mx-auto">
+                                <img
+                                    src={`data:image/jpeg;base64,${capturedPhotoBase64}`}
+                                    alt="Captured food"
+                                    className="w-full h-full object-cover"
+                                />
+                                {/* Retake button overlay */}
+                                <button
+                                    onClick={retakePhoto}
+                                    className="absolute top-2 left-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
+                                    title={t('retake') || 'Retake'}
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                                {/* Edit button overlay */}
+                                <button
+                                    onClick={editScannedFood}
+                                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
+                                    title={t('edit') || 'Edit'}
+                                >
+                                    <Edit3 size={16} />
+                                </button>
+                            </div>
+                        )}
+
                         <div className="flex justify-between items-start mb-4">
                              <div>
                                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">{scannedFood.name}</h4>
@@ -647,7 +717,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                  {t('aiEst')}
                              </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 mb-6">
+                        <div className="grid grid-cols-3 gap-2 mb-4">
                             <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded text-center">
                                 <span className="block text-xs text-gray-500">{t('protShort')}</span>
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.protein}{t('unitG')}</span>
@@ -661,14 +731,39 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 <span className="font-bold text-gray-800 dark:text-white">{scannedFood.fat}{t('unitG')}</span>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setMode('IDLE')} className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800">
+
+                        {/* Action buttons row - Retake | Edit | Dismiss */}
+                        <div className="flex gap-2 mb-3">
+                            <button
+                                onClick={retakePhoto}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1.5 text-sm"
+                            >
+                                <RotateCcw size={14} />
+                                {t('retake') || 'Retake'}
+                            </button>
+                            <button
+                                onClick={editScannedFood}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1.5 text-sm"
+                            >
+                                <Edit3 size={14} />
+                                {t('edit') || 'Edit'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setScannedFood(null);
+                                    setCapturedPhotoBase64(null);
+                                    setMode('IDLE');
+                                }}
+                                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
+                            >
                                 {t('dismiss')}
                             </button>
-                            <button onClick={saveFood} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20">
-                                {t('save')}
-                            </button>
                         </div>
+
+                        {/* Save button - prominent */}
+                        <button onClick={saveFood} className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-lg shadow-orange-500/20">
+                            {t('save')}
+                        </button>
                     </div>
                 )}
 
