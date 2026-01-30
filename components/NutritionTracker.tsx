@@ -1049,11 +1049,11 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
                                 {t('orUseCommonObject')}
                             </p>
-                            <div className="flex justify-center gap-2 mb-6">
+                            <div className="flex justify-center gap-3 mb-6">
                                 {alternativeObjects.slice(0, 4).map(obj => (
-                                    <span key={obj.id} className="text-2xl" title={t(obj.label as any)}>
-                                        {obj.emoji}
-                                    </span>
+                                    <div key={obj.id} className="w-10 h-10 text-gray-500 dark:text-gray-400" title={t(obj.label as any)}>
+                                        {obj.icon}
+                                    </div>
                                 ))}
                             </div>
 
