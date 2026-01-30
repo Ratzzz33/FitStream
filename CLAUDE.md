@@ -61,7 +61,7 @@ API key via `process.env.API_KEY`.
 
 - **Offline-first**: LocalStorage primary, backend sync secondary
 - **Auto-save**: Settings debounced 1.5s, show save indicator
-- **Freemium**: `settings.isPro` gates features (3 workouts/week limit)
+- **Freemium**: `settings.isPro` gates premium features (no workout limits)
 - **Tabs**: Dashboard, Nutrition, Workout, Social, Settings
 - **Theme**: `settings.theme` ('light'|'dark'), class-based Tailwind
 

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitStream AI - AI-Powered Fitness Tracking</title>
+    <meta name="description" content="Track workouts, nutrition, and weight with the power of AI. Available on iOS, Android, and Web.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .gradient-text {
+            background: linear-gradient(to right, #2563eb, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .feature-card:hover { transform: translateY(-4px); }
+        .glow { box-shadow: 0 0 60px rgba(37, 99, 235, 0.3); }
+        .ring-progress { transition: stroke-dashoffset 0.5s ease; }
+        .pulse-ring:active { transform: scale(0.95); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .phone-light { background: #f8fafc; color: #0f172a; }
+        .phone-light .phone-card { background: white; border-color: #e2e8f0; }
+        .phone-light .phone-muted { color: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white font-sans antialiased">
+
+<script src="i18n.js"></script>
+<script>
+// ===== Language Management =====
+let lang = detectLanguage();
+const t = (path) => path.split('.').reduce((o, k) => o?.[k], i18n[lang]) || path;
+
+function setLang(l) {
+    lang = l;
+    document.querySelectorAll('[data-t]').forEach(el => el.textContent = t(el.dataset.t));
+    // Update dropdown display
+    const selected = document.getElementById('lang-selected');
+    if (selected && i18n[l]) {
+        selected.textContent = i18n[l]._meta.flag + ' ' + l.toUpperCase();
+    }
+    // Handle RTL
+    document.documentElement.dir = i18n[l]?._meta?.rtl ? 'rtl' : 'ltr';
+    // Refresh dropdown active state
+    populateLangDropdown();
+    renderPhone();
+    // Close dropdown
+    document.getElementById('lang-dropdown')?.classList.add('hidden');
+}
+
+function toggleLangDropdown() {
+    document.getElementById('lang-dropdown').classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#lang-switcher')) {
+        document.getElementById('lang-dropdown')?.classList.add('hidden');
+    }
+});
+
+// Populate language dropdown
+function populateLangDropdown() {
+    const dropdown = document.getElementById('lang-dropdown');
+    if (!dropdown) return;
+    const langs = getAvailableLanguages();
+    dropdown.innerHTML = langs.map(l =>
+        `<button onclick="setLang('${l.code}')" class="w-full px-3 py-2 text-left text-sm hover:bg-slate-700 transition flex items-center gap-2 ${lang === l.code ? 'bg-blue-600/20 text-blue-400' : ''}">
+            <span>${l.flag}</span><span>${l.name}</span>
+        </button>`
+    ).join('');
+}
+</script>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold gradient-text">FitStream</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="text-slate-400 hover:text-white transition" data-t="nav.features">Features</a>
+                <a href="#ai" class="text-slate-400 hover:text-white transition" data-t="nav.aiPower">AI Power</a>
+                <a href="#pricing" class="text-slate-400 hover:text-white transition" data-t="nav.pricing">Pricing</a>
+                <div id="lang-switcher" class="relative">
+                    <button onclick="toggleLangDropdown()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 rounded-full px-3 py-1.5 text-sm font-medium transition">
+                        <span id="lang-selected">🇬🇧 EN</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="lang-dropdown" class="hidden absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-2 max-h-64 overflow-y-auto z-50"></div>
+                </div>
+            </div>
+            <a href="#download" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 px-5 py-2 rounded-full text-sm font-semibold transition" data-t="nav.getStarted">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center pt-20 px-6">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+            <div class="text-center lg:text-left">
+                <div class="inline-flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-full px-4 py-2 mb-8">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span class="text-sm text-slate-300" data-t="hero.powered">Powered by Google Gemini AI</span>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
+                    <span data-t="hero.title1">Your AI-Powered</span><br>
+                    <span class="gradient-text" data-t="hero.title2">Fitness Companion</span>
+                </h1>
+                <p class="text-xl text-slate-400 max-w-xl mb-10" data-t="hero.desc">Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.</p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 lg:justify-start justify-center">
+                    <a href="#download" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 px-8 py-4 rounded-xl text-lg font-semibold transition shadow-lg shadow-blue-500/25" data-t="hero.download">Download Free</a>
+                    <a href="#features" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 border border-slate-700 px-8 py-4 rounded-xl text-lg font-semibold transition" data-t="hero.see">See Features</a>
+                </div>
+            </div>
+
+            <!-- Interactive Phone -->
+            <div class="relative max-w-[280px] mx-auto lg:mx-0 lg:ml-auto">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-[2.5rem] blur-3xl opacity-30"></div>
+                <div class="relative bg-slate-900 rounded-[2rem] p-2 border border-slate-800 glow">
+                    <div id="phone" class="bg-slate-950 rounded-[1.5rem] overflow-hidden" style="aspect-ratio: 9/18;"></div>
+                </div>
+                <p class="text-center text-xs text-slate-500 mt-3" data-t="phone.tap">Tap rings to add progress!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4" data-t="features.title">Everything You Need</h2>
+                <p class="text-xl text-slate-400" data-t="features.subtitle">Powerful features to transform your fitness journey</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- NEW: Pose Tracking -->
+                <div class="feature-card relative bg-gradient-to-br from-violet-900/30 to-slate-900/50 border border-violet-500/50 rounded-2xl p-6 transition-all duration-300 hover:border-violet-400">
+                    <div class="absolute top-4 right-4 bg-violet-500 text-white text-xs font-bold px-2 py-1 rounded-full">NEW</div>
+                    <div class="w-12 h-12 bg-violet-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🧘</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.pose">AI Pose Tracking</h3>
+                    <p class="text-slate-400" data-t="features.poseDesc">Real-time form analysis with MediaPipe. 15 exercises with instant feedback.</p>
+                </div>
+                <!-- NEW: Smart Kitchen -->
+                <div class="feature-card relative bg-gradient-to-br from-amber-900/30 to-slate-900/50 border border-amber-500/50 rounded-2xl p-6 transition-all duration-300 hover:border-amber-400">
+                    <div class="absolute top-4 right-4 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full">NEW</div>
+                    <div class="w-12 h-12 bg-amber-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🍳</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.kitchen">Smart Kitchen</h3>
+                    <p class="text-slate-400" data-t="features.kitchenDesc">Manage fridge, pantry & freezer. AI recognizes products from photos.</p>
+                </div>
+                <!-- NEW: Cooking Mode -->
+                <div class="feature-card relative bg-gradient-to-br from-rose-900/30 to-slate-900/50 border border-rose-500/50 rounded-2xl p-6 transition-all duration-300 hover:border-rose-400">
+                    <div class="absolute top-4 right-4 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">NEW</div>
+                    <div class="w-12 h-12 bg-rose-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">👨‍🍳</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.cooking">Guided Cooking</h3>
+                    <p class="text-slate-400" data-t="features.cookingDesc">Step-by-step recipes with timers, reminders & troubleshooting tips.</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-blue-500/50">
+                    <div class="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">💪</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.coach">AI Workout Coach</h3>
+                    <p class="text-slate-400" data-t="features.coachDesc">Real-time guidance and rep counting with voice feedback</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-emerald-500/50">
+                    <div class="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">📷</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.scale">AI Scale Scanner</h3>
+                    <p class="text-slate-400" data-t="features.scaleDesc">Point your camera at any scale — AI reads automatically</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-orange-500/50">
+                    <div class="w-12 h-12 bg-orange-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🍎</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.food">AI Food Scanner</h3>
+                    <p class="text-slate-400" data-t="features.foodDesc">Snap a photo for instant calorie and macro estimates</p>
+                </div>
+                <!-- Receipt Scanning -->
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-teal-500/50">
+                    <div class="w-12 h-12 bg-teal-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🧾</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.receipt">Receipt Scanning</h3>
+                    <p class="text-slate-400" data-t="features.receiptDesc">Scan grocery receipts to auto-add products with prices & expiry dates.</p>
+                </div>
+                <!-- Food Finance -->
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-lime-500/50">
+                    <div class="w-12 h-12 bg-lime-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">💰</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.finance">Food Finance</h3>
+                    <p class="text-slate-400" data-t="features.financeDesc">Track food spending. Calculate savings from home cooking vs eating out.</p>
+                </div>
+                <!-- Health Sync -->
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-red-500/50">
+                    <div class="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">❤️</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.health">Health Platform Sync</h3>
+                    <p class="text-slate-400" data-t="features.healthDesc">Seamless sync with Google Fit, Apple Health & Samsung Health.</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-purple-500/50">
+                    <div class="w-12 h-12 bg-purple-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🎯</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.goals">Daily Goals</h3>
+                    <p class="text-slate-400" data-t="features.goalsDesc">Set custom goals for steps, pushups, squats, and more</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500/50">
+                    <div class="w-12 h-12 bg-cyan-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">📊</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.charts">Progress Charts</h3>
+                    <p class="text-slate-400" data-t="features.chartsDesc">Visualize your weight and workout history</p>
+                </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-slate-500/50">
+                    <div class="w-12 h-12 bg-slate-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">📶</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.offline">Offline First</h3>
+                    <p class="text-slate-400" data-t="features.offlineDesc">Works without internet — syncs when back online</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Section -->
+    <section id="ai" class="py-24 px-6 bg-gradient-to-b from-slate-950 via-blue-950/20 to-slate-950">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <div class="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-6">
+                    <span class="text-sm text-blue-300" data-t="ai.powered">Powered by Gemini 2.5 Flash</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    <span data-t="ai.title1">AI That Actually</span><br>
+                    <span class="gradient-text" data-t="ai.title2">Understands Fitness</span>
+                </h2>
+                <p class="text-lg text-slate-400 mb-8" data-t="ai.desc">Our AI doesn't just count — it sees, understands, and adapts.</p>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">✓</div>
+                        <div><h4 class="font-semibold mb-1" data-t="ai.vision">Vision AI</h4><p class="text-slate-400 text-sm" data-t="ai.visionDesc">Reads scales, identifies food, analyzes menus</p></div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">✓</div>
+                        <div><h4 class="font-semibold mb-1" data-t="ai.portion">Smart Portion Estimation</h4><p class="text-slate-400 text-sm" data-t="ai.portionDesc">Uses reference objects for accurate portions</p></div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-emerald-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">✓</div>
+                        <div><h4 class="font-semibold mb-1" data-t="ai.motivation">Personalized Motivation</h4><p class="text-slate-400 text-sm" data-t="ai.motivationDesc">AI adapts encouragement to your progress</p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-3xl blur-3xl opacity-20"></div>
+                <div class="relative bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4">
+                    <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+                        <p class="text-xs text-slate-500 mb-2">Scale Scan Result</p>
+                        <div class="flex justify-between items-end">
+                            <div><p class="text-xs text-slate-500">Raw</p><p class="text-xl font-bold">72.3 kg</p></div>
+                            <div class="text-right"><p class="text-xs text-slate-500">Tare</p><p class="text-lg text-red-400">-0.2</p></div>
+                            <div class="text-right"><p class="text-xs text-emerald-400">Net</p><p class="text-2xl font-bold text-emerald-400">72.1 kg</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+                        <p class="text-xs text-slate-500 mb-2">Food Analysis</p>
+                        <p class="font-semibold mb-2">Grilled Chicken Salad</p>
+                        <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                            <div class="bg-slate-900 rounded-lg p-2"><p class="text-orange-400 font-bold">320</p><p class="text-slate-500">kcal</p></div>
+                            <div class="bg-slate-900 rounded-lg p-2"><p class="text-blue-400 font-bold">35g</p><p class="text-slate-500">prot</p></div>
+                            <div class="bg-slate-900 rounded-lg p-2"><p class="text-emerald-400 font-bold">12g</p><p class="text-slate-500">carb</p></div>
+                            <div class="bg-slate-900 rounded-lg p-2"><p class="text-yellow-400 font-bold">14g</p><p class="text-slate-500">fat</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4" data-t="pricing.title">Simple Pricing</h2>
+                <p class="text-xl text-slate-400" data-t="pricing.subtitle">Start free, upgrade when you're ready</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Free -->
+                <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold mb-2" data-t="pricing.free">Free</h3>
+                    <p class="text-slate-400 mb-6" data-t="pricing.freeSub">Perfect for getting started</p>
+                    <div class="mb-8"><span class="text-5xl font-bold">€0</span><span class="text-slate-400">/<span data-t="pricing.forever">forever</span></span></div>
+                    <ul class="space-y-3 mb-8 text-sm">
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f1">Unlimited workouts</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f2">AI Scale Scanner</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f3">AI Food Scanner</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f4">Daily Goals & Streaks</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f5">Progress Charts</span></li>
+                    </ul>
+                    <a href="#download" class="block w-full text-center bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-xl font-semibold transition" data-t="pricing.startFree">Get Started Free</a>
+                </div>
+                <!-- Pro -->
+                <div class="relative bg-gradient-to-b from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-2xl p-8">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-1 rounded-full text-sm font-bold text-black" data-t="pricing.popular">MOST POPULAR</div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <h3 class="text-2xl font-bold" data-t="pricing.pro">FitStream PRO</h3>
+                        <span class="text-yellow-400 text-xl">⭐</span>
+                    </div>
+                    <p class="text-slate-400 mb-6" data-t="pricing.proSub">For serious fitness enthusiasts</p>
+                    <div class="mb-8"><span class="text-5xl font-bold">€4.99</span><span class="text-slate-400">/<span data-t="pricing.month">month</span></span></div>
+                    <ul class="space-y-3 mb-8 text-sm">
+                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p1">Everything in Free</span></li>
+                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span class="font-semibold" data-t="pricing.p2">Body Composition Analysis</span></li>
+                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p3">Restaurant Menu Analyzer</span></li>
+                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p4">Custom Goal Icons</span></li>
+                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p5">Priority Support</span></li>
+                    </ul>
+                    <a href="#download" class="block w-full text-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 py-3 rounded-xl font-semibold text-black transition" data-t="pricing.upgrade">Upgrade to PRO</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                <span data-t="download.title1">Ready to Transform</span><br>
+                <span class="gradient-text" data-t="download.title2">Your Fitness?</span>
+            </h2>
+            <p class="text-xl text-slate-400 mb-10" data-t="download.desc">Download FitStream now and start your AI-powered fitness journey</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#" class="w-full sm:w-auto bg-white text-black px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
+                    <span class="text-3xl"></span>
+                    <div class="text-left"><p class="text-xs" data-t="download.on">Download on the</p><p class="text-lg font-semibold" data-t="download.appStore">App Store</p></div>
+                </a>
+                <a href="#" class="w-full sm:w-auto bg-white text-black px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
+                    <span class="text-3xl">▶️</span>
+                    <div class="text-left"><p class="text-xs" data-t="download.get">Get it on</p><p class="text-lg font-semibold" data-t="download.googlePlay">Google Play</p></div>
+                </a>
+                <a href="#" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-emerald-600 px-6 py-4 rounded-xl flex items-center justify-center gap-3 hover:from-blue-500 hover:to-emerald-500 transition">
+                    <span class="text-3xl">🌐</span>
+                    <div class="text-left"><p class="text-xs" data-t="download.use">Use in</p><p class="text-lg font-semibold" data-t="download.web">Web Browser</p></div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 py-12 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-lg flex items-center justify-center text-white">⚡</div>
+                <span class="text-xl font-bold gradient-text">FitStream</span>
+            </div>
+            <div class="flex items-center gap-6 text-sm text-slate-400">
+                <a href="#" class="hover:text-white transition" data-t="footer.privacy">Privacy Policy</a>
+                <a href="#" class="hover:text-white transition" data-t="footer.terms">Terms of Service</a>
+                <a href="#" class="hover:text-white transition" data-t="footer.contact">Contact</a>
+            </div>
+            <p class="text-sm text-slate-500">© 2026 FitStream. <span data-t="footer.rights">All rights reserved.</span></p>
+        </div>
+    </footer>
+
+<script>
+// ===== INTERACTIVE PHONE =====
+const state = {
+    tab: 'dashboard',
+    theme: 'dark',
+    streak: 7,
+    goals: [
+        { id: 'steps', cur: 6500, max: 10000, color: '#10b981' },
+        { id: 'squats', cur: 25, max: 50, color: '#8b5cf6' },
+        { id: 'pushups', cur: 30, max: 40, color: '#3b82f6' },
+        { id: 'situps', cur: 15, max: 30, color: '#f97316' }
+    ],
+    water: 5,
+    cals: 1850,
+    leaders: [{ n: 'Alex', s: 2450 }, { n: 'Maria', s: 2100 }, { n: 'John', s: 1800 }]
+};
+
+function ring(g, sz = 44) {
+    const p = Math.min(g.cur / g.max, 1), c = 2 * Math.PI * 18, o = c * (1 - p);
+    return `<svg width="${sz}" height="${sz}" class="cursor-pointer pulse-ring" onclick="addProg('${g.id}')">
+        <circle cx="${sz/2}" cy="${sz/2}" r="18" fill="none" stroke="${state.theme === 'dark' ? '#1e293b' : '#cbd5e1'}" stroke-width="5"/>
+        <circle cx="${sz/2}" cy="${sz/2}" r="18" fill="none" stroke="${g.color}" stroke-width="5" stroke-dasharray="${c}" stroke-dashoffset="${o}" transform="rotate(-90 ${sz/2} ${sz/2})" class="ring-progress"/>
+        <text x="${sz/2}" y="${sz/2}" text-anchor="middle" dy="0.35em" class="text-[10px] font-bold" fill="currentColor">${Math.round(p*100)}%</text>
+    </svg>`;
+}
+
+function addProg(id) {
+    const g = state.goals.find(x => x.id === id);
+    if (g) { g.cur = Math.min(g.cur + (id === 'steps' ? 500 : 5), g.max); renderPhone(); }
+}
+
+function setTab(tab) { state.tab = tab; renderPhone(); }
+function toggleTheme() { state.theme = state.theme === 'dark' ? 'light' : 'dark'; renderPhone(); }
+
+function renderPhone() {
+    const ph = document.getElementById('phone');
+    const dk = state.theme === 'dark';
+    ph.className = `rounded-[1.5rem] overflow-hidden transition-colors duration-300 ${dk ? 'bg-slate-950 text-white' : 'phone-light'}`;
+    ph.style.aspectRatio = '9/18';
+
+    let h = `<div class="p-3 text-xs">
+        <div class="flex justify-between items-center mb-2">
+            <div><p class="text-sm font-bold gradient-text">FitStream</p><p class="text-[9px] ${dk ? 'text-slate-500' : 'phone-muted'}">${t('phone.tracking')}</p></div>
+            <div class="text-right"><p class="text-[9px] text-orange-500 font-bold">${t('phone.streak')}</p><p class="text-sm font-bold">${state.streak} 🔥</p></div>
+        </div>`;
+
+    if (state.tab === 'dashboard') {
+        h += `<div class="bg-gradient-to-r ${dk ? 'from-indigo-900/50 to-slate-900' : 'from-indigo-100 to-white'} p-2 rounded-lg border ${dk ? 'border-indigo-500/20' : 'border-indigo-200'} mb-2">
+            <p class="text-[10px] italic ${dk ? 'text-indigo-200' : 'text-indigo-700'}">"${t('phone.motivation')}"</p>
+        </div>
+        <p class="text-[10px] font-bold mb-1">${t('features.goals')}</p>
+        <div class="grid grid-cols-2 gap-1.5">
+            ${state.goals.map(g => `<div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-1.5 text-center">
+                ${ring(g, 40)}<p class="text-[9px] ${dk ? 'text-slate-400' : 'phone-muted'}">${t('phone.' + g.id)}</p>
+            </div>`).join('')}
+        </div>`;
+    } else if (state.tab === 'nutrition') {
+        h += `<p class="text-[10px] font-bold mb-1">${t('phone.water')}</p>
+        <div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-2 mb-2">
+            <div class="flex gap-0.5">${[1,2,3,4,5,6,7,8].map(i => `<div class="w-2.5 h-5 rounded-full ${i <= state.water ? 'bg-blue-500' : (dk ? 'bg-slate-700' : 'bg-slate-200')}"></div>`).join('')}</div>
+            <p class="text-[9px] text-right mt-1">${state.water} ${t('phone.glasses')}</p>
+        </div>
+        <p class="text-[10px] font-bold mb-1">${t('phone.calories')}</p>
+        <div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-2">
+            <p class="text-lg font-bold text-orange-500">${state.cals} <span class="text-[10px] font-normal">${t('phone.kcal')}</span></p>
+        </div>`;
+    } else if (state.tab === 'social') {
+        h += `<p class="text-[10px] font-bold mb-1">${t('phone.leaderboard')}</p>
+        <div class="phone-card ${dk ? 'bg-blue-900/30 border-blue-500/30' : 'bg-blue-50 border-blue-200'} border rounded-lg p-1.5 mb-1">
+            <div class="flex items-center gap-2"><span class="text-blue-500 text-[9px] font-bold">${t('phone.you')}</span><span>👤</span><span class="flex-1 text-[10px] font-bold">You</span><span class="text-[10px] font-bold">2,200</span></div>
+        </div>
+        ${state.leaders.map((u, i) => `<div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-1.5 mb-1">
+            <div class="flex items-center gap-2"><span class="text-[9px] ${dk ? 'text-slate-500' : 'phone-muted'}">#${i+1}</span><span>🏃</span><span class="flex-1 text-[10px]">${u.n}</span><span class="text-[10px] font-bold">${u.s}</span></div>
+        </div>`).join('')}`;
+    } else if (state.tab === 'settings') {
+        h += `<p class="text-[10px] font-bold mb-1">${t('phone.settings')}</p>
+        <div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-2 mb-2">
+            <div class="flex justify-between items-center"><span class="text-[10px]">${t('phone.theme')}</span>
+            <button onclick="toggleTheme()" class="px-2 py-0.5 rounded text-[9px] font-bold ${dk ? 'bg-purple-600' : 'bg-orange-100 text-orange-600'}">${dk ? t('phone.dark') : t('phone.light')}</button></div>
+        </div>
+        <div class="phone-card ${dk ? 'bg-slate-900/50 border-slate-800' : ''} border rounded-lg p-2">
+            <p class="text-[10px] mb-1">${t('phone.lang')}</p>
+            <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                ${getAvailableLanguages().map(l =>
+                    `<button onclick="setLang('${l.code}')" class="px-1.5 py-0.5 rounded text-[8px] ${lang === l.code ? 'bg-blue-600 text-white' : (dk ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300')}">${l.flag}</button>`
+                ).join('')}
+            </div>
+        </div>`;
+    }
+
+    h += '</div>';
+
+    // Nav
+    const tabs = [
+        { id: 'dashboard', icon: '📊', l: t('phone.dashboard') },
+        { id: 'nutrition', icon: '🍎', l: t('phone.nutrition') },
+        { id: 'workout', icon: '💪', l: t('phone.workout') },
+        { id: 'social', icon: '👥', l: t('phone.social') },
+        { id: 'settings', icon: '⚙️', l: t('phone.settings') }
+    ];
+    h += `<div class="absolute bottom-1 left-1 right-1 ${dk ? 'bg-slate-900/90' : 'bg-white/90'} backdrop-blur rounded-xl p-1 flex justify-between">
+        ${tabs.map(tb => `<button onclick="setTab('${tb.id}')" class="flex flex-col items-center flex-1 ${state.tab === tb.id ? 'text-blue-500' : (dk ? 'text-slate-500' : 'text-slate-400')}">
+            <span class="text-sm">${tb.icon}</span><span class="text-[7px]">${tb.l}</span>
+        </button>`).join('')}
+    </div>`;
+
+    ph.innerHTML = `<div class="relative h-full">${h}</div>`;
+}
+
+// ===== FEATURE MODAL =====
+const featureDetails = {
+    pose: {
+        icon: '🧘',
+        color: 'violet',
+        features: ['Real-time pose detection with MediaPipe', '15 different exercises supported', 'Instant feedback on form', 'Rep counting with AI', 'Works on any camera']
+    },
+    kitchen: {
+        icon: '🍳',
+        color: 'amber',
+        features: ['Track products in fridge, pantry & freezer', 'AI recognizes products from photos', 'Expiry date tracking', 'Smart shopping lists', 'Low stock notifications']
+    },
+    cooking: {
+        icon: '👨‍🍳',
+        color: 'rose',
+        features: ['Step-by-step recipe guidance', 'Built-in cooking timers', 'Voice reminders', 'Troubleshooting tips', 'Ingredient substitutions']
+    },
+    coach: {
+        icon: '💪',
+        color: 'blue',
+        features: ['Real-time voice guidance', 'Automatic rep counting', 'Form correction tips', 'Customizable voice (male/female)', 'Workout history tracking']
+    },
+    scale: {
+        icon: '📷',
+        color: 'emerald',
+        features: ['Point camera at any scale', 'AI reads weight automatically', 'Works with digital & analog scales', 'Phone tare weight support', 'Trend tracking']
+    },
+    food: {
+        icon: '🍎',
+        color: 'orange',
+        features: ['Instant calorie estimation', 'Macro breakdown (protein, carbs, fat)', 'Reference object for accuracy', 'Meal history logging', 'Daily nutrition summary']
+    },
+    receipt: {
+        icon: '🧾',
+        color: 'teal',
+        features: ['Scan grocery receipts', 'Auto-extract products & prices', 'Expiry date estimation', 'Price history tracking', 'Budget insights']
+    },
+    finance: {
+        icon: '💰',
+        color: 'lime',
+        features: ['Track food spending', 'Home cooking vs eating out', 'Monthly budget reports', 'Savings calculator', 'Cost per meal analysis']
+    },
+    health: {
+        icon: '❤️',
+        color: 'red',
+        features: ['Google Fit integration', 'Apple Health sync', 'Samsung Health Connect', 'Steps & activity data', 'Sleep tracking import']
+    },
+    goals: {
+        icon: '🎯',
+        color: 'purple',
+        features: ['Custom daily goals', 'Steps, pushups, squats & more', 'Streak tracking', 'Progress visualization', 'Reminder notifications']
+    },
+    charts: {
+        icon: '📊',
+        color: 'cyan',
+        features: ['Weight trend charts', 'Workout history graphs', 'Progress over time', 'Body composition tracking', 'Export data as CSV']
+    },
+    offline: {
+        icon: '📶',
+        color: 'slate',
+        features: ['Full offline functionality', 'Automatic sync when online', 'No data loss', 'Local storage backup', 'Works anywhere']
+    }
+};
+
+function openFeatureModal(featureKey) {
+    const feature = featureDetails[featureKey];
+    if (!feature) return;
+
+    const modal = document.getElementById('featureModal');
+    const title = modal.querySelector('[data-modal-title]');
+    const desc = modal.querySelector('[data-modal-desc]');
+    const icon = modal.querySelector('[data-modal-icon]');
+    const featureList = modal.querySelector('[data-modal-features]');
+    const iconBg = modal.querySelector('[data-modal-icon-bg]');
+
+    // Get translations
+    const titleKey = `features.${featureKey}`;
+    const descKey = `features.${featureKey}Desc`;
+
+    title.textContent = t(titleKey);
+    desc.textContent = t(descKey);
+    icon.textContent = feature.icon;
+
+    // Update color classes
+    const colorClasses = {
+        violet: 'bg-violet-600/20 border-violet-500/50',
+        amber: 'bg-amber-600/20 border-amber-500/50',
+        rose: 'bg-rose-600/20 border-rose-500/50',
+        blue: 'bg-blue-600/20 border-blue-500/50',
+        emerald: 'bg-emerald-600/20 border-emerald-500/50',
+        orange: 'bg-orange-600/20 border-orange-500/50',
+        teal: 'bg-teal-600/20 border-teal-500/50',
+        lime: 'bg-lime-600/20 border-lime-500/50',
+        red: 'bg-red-600/20 border-red-500/50',
+        purple: 'bg-purple-600/20 border-purple-500/50',
+        cyan: 'bg-cyan-600/20 border-cyan-500/50',
+        slate: 'bg-slate-600/20 border-slate-500/50'
+    };
+    iconBg.className = `w-20 h-20 ${colorClasses[feature.color]} border-2 rounded-2xl flex items-center justify-center text-4xl`;
+
+    // Build feature list
+    featureList.innerHTML = feature.features.map(f =>
+        `<li class="flex items-start gap-3">
+            <span class="text-${feature.color}-500 mt-0.5">✓</span>
+            <span class="text-slate-300">${f}</span>
+        </li>`
+    ).join('');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => modal.querySelector('[data-modal-content]').classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+function closeFeatureModal() {
+    const modal = document.getElementById('featureModal');
+    modal.querySelector('[data-modal-content]').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 200);
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    populateLangDropdown();
+    setLang(lang);
+
+    // Add click handlers to feature cards
+    document.querySelectorAll('.feature-card').forEach(card => {
+        const titleEl = card.querySelector('h3');
+        if (titleEl) {
+            const dataT = titleEl.getAttribute('data-t');
+            if (dataT) {
+                const featureKey = dataT.replace('features.', '');
+                card.style.cursor = 'pointer';
+                card.onclick = () => openFeatureModal(featureKey);
+            }
+        }
+    });
+});
+</script>
+
+<!-- Feature Modal -->
+<div id="featureModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target === this) closeFeatureModal()">
+    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
+        <div class="flex justify-between items-start mb-6">
+            <div class="flex items-center gap-4">
+                <div data-modal-icon-bg class="w-20 h-20 bg-blue-600/20 border-2 border-blue-500/50 rounded-2xl flex items-center justify-center text-4xl">
+                    <span data-modal-icon>💪</span>
+                </div>
+                <div>
+                    <h3 data-modal-title class="text-2xl font-bold">Feature Title</h3>
+                    <p data-modal-desc class="text-slate-400 text-sm mt-1">Feature description goes here</p>
+                </div>
+            </div>
+            <button onclick="closeFeatureModal()" class="text-slate-500 hover:text-white transition p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <ul data-modal-features class="space-y-3 mb-6">
+            <!-- Features will be populated by JS -->
+        </ul>
+        <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition">
+            Got it!
+        </button>
+    </div>
+</div>
+
+</body>
+</html>

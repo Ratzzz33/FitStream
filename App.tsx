@@ -423,18 +423,8 @@ const App = () => {
       if (isTelegramApp) {
           hapticFeedback('impact', 'medium');
       }
-
-      if (settings.isPro) {
-          setIsWorkoutActive(true);
-          return;
-      }
-      const weeklyWorkouts = StorageService.getWeeklyWorkoutCount();
-      const LIMIT = 3;
-      if (weeklyWorkouts >= LIMIT) {
-          setShowProModal(true);
-      } else {
-          setIsWorkoutActive(true);
-      }
+      // Unlimited workouts for all users
+      setIsWorkoutActive(true);
   };
 
   const handleMockUpgrade = () => {
