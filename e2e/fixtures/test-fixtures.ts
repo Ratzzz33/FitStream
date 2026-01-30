@@ -44,10 +44,16 @@ export const test = base.extend<{
     await use(page);
   },
 
-  // Mobile viewport
-  mobilePage: async ({ page }, use) => {
-    await page.setViewportSize({ width: 390, height: 844 }); // iPhone 14
+  // Mobile viewport with touch support
+  mobilePage: async ({ browser }, use) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 }, // iPhone 14
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await context.newPage();
     await use(page);
+    await context.close();
   },
 });
 
