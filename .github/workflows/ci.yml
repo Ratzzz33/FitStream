@@ -197,13 +197,17 @@ jobs:
 
       - name: Run Gitleaks
         run: |
+          CONFIG_FLAG=""
+          if [ -f ".gitleaks.toml" ]; then
+            CONFIG_FLAG="--config=/src/.gitleaks.toml"
+          fi
           docker run --rm \
             -v "${PWD}:/src" \
             -w /src \
             docker.io/zricethezav/gitleaks:latest \
             detect \
             --source=/src \
-            --config=/src/.gitleaks.toml \
+            $CONFIG_FLAG \
             --report-format=json \
             --report-path=/src/gitleaks-report.json \
             --no-git \
