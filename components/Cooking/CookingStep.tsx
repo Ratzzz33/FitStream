@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Clock, Flame, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, HelpCircle } from 'lucide-react';
+import { t } from '../../services/i18n';
 
 interface StepData {
   order: number;
@@ -183,7 +184,7 @@ export const CookingStep: React.FC<CookingStepProps> = ({
             ) : timerState === 'completed' ? (
               <div className="text-center py-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <span className="text-green-700 dark:text-green-300 font-medium">
-                  ✅ Таймер завершён!
+                  ✅ {t('cookingTimerDone')}
                 </span>
               </div>
             ) : (

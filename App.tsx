@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -19,7 +19,7 @@ import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
 import { useStepCounter } from './hooks/useStepCounter';
-import { t } from './services/i18n';
+import { t, getLanguageList, getSavedLanguage, setLanguage } from './services/i18n';
 import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback, openTelegramLink } from './services/telegramService';
 import TelegramLinkButton from './components/TelegramLinkButton';
 import { googleAuthService } from './services/googleAuthService';
@@ -1119,6 +1119,37 @@ const App = () => {
                     >
                         {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
                     </button>
+                </div>
+
+                {/* Language Selection */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-3 mb-3">
+                        <Globe size={20} className="text-blue-500" />
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{t('languageSelection')}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {getLanguageList().map((lang) => (
+                            <button
+                                key={lang.code}
+                                onClick={() => {
+                                    setLanguage(lang.code);
+                                    const updated = { ...settings, language: lang.code };
+                                    setSettings(updated);
+                                    StorageService.saveSettings(updated);
+                                    // Force re-render to apply language
+                                    window.location.reload();
+                                }}
+                                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                                    getSavedLanguage() === lang.code
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500'
+                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                <span>{lang.flag}</span>
+                                <span className="text-xs">{t(lang.label as keyof ReturnType<typeof t>)}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Currency Selection */}

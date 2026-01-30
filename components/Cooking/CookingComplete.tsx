@@ -4,6 +4,7 @@ import { GeneratedRecipe } from '../../services/geminiService';
 import { StorageService } from '../../services/storageService';
 import { CookedMeal, Leftover, InventoryItem } from '../../types';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
+import { t } from '../../services/i18n';
 
 interface CookingCompleteProps {
   recipe: GeneratedRecipe;
@@ -137,7 +138,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
       {/* Header */}
       <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-center">
         <span className="text-3xl mb-2 block">🎉</span>
-        <h2 className="text-xl font-bold dark:text-white">Готово!</h2>
+        <h2 className="text-xl font-bold dark:text-white">{t('done')}</h2>
       </div>
 
       {/* Content */}

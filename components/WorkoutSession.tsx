@@ -553,7 +553,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Тренировка</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
           <button onClick={() => setMode('local')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ChevronRight size={24} />
           </button>
@@ -575,7 +575,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
             className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
           >
             <Cpu className="w-5 h-5" />
-            Своя тренировка
+            {t('customWorkout')}
           </button>
         </div>
       </div>
@@ -591,7 +591,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Разминка</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('warmup')}</h1>
           <div className="w-10" />
         </div>
 
@@ -670,14 +670,14 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Тренировка</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
           <div className="w-10" />
         </div>
 
         {/* Mode selection */}
         <div className="flex-1 p-6 space-y-6">
           <h2 className={`text-xl font-semibold text-center mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Выберите режим
+            {t('chooseMode')}
           </h2>
 
           {/* Local Mode - Recommended */}
@@ -686,26 +686,26 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-left relative overflow-hidden"
           >
             <div className="absolute top-3 right-3 bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-              Рекомендуем
+              {t('recommended')}
             </div>
             <div className="flex items-start gap-4">
               <div className="p-3 bg-white/20 rounded-xl">
                 <Cpu className="w-8 h-8 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-white mb-1">Локальный трекер</h3>
+                <h3 className="text-xl font-bold text-white mb-1">{t('localTracker')}</h3>
                 <p className="text-green-100 text-sm mb-3">
-                  Подсчёт повторений на устройстве через ML-модель
+                  {t('localTrackerDesc')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                    ✓ Бесплатно
+                    {t('freeFeature')}
                   </span>
                   <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                    ✓ Работает офлайн
+                    {t('worksOffline')}
                   </span>
                   <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                    ✓ Быстрый отклик
+                    {t('fastResponse')}
                   </span>
                 </div>
               </div>
@@ -729,19 +729,19 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-white mb-1">AI Коуч</h3>
+                <h3 className="text-xl font-bold text-white mb-1">{t('aiCoach')}</h3>
                 <p className="text-purple-100 text-sm mb-3">
-                  Gemini Live с голосовыми подсказками и анализом формы
+                  {t('aiCoachDesc')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                    🎤 Голосовой коуч
+                    {t('voiceCoach')}
                   </span>
                   <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                    👁️ Любые упражнения
+                    {t('anyExercises')}
                   </span>
                   <span className="bg-amber-500/50 text-white text-xs px-2 py-1 rounded-full">
-                    ~$0.10/мин
+                    {t('pricePerMin')}
                   </span>
                 </div>
               </div>
@@ -751,8 +751,8 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
 
           {/* Info */}
           <div className={`text-center text-sm mt-8 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-            <p>Локальный режим использует MediaPipe для отслеживания позы.</p>
-            <p>AI Коуч подключается к Gemini Live API (тарифицируется).</p>
+            <p>{t('localModeInfo')}</p>
+            <p>{t('aiCoachInfo')}</p>
           </div>
         </div>
       </div>
@@ -768,7 +768,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Выбор упражнения</h1>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('exerciseSelection')}</h1>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
@@ -809,7 +809,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           {/* Target selector */}
           <div className={`mt-4 rounded-xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
             <label className={`text-sm mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              {isTimeBased(selectedExercise) ? 'Цель (секунды)' : 'Цель (повторения)'}
+              {isTimeBased(selectedExercise) ? t('goalSeconds') : t('goalReps')}
             </label>
             <div className="flex items-center gap-4">
               <button
@@ -821,7 +821,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
               <div className="flex-1 text-center">
                 <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{targetReps}</span>
                 <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {isTimeBased(selectedExercise) ? 'сек' : 'раз'}
+                  {isTimeBased(selectedExercise) ? t('secUnit') : t('repsUnit')}
                 </span>
               </div>
               <button
@@ -841,7 +841,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
             className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Play className="w-6 h-6" fill="white" />
-            Начать
+            {t('start')}
           </button>
         </div>
       </div>
@@ -891,7 +891,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                  {!isStreaming && !error && (
                     <div className="text-white text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
-                      <p>Подключение к AI...</p>
+                      <p>{t('connectingToAi')}</p>
                     </div>
                  )}
             </div>
@@ -928,7 +928,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
                      <div className="w-16 h-16 bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <AlertCircle size={32} className="text-red-500" />
                      </div>
-                     <h3 className="text-xl font-bold text-white mb-2">Oops!</h3>
+                     <h3 className="text-xl font-bold text-white mb-2">{t('oops')}</h3>
                      <p className="text-gray-300 mb-6">{error}</p>
                      <button
                          onClick={() => {

@@ -5,6 +5,7 @@ import { CookingStep, TimerState } from './CookingStep';
 import { CookingComplete } from './CookingComplete';
 import { ReminderPopup } from './ReminderPopup';
 import { generateDishImage } from '../../services/nanaBananaService';
+import { t, tf } from '../../services/i18n';
 
 interface CookingModeProps {
   recipe: GeneratedRecipe;
@@ -76,7 +77,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
             // Play notification sound
             playNotificationSound();
             // Speak completion
-            speakReminder('Таймер завершён!');
+            speakReminder(t('cookingTimerDone'));
             // Vibrate if available
             if (navigator.vibrate) {
               navigator.vibrate([200, 100, 200]);
@@ -255,7 +256,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
         <div className="text-center">
           <div className="font-medium dark:text-white truncate max-w-[200px]">{recipe.name}</div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Шаг {currentStepIndex + 1} из {totalSteps}
+            {tf('stepOf', { current: currentStepIndex + 1, total: totalSteps })}
           </div>
         </div>
         <div className="w-10" /> {/* Spacer for alignment */}
@@ -315,7 +316,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
           className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           <Check className="w-6 h-6" />
-          <span>Готово!</span>
+          <span>{t('done')}</span>
         </button>
       </div>
 

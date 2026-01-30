@@ -4,7 +4,7 @@ import {
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
     RefreshCw, Heart, AlertCircle, Eye
 } from 'lucide-react';
-import { t } from '../services/i18n';
+import { t, tf } from '../services/i18n';
 import {
     ShoppingPreferences,
     ShoppingSession,
@@ -800,7 +800,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     </button>
                     <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
                         <span className="text-blue-700 dark:text-blue-300 font-bold flex items-center gap-2">
-                            <Eye size={16} /> Покажи витрину
+                            <Eye size={16} /> {t('showShelf')}
                         </span>
                     </div>
                     <div className="w-10" />
@@ -814,10 +814,10 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700 max-w-sm">
                             <Eye size={64} className="mx-auto mb-4 text-blue-500" />
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                                Покажи витрину
+                                {t('photoShelfHeading')}
                             </h3>
                             <p className="text-gray-500 text-sm mb-6">
-                                Сфоткай полку или витрину - AI покажет где находятся нужные продукты
+                                {t('photoShelfInstr')}
                             </p>
                             <button
                                 onClick={() => shelfInputRef.current?.click()}
@@ -875,10 +875,10 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                             <div className="bg-yellow-50 dark:bg-yellow-900/30 p-6 rounded-2xl text-center">
                                 <AlertTriangle size={48} className="mx-auto mb-3 text-yellow-500" />
                                 <p className="font-bold text-gray-900 dark:text-white mb-2">
-                                    Не удалось распознать
+                                    {t('couldNotRecognize')}
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                    {shelfResult.notRecognizedReason || 'Попробуй сфоткать ближе или при лучшем освещении'}
+                                    {shelfResult.notRecognizedReason || t('tryCloserPhoto')}
                                 </p>
                             </div>
                         ) : (
@@ -892,7 +892,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                 )}
 
                                 <p className="text-sm text-gray-500">
-                                    Найдено товаров: {shelfResult.products.length}
+                                    {tf('productsFound', { count: shelfResult.products.length })}
                                 </p>
 
                                 {/* Needed products */}
@@ -909,7 +909,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                                 onClick={() => product.matchedListItem && markItemFromShelf(product.matchedListItem)}
                                                 className="bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold"
                                             >
-                                                Взять ✓
+                                                {t('takeIt')}
                                             </button>
                                         </div>
                                     ))}
@@ -923,13 +923,13 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                 onClick={() => { setShelfResult(null); setShelfImage(null); }}
                                 className="flex-1 py-4 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2"
                             >
-                                <RefreshCw size={16} /> Сфоткать ещё
+                                <RefreshCw size={16} /> {t('photoMore')}
                             </button>
                             <button
                                 onClick={() => setView('shopping')}
                                 className="flex-1 py-4 bg-blue-500 text-white rounded-xl font-bold"
                             >
-                                Готово
+                                {t('done')}
                             </button>
                         </div>
                     </div>
@@ -948,7 +948,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     {t('shoppingComplete')} 🎉
                 </h2>
                 <p className="text-gray-500">
-                    {totalCount} товаров куплено
+                    {totalCount} {t('productsBought')}
                 </p>
             </div>
 
@@ -973,7 +973,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 onClick={() => { setSession(null); setView('home'); }}
                 className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold"
             >
-                Готово
+                {t('done')}
             </button>
         </div>
     );

@@ -18,6 +18,7 @@ import {
   DifficultyFeedback
 } from '../services/workoutAdvisor';
 import { getExerciseNameRu, TrackableExercise } from '../services/poseTracker';
+import { t } from '../services/i18n';
 
 // ==================== TYPES ====================
 
@@ -83,10 +84,10 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
       </div>
 
       <h2 className={`text-xl font-bold text-center mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-        Сначала разминка!
+        {t('warmupFirst')}
       </h2>
       <p className={`text-sm text-center mb-4 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-        Разогретые мышцы работают лучше и меньше травмируются
+        {t('warmedMusclesWork')}
       </p>
 
       <button
@@ -96,7 +97,7 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
         }`}
       >
         <span className={`text-sm font-medium ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
-          Почему это важно?
+          {t('whyImportant')}
         </span>
         <ChevronDown className={`w-4 h-4 transition-transform ${showWhy ? 'rotate-180' : ''} ${
           isDark ? 'text-amber-400' : 'text-amber-600'
@@ -105,9 +106,9 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
 
       {showWhy && (
         <ul className={`mb-4 space-y-1 text-sm ${isDark ? 'text-amber-200/70' : 'text-amber-800'}`}>
-          <li>• Улучшает кровообращение</li>
-          <li>• Снижает риск травм</li>
-          <li>• Повышает эффективность тренировки</li>
+          <li>• {t('improveCirculation')}</li>
+          <li>• {t('reducesInjury')}</li>
+          <li>• {t('improvesEfficiency')}</li>
         </ul>
       )}
 
@@ -117,7 +118,7 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
           className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold flex items-center justify-center gap-2"
         >
           <Play className="w-5 h-5" fill="white" />
-          Начать разминку (2 мин)
+          {t('startWarmup')}
         </button>
 
         <button
@@ -127,7 +128,7 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
           }`}
         >
           <CheckCircle className="w-5 h-5" />
-          Я уже размялся
+          {t('alreadyWarmedUp')}
         </button>
 
         <button
@@ -136,7 +137,7 @@ export const WarmupReminder: React.FC<WarmupReminderProps> = ({
             confirmSkip ? 'text-red-500 font-medium' : isDark ? 'text-white/40' : 'text-gray-400'
           }`}
         >
-          {confirmSkip ? 'Точно пропустить?' : 'Пропустить'}
+          {confirmSkip ? t('sureToSkip') : t('skip')}
         </button>
       </div>
     </div>
@@ -170,18 +171,18 @@ export const WorkoutFeedback: React.FC<WorkoutFeedbackProps> = ({
   };
 
   const options = [
-    { value: 'easy' as const, icon: <Smile className="w-8 h-8" />, label: 'Легко', desc: 'Могу ещё!', color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50' },
-    { value: 'normal' as const, icon: <Meh className="w-8 h-8" />, label: 'Норм', desc: 'В самый раз', color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50' },
-    { value: 'hard' as const, icon: <Frown className="w-8 h-8" />, label: 'Сложно', desc: 'Еле осилил', color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50' }
+    { value: 'easy' as const, icon: <Smile className="w-8 h-8" />, label: t('easy'), desc: t('canDoMore'), color: 'text-green-500', bg: isDark ? 'bg-green-900/30' : 'bg-green-50' },
+    { value: 'normal' as const, icon: <Meh className="w-8 h-8" />, label: t('normal'), desc: t('justRight'), color: 'text-blue-500', bg: isDark ? 'bg-blue-900/30' : 'bg-blue-50' },
+    { value: 'hard' as const, icon: <Frown className="w-8 h-8" />, label: t('hard'), desc: t('barelyMadeIt'), color: 'text-amber-500', bg: isDark ? 'bg-amber-900/30' : 'bg-amber-50' }
   ];
 
   return (
     <div className={`p-6 rounded-2xl ${isDark ? 'bg-gray-800' : 'bg-white shadow-lg'}`}>
       <h3 className={`text-lg font-bold text-center mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-        Как было?
+        {t('howWasIt')}
       </h3>
       <p className={`text-sm text-center mb-6 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-        Это поможет подстроить нагрузку
+        {t('helpsAdjustLoad')}
       </p>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -201,16 +202,16 @@ export const WorkoutFeedback: React.FC<WorkoutFeedbackProps> = ({
       <div className={`p-3 rounded-lg text-xs space-y-1 ${isDark ? 'bg-white/5 text-white/50' : 'bg-gray-50 text-gray-500'}`}>
         <div className="flex items-center gap-2">
           <TrendingUp className="w-3 h-3 text-green-500" />
-          <span>Легко → +15% повторов</span>
+          <span>{t('easyMoreReps')}</span>
         </div>
         <div className="flex items-center gap-2">
           <TrendingDown className="w-3 h-3 text-amber-500" />
-          <span>Сложно → уменьшим нагрузку</span>
+          <span>{t('hardReduceLoad')}</span>
         </div>
       </div>
 
       <button onClick={onSkip} className={`w-full mt-4 py-2 text-sm ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-        Пропустить
+        {t('skip')}
       </button>
     </div>
   );
@@ -251,7 +252,7 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
       }`}>
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className={`w-4 h-4 ${isDark ? 'text-yellow-400' : 'text-yellow-500'}`} />
-          <span className={`text-xs font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}>Совет дня</span>
+          <span className={`text-xs font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}>{t('tipOfTheDay')}</span>
         </div>
         <p className={`text-sm ${isDark ? 'text-white/90' : 'text-gray-700'}`}>{motivation}</p>
       </div>
@@ -264,14 +265,14 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
               <div className={`text-2xl font-bold ${isDark ? 'text-orange-400' : 'text-orange-500'}`}>
                 {profile.currentStreak}
               </div>
-              <div className={`text-xs ${isDark ? 'text-orange-300/70' : 'text-orange-600'}`}>дней 🔥</div>
+              <div className={`text-xs ${isDark ? 'text-orange-300/70' : 'text-orange-600'}`}>{t('daysStreak')}</div>
             </div>
           )}
           <div className={`flex-1 p-3 rounded-xl text-center ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
             <div className={`text-2xl font-bold ${isDark ? 'text-green-400' : 'text-green-500'}`}>
               {profile.totalWorkouts}
             </div>
-            <div className={`text-xs ${isDark ? 'text-green-300/70' : 'text-green-600'}`}>тренировок</div>
+            <div className={`text-xs ${isDark ? 'text-green-300/70' : 'text-green-600'}`}>{t('workoutsCount')}</div>
           </div>
         </div>
       )}
@@ -280,7 +281,7 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
       <div>
         <h3 className={`text-sm font-medium mb-3 flex items-center gap-2 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
           <Target className="w-4 h-4" />
-          Рекомендации
+          {t('recommendations')}
         </h3>
 
         <div className="space-y-3">
@@ -303,7 +304,7 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
                   <div className="flex items-center gap-2">
                     <h4 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{rec.title}</h4>
                     {rec.priority === 'high' && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">Важно</span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">{t('important')}</span>
                     )}
                   </div>
                   <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>{rec.description}</p>
@@ -311,7 +312,7 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
 
                 <div className="flex items-center gap-2">
                   <div className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-400'}`}>
-                    <Clock className="w-4 h-4 inline mr-1" />{rec.duration} мин
+                    <Clock className="w-4 h-4 inline mr-1" />{rec.duration} {t('minUnit')}
                   </div>
                   <ChevronRight className={`w-5 h-5 transition-transform ${expandedCard === index ? 'rotate-90' : ''} ${
                     isDark ? 'text-white/40' : 'text-gray-400'
@@ -352,7 +353,7 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
                     className={`w-full mt-4 py-3 rounded-xl font-medium text-white bg-gradient-to-r ${SESSION_COLORS[rec.sessionType]} flex items-center justify-center gap-2`}
                   >
                     <Zap className="w-5 h-5" />
-                    Начать
+                    {t('start')}
                   </button>
                 </div>
               )}
@@ -366,10 +367,10 @@ export const SmartWorkoutPanel: React.FC<SmartWorkoutPanelProps> = ({
         <div className={`p-4 rounded-xl ${isDark ? 'bg-blue-900/30 border border-blue-700/50' : 'bg-blue-50 border border-blue-200'}`}>
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-            <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Для начинающих</span>
+            <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{t('forBeginners')}</span>
           </div>
           <p className={`text-xs ${isDark ? 'text-blue-300/70' : 'text-blue-600'}`}>
-            Начни с 5-минутных тренировок. После каждой честно отвечай "Как было?" — приложение подстроится под тебя.
+            {t('startWith5Min')}
           </p>
         </div>
       )}
