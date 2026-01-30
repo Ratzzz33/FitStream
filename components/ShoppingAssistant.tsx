@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
     ShoppingCart, ChefHat, Users, Clock, Loader2, Camera, Check, X,
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
-    ScanLine, RefreshCw, Heart, AlertCircle, Eye, Package
+    RefreshCw, Heart, AlertCircle, Eye
 } from 'lucide-react';
 import { t } from '../services/i18n';
 import {
@@ -72,15 +72,15 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [currentItem, setCurrentItem] = useState<ShoppingListItem | null>(null);
     const [verificationResult, setVerificationResult] = useState<ProductVerification | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [verifyImage, setVerifyImage] = useState<string | null>(null);
 
     // Shelf scan state
     const [shelfResult, setShelfResult] = useState<ShelfScanResult | null>(null);
     const [shelfImage, setShelfImage] = useState<string | null>(null);
 
-    // Camera refs
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [cameraActive, setCameraActive] = useState(false);
+    // File input refs (photo only, no live video)
+    const verifyInputRef = useRef<HTMLInputElement>(null);
+    const shelfInputRef = useRef<HTMLInputElement>(null);
 
     // Expanded meal days
     const [expandedDays, setExpandedDays] = useState<number[]>([1]);
@@ -88,38 +88,21 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     // Load inventory
     const inventory = StorageService.getInventory?.() || [];
 
-    // Camera functions
-    const startCamera = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
-            });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.play();
-                setCameraActive(true);
-            }
-        } catch (e) {
-            setError(t('cameraDenied'));
-        }
-    };
+    // Photo handling (file input, no live camera)
+    const handlePhotoSelect = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        callback: (base64: string) => void
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    const stopCamera = () => {
-        if (videoRef.current?.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(t => t.stop());
-            setCameraActive(false);
-        }
-    };
-
-    const capturePhoto = (): string | null => {
-        if (!videoRef.current || !canvasRef.current) return null;
-        const canvas = canvasRef.current;
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(videoRef.current, 0, 0);
-        return canvas.toDataURL('image/jpeg').split(',')[1];
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            callback(base64);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // Reset input
     };
 
     // Generate meal plan
@@ -163,25 +146,23 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         setSession({ ...session, shoppingList: updatedList });
     };
 
-    // Verify product photo
-    const handleVerifyProduct = async (item: ShoppingListItem) => {
+    // Verify product photo (photo only, no live video)
+    const handleVerifyProduct = (item: ShoppingListItem) => {
         setCurrentItem(item);
         setVerificationResult(null);
+        setVerifyImage(null);
         setView('verify');
-        await startCamera();
     };
 
-    const captureAndVerify = async () => {
+    const onVerifyPhotoSelected = async (base64: string) => {
         if (!currentItem) return;
+        setVerifyImage(base64);
         setIsVerifying(true);
-        const photo = capturePhoto();
-        if (photo) {
-            try {
-                const result = await verifyProductPhoto(photo, currentItem);
-                setVerificationResult(result);
-            } catch (e) {
-                setError(String(e));
-            }
+        try {
+            const result = await verifyProductPhoto(base64, currentItem);
+            setVerificationResult(result);
+        } catch (e) {
+            setError(String(e));
         }
         setIsVerifying(false);
     };
@@ -199,32 +180,28 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 : item
         );
         setSession({ ...session, shoppingList: updatedList });
-        stopCamera();
         setView('shopping');
         setCurrentItem(null);
         setVerificationResult(null);
+        setVerifyImage(null);
     };
 
-    // Scan shelf
-    const handleScanShelf = async () => {
+    // Scan shelf (photo only, no live video)
+    const handleScanShelf = () => {
         setShelfResult(null);
         setShelfImage(null);
         setView('shelf');
-        await startCamera();
     };
 
-    const captureAndScanShelf = async () => {
+    const onShelfPhotoSelected = async (base64: string) => {
         if (!session) return;
+        setShelfImage(base64);
         setIsLoading(true);
-        const photo = capturePhoto();
-        if (photo) {
-            setShelfImage(photo);
-            try {
-                const result = await scanStoreShelf(photo, session.shoppingList);
-                setShelfResult(result);
-            } catch (e) {
-                setShelfResult({ products: [], notRecognized: true, notRecognizedReason: String(e) });
-            }
+        try {
+            const result = await scanStoreShelf(base64, session.shoppingList);
+            setShelfResult(result);
+        } catch (e) {
+            setShelfResult({ products: [], notRecognized: true, notRecognizedReason: String(e) });
         }
         setIsLoading(false);
     };
@@ -245,11 +222,6 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             setView('complete');
         }
     };
-
-    // Cleanup camera on unmount
-    useEffect(() => {
-        return () => stopCamera();
-    }, []);
 
     // Group shopping list by category
     const groupedList = session?.shoppingList.reduce((acc, item) => {
@@ -670,16 +642,26 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     );
 
     const renderVerify = () => (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="fixed inset-0 bg-gray-100 dark:bg-gray-950 z-50 flex flex-col">
+            {/* Hidden file input */}
+            <input
+                ref={verifyInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handlePhotoSelect(e, onVerifyPhotoSelected)}
+            />
+
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 p-4 z-10 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                    <button onClick={() => { stopCamera(); setView('shopping'); }} className="p-2 bg-white/20 rounded-full backdrop-blur">
-                        <X size={20} className="text-white" />
+                    <button onClick={() => setView('shopping')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                        <X size={24} className="text-gray-500" />
                     </button>
                     {currentItem && (
-                        <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-full">
-                            <span className="text-white font-bold">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/30 px-4 py-2 rounded-full">
+                            <span className="text-emerald-700 dark:text-emerald-300 font-bold">
                                 {currentItem.emoji} {currentItem.name}
                             </span>
                         </div>
@@ -688,125 +670,136 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             </div>
 
-            {/* Camera */}
-            <div className="flex-1 relative">
-                <video ref={videoRef} className="w-full h-full object-cover" playsInline />
-                <canvas ref={canvasRef} className="hidden" />
-
-                {/* Target overlay */}
-                {!verificationResult && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-64 h-64 border-2 border-emerald-500/50 border-dashed rounded-2xl flex items-center justify-center">
-                            <span className="bg-black/40 text-white text-sm px-3 py-1 rounded-full backdrop-blur">
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+                {!verifyImage && !verificationResult && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700 max-w-sm">
+                            <Camera size={64} className="mx-auto mb-4 text-emerald-500" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                                 {t('isThisIt')}
-                            </span>
+                            </h3>
+                            <p className="text-gray-500 text-sm mb-6">
+                                Сфоткай продукт, чтобы проверить - это то, что нужно
+                            </p>
+                            <button
+                                onClick={() => verifyInputRef.current?.click()}
+                                className="w-full bg-emerald-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                                <Camera size={20} /> {t('takePhoto')}
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* Result overlay */}
-                {verificationResult && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm">
-                            {/* Status */}
-                            <div className={`text-center mb-4 ${verificationResult.isCorrect ? 'text-emerald-500' : 'text-red-500'}`}>
-                                {verificationResult.isCorrect ? (
-                                    <>
-                                        <Check size={48} className="mx-auto mb-2" />
-                                        <p className="text-xl font-bold">{t('correctProduct')}</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <X size={48} className="mx-auto mb-2" />
-                                        <p className="text-xl font-bold">{t('wrongProduct')}</p>
-                                    </>
-                                )}
-                            </div>
+                {isVerifying && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <Loader2 size={48} className="animate-spin text-emerald-500 mb-4" />
+                        <p className="text-gray-500">{t('analyzing')}</p>
+                    </div>
+                )}
 
-                            {/* Product info */}
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
-                                <p className="font-bold text-gray-900 dark:text-white mb-2">
-                                    {verificationResult.productName}
-                                </p>
+                {verifyImage && verificationResult && (
+                    <div className="space-y-4">
+                        {/* Photo preview */}
+                        <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                            <img
+                                src={`data:image/jpeg;base64,${verifyImage}`}
+                                className="w-full h-48 object-cover"
+                                alt="Product"
+                            />
+                        </div>
 
-                                {/* Health score */}
-                                <div className={`flex items-center gap-2 mb-2 ${HEALTH_COLORS[verificationResult.healthScore].text}`}>
-                                    <Heart size={16} />
-                                    <span className="text-sm">
-                                        {verificationResult.healthScore === 1 && t('healthyChoice')}
-                                        {verificationResult.healthScore === 2 && t('moderateChoice')}
-                                        {verificationResult.healthScore === 3 && t('unhealthyChoice')}
-                                    </span>
+                        {/* Result */}
+                        <div className={`p-4 rounded-2xl ${verificationResult.isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                            <div className={`flex items-center gap-3 ${verificationResult.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {verificationResult.isCorrect ? <Check size={32} /> : <X size={32} />}
+                                <div>
+                                    <p className="text-xl font-bold">
+                                        {verificationResult.isCorrect ? t('correctProduct') : t('wrongProduct')}
+                                    </p>
+                                    <p className="text-sm opacity-80">{verificationResult.productName}</p>
                                 </div>
-
-                                <p className="text-xs text-gray-500">{verificationResult.healthAnalysis}</p>
-
-                                {/* Expiry warning */}
-                                {verificationResult.expiryWarning && (
-                                    <div className="mt-2 flex items-center gap-2 text-orange-500 text-sm">
-                                        <AlertTriangle size={14} />
-                                        {verificationResult.expiryWarning}
-                                    </div>
-                                )}
-
-                                {/* Better alternative */}
-                                {verificationResult.betterAlternative && (
-                                    <div className="mt-3 p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
-                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                            💡 {t('betterAlternative')}: {verificationResult.betterAlternative.name}
-                                        </p>
-                                        <p className="text-xs text-emerald-500">{verificationResult.betterAlternative.reason}</p>
-                                    </div>
-                                )}
                             </div>
+                        </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setVerificationResult(null)}
-                                    className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300"
-                                >
-                                    {t('retake')}
-                                </button>
-                                <button
-                                    onClick={() => confirmVerification(verificationResult.isCorrect)}
-                                    className={`flex-1 py-3 rounded-xl font-bold text-white ${
-                                        verificationResult.isCorrect ? 'bg-emerald-500' : 'bg-gray-500'
-                                    }`}
-                                >
-                                    {verificationResult.isCorrect ? t('itemChecked') : 'OK'}
-                                </button>
+                        {/* Health score */}
+                        <div className={`p-4 rounded-2xl ${HEALTH_COLORS[verificationResult.healthScore].bg}`}>
+                            <div className={`flex items-center gap-2 ${HEALTH_COLORS[verificationResult.healthScore].text}`}>
+                                <Heart size={20} />
+                                <span className="font-bold">
+                                    {verificationResult.healthScore === 1 && t('healthyChoice')}
+                                    {verificationResult.healthScore === 2 && t('moderateChoice')}
+                                    {verificationResult.healthScore === 3 && t('unhealthyChoice')}
+                                </span>
                             </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{verificationResult.healthAnalysis}</p>
+                        </div>
+
+                        {/* Expiry warning */}
+                        {verificationResult.expiryWarning && (
+                            <div className="p-4 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center gap-3 text-orange-600 dark:text-orange-400">
+                                <AlertTriangle size={24} />
+                                <p className="font-bold">{verificationResult.expiryWarning}</p>
+                            </div>
+                        )}
+
+                        {/* Better alternative */}
+                        {verificationResult.betterAlternative && (
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-2xl">
+                                <p className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-2">
+                                    💡 {t('betterAlternative')}
+                                </p>
+                                <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">
+                                    {verificationResult.betterAlternative.name}
+                                </p>
+                                <p className="text-sm text-gray-500">{verificationResult.betterAlternative.reason}</p>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                onClick={() => { setVerificationResult(null); setVerifyImage(null); }}
+                                className="flex-1 py-4 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300"
+                            >
+                                {t('retake')}
+                            </button>
+                            <button
+                                onClick={() => confirmVerification(verificationResult.isCorrect)}
+                                className={`flex-1 py-4 rounded-xl font-bold text-white ${
+                                    verificationResult.isCorrect ? 'bg-emerald-500' : 'bg-gray-500'
+                                }`}
+                            >
+                                {verificationResult.isCorrect ? t('itemChecked') : 'OK'}
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
-
-            {/* Capture button */}
-            {!verificationResult && (
-                <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-                    <button
-                        onClick={captureAndVerify}
-                        disabled={isVerifying}
-                        className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-100 transition transform active:scale-95"
-                    >
-                        {isVerifying ? <Loader2 className="animate-spin" size={28} /> : <Camera size={28} />}
-                    </button>
-                </div>
-            )}
         </div>
     );
 
     const renderShelfScan = () => (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="fixed inset-0 bg-gray-100 dark:bg-gray-950 z-50 flex flex-col">
+            {/* Hidden file input */}
+            <input
+                ref={shelfInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handlePhotoSelect(e, onShelfPhotoSelected)}
+            />
+
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 p-4 z-10 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                    <button onClick={() => { stopCamera(); setView('shopping'); }} className="p-2 bg-white/20 rounded-full backdrop-blur">
-                        <X size={20} className="text-white" />
+                    <button onClick={() => setView('shopping')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                        <X size={24} className="text-gray-500" />
                     </button>
-                    <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-full">
-                        <span className="text-white font-bold flex items-center gap-2">
+                    <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
+                        <span className="text-blue-700 dark:text-blue-300 font-bold flex items-center gap-2">
                             <Eye size={16} /> Покажи витрину
                         </span>
                     </div>
@@ -814,128 +807,134 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             </div>
 
-            {/* Camera / Result */}
-            <div className="flex-1 relative">
-                {!shelfResult ? (
-                    <>
-                        <video ref={videoRef} className="w-full h-full object-cover" playsInline />
-                        <canvas ref={canvasRef} className="hidden" />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-80 h-64 border-2 border-emerald-500/50 border-dashed rounded-2xl flex items-center justify-center">
-                                <span className="bg-black/40 text-white text-sm px-3 py-1 rounded-full backdrop-blur">
-                                    📸 Сфоткай полку/витрину
-                                </span>
-                            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+                {!shelfImage && !shelfResult && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700 max-w-sm">
+                            <Eye size={64} className="mx-auto mb-4 text-blue-500" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                Покажи витрину
+                            </h3>
+                            <p className="text-gray-500 text-sm mb-6">
+                                Сфоткай полку или витрину - AI покажет где находятся нужные продукты
+                            </p>
+                            <button
+                                onClick={() => shelfInputRef.current?.click()}
+                                className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                                <Camera size={20} /> {t('takePhoto')}
+                            </button>
                         </div>
-                    </>
-                ) : (
-                    <div className="w-full h-full relative">
-                        {/* Shelf image with markers */}
-                        {shelfImage && (
-                            <div className="relative w-full h-full">
-                                <img
-                                    src={`data:image/jpeg;base64,${shelfImage}`}
-                                    className="w-full h-full object-cover"
-                                    alt="Shelf"
-                                />
+                    </div>
+                )}
 
-                                {/* Product markers */}
-                                {!shelfResult.notRecognized && shelfResult.products.map((product, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${
-                                            product.isNeeded
-                                                ? 'bg-emerald-500 ring-4 ring-emerald-500/50 animate-pulse'
-                                                : 'bg-gray-500/70'
-                                        } text-white px-2 py-1 rounded-full text-xs font-bold`}
-                                        style={{
-                                            left: `${product.positionX}%`,
-                                            top: `${product.positionY}%`
-                                        }}
-                                        onClick={() => {
-                                            if (product.isNeeded && product.matchedListItem) {
-                                                markItemFromShelf(product.matchedListItem);
-                                            }
-                                        }}
-                                    >
-                                        {product.emoji} {product.isNeeded && '✓'}
-                                    </div>
-                                ))}
+                {isLoading && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <Loader2 size={48} className="animate-spin text-blue-500 mb-4" />
+                        <p className="text-gray-500">{t('analyzing')}</p>
+                    </div>
+                )}
+
+                {shelfImage && shelfResult && (
+                    <div className="space-y-4">
+                        {/* Photo with markers */}
+                        <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 relative">
+                            <img
+                                src={`data:image/jpeg;base64,${shelfImage}`}
+                                className="w-full"
+                                alt="Shelf"
+                            />
+
+                            {/* Product markers */}
+                            {!shelfResult.notRecognized && shelfResult.products.map((product, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer ${
+                                        product.isNeeded
+                                            ? 'bg-emerald-500 ring-4 ring-emerald-500/50 animate-pulse'
+                                            : 'bg-gray-500/70'
+                                    } text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg`}
+                                    style={{
+                                        left: `${product.positionX}%`,
+                                        top: `${product.positionY}%`
+                                    }}
+                                    onClick={() => {
+                                        if (product.isNeeded && product.matchedListItem) {
+                                            markItemFromShelf(product.matchedListItem);
+                                        }
+                                    }}
+                                >
+                                    {product.emoji} {product.isNeeded && '✓'}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Result */}
+                        {shelfResult.notRecognized ? (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/30 p-6 rounded-2xl text-center">
+                                <AlertTriangle size={48} className="mx-auto mb-3 text-yellow-500" />
+                                <p className="font-bold text-gray-900 dark:text-white mb-2">
+                                    Не удалось распознать
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    {shelfResult.notRecognizedReason || 'Попробуй сфоткать ближе или при лучшем освещении'}
+                                </p>
                             </div>
+                        ) : (
+                            <>
+                                {shelfResult.tip && (
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/30 p-4 rounded-2xl">
+                                        <p className="text-emerald-700 dark:text-emerald-300">
+                                            💡 {shelfResult.tip}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <p className="text-sm text-gray-500">
+                                    Найдено товаров: {shelfResult.products.length}
+                                </p>
+
+                                {/* Needed products */}
+                                <div className="space-y-2">
+                                    {shelfResult.products.filter(p => p.isNeeded).map((product, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 p-4 rounded-xl"
+                                        >
+                                            <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                                                {product.emoji} {product.name}
+                                            </span>
+                                            <button
+                                                onClick={() => product.matchedListItem && markItemFromShelf(product.matchedListItem)}
+                                                className="bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold"
+                                            >
+                                                Взять ✓
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
 
-                        {/* Result panel */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl p-4 max-h-[50%] overflow-y-auto">
-                            {shelfResult.notRecognized ? (
-                                <div className="text-center py-6">
-                                    <AlertTriangle size={48} className="mx-auto mb-3 text-yellow-500" />
-                                    <p className="font-bold text-gray-900 dark:text-white mb-2">
-                                        Не удалось распознать
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                        {shelfResult.notRecognizedReason || 'Попробуй сфоткать ближе или при лучшем освещении'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <>
-                                    {shelfResult.tip && (
-                                        <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl mb-3">
-                                            <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                                                💡 {shelfResult.tip}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <p className="text-sm text-gray-500 mb-2">
-                                        Найдено товаров: {shelfResult.products.length}
-                                    </p>
-
-                                    {/* Needed products */}
-                                    <div className="space-y-2">
-                                        {shelfResult.products.filter(p => p.isNeeded).map((product, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl"
-                                            >
-                                                <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                                                    {product.emoji} {product.name}
-                                                </span>
-                                                <button
-                                                    onClick={() => product.matchedListItem && markItemFromShelf(product.matchedListItem)}
-                                                    className="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm"
-                                                >
-                                                    Взять ✓
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-4">
                             <button
                                 onClick={() => { setShelfResult(null); setShelfImage(null); }}
-                                className="w-full mt-4 bg-gray-200 dark:bg-gray-700 py-3 rounded-xl font-bold"
+                                className="flex-1 py-4 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2"
                             >
-                                <RefreshCw size={16} className="inline mr-2" />
-                                Сканировать ещё
+                                <RefreshCw size={16} /> Сфоткать ещё
+                            </button>
+                            <button
+                                onClick={() => setView('shopping')}
+                                className="flex-1 py-4 bg-blue-500 text-white rounded-xl font-bold"
+                            >
+                                Готово
                             </button>
                         </div>
                     </div>
                 )}
             </div>
-
-            {/* Capture button */}
-            {!shelfResult && (
-                <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-                    <button
-                        onClick={captureAndScanShelf}
-                        disabled={isLoading}
-                        className="bg-white text-black p-5 rounded-full shadow-lg hover:bg-gray-100 transition transform active:scale-95"
-                    >
-                        {isLoading ? <Loader2 className="animate-spin" size={28} /> : <ScanLine size={28} />}
-                    </button>
-                </div>
-            )}
         </div>
     );
 
