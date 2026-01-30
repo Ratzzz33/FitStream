@@ -876,10 +876,10 @@ const App = () => {
                     <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
                         {/* Refrigerator Icon */}
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400">
-                            <rect x="4" y="2" width="16" height="20" rx="2" />
-                            <line x1="4" y1="10" x2="20" y2="10" />
-                            <line x1="10" y1="6" x2="10" y2="6.01" />
-                            <line x1="10" y1="14" x2="10" y2="14.01" />
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <line x1="5" y1="9" x2="19" y2="9" />
+                            <line x1="15" y1="5" x2="15" y2="7" />
+                            <line x1="15" y1="12" x2="15" y2="16" />
                         </svg>
                     </div>
                     <div className="text-center">
@@ -892,14 +892,16 @@ const App = () => {
                     className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
                 >
                     <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                        {/* Gas Stove Icon */}
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
-                            <rect x="3" y="11" width="18" height="10" rx="1" />
-                            <circle cx="7" cy="16" r="1.5" />
-                            <circle cx="17" cy="16" r="1.5" />
-                            <path d="M7 11V9c0-1 .5-2 1.5-2.5" />
-                            <path d="M12 11V8c0-1.5 1-3 2-3.5" />
-                            <path d="M17 11V9c0-1 .5-2 1.5-2.5" />
+                        {/* Pot and Pan Icon */}
+                        <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
+                            {/* Pot */}
+                            <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
+                            <line x1="4" y1="10" x2="2" y2="10" />
+                            <line x1="14" y1="10" x2="16" y2="10" />
+                            <path d="M6 10V8a3 3 0 016 0v2" />
+                            {/* Pan */}
+                            <ellipse cx="26" cy="16" rx="7" ry="3" />
+                            <line x1="33" y1="16" x2="36" y2="13" />
                         </svg>
                     </div>
                     <div className="text-center">
