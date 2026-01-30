@@ -1380,10 +1380,10 @@ const App = () => {
           <LayoutDashboard size={20} />
           <span className="text-[10px] font-medium">{t('dashboard')}</span>
         </button>
-        {/* Shopping Button */}
-        <button onClick={() => setActiveTab(AppTab.SHOPPING)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
-          <ShoppingCart size={20} />
-          <span className="text-[10px] font-medium">{t('shopping')}</span>
+        {/* Workout Button */}
+        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+          <Dumbbell size={20} />
+          <span className="text-[10px] font-medium">{t('workout')}</span>
         </button>
 
         {/* Main Nutrition Button - выделенная */}
@@ -1394,10 +1394,10 @@ const App = () => {
             <span className="text-[10px] font-medium">{t('nutrition')}</span>
         </button>
 
-        {/* Workout Button */}
-        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
-          <Dumbbell size={20} />
-          <span className="text-[10px] font-medium">{t('workout')}</span>
+        {/* Shopping Button */}
+        <button onClick={() => setActiveTab(AppTab.SHOPPING)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
+          <ShoppingCart size={20} />
+          <span className="text-[10px] font-medium">{t('shopping')}</span>
         </button>
 
         <button onClick={() => setActiveTab(AppTab.SETTINGS)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
