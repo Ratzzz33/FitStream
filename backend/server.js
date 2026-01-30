@@ -1035,6 +1035,86 @@ app.post('/api/prices/sync', async (req, res) => {
     }
 });
 
+// Sync products from receipt (AI matching + deduplication)
+app.post('/api/prices/sync-receipt', async (req, res) => {
+    const { items, countryCode, currencyCode, storeName } = req.body;
+
+    if (!items || !Array.isArray(items) || !countryCode || !currencyCode) {
+        return res.status(400).json({ error: 'Missing items, countryCode or currencyCode' });
+    }
+
+    try {
+        const results = [];
+
+        for (const item of items) {
+            // Поиск похожего продукта по названию (fuzzy match)
+            const searchResult = await pool.query(`
+                SELECT id, name, name_en, price, confidence,
+                    similarity(LOWER(name), LOWER($1)) as name_sim,
+                    similarity(LOWER(name_en), LOWER($1)) as name_en_sim
+                FROM product_prices
+                WHERE country_code = $2
+                    AND (
+                        LOWER(name) LIKE $3
+                        OR LOWER(name_en) LIKE $3
+                        OR similarity(LOWER(name), LOWER($1)) > 0.3
+                        OR similarity(LOWER(name_en), LOWER($1)) > 0.3
+                    )
+                ORDER BY GREATEST(
+                    similarity(LOWER(name), LOWER($1)),
+                    similarity(LOWER(name_en), LOWER($1))
+                ) DESC
+                LIMIT 1
+            `, [item.name, countryCode.toUpperCase(), `%${item.name.toLowerCase().split(' ')[0]}%`]);
+
+            if (searchResult.rows.length > 0) {
+                const match = searchResult.rows[0];
+                const similarity = Math.max(match.name_sim || 0, match.name_en_sim || 0);
+
+                // Обновляем цену если совпадение хорошее
+                if (similarity > 0.5 || match.name.toLowerCase().includes(item.name.toLowerCase().split(' ')[0])) {
+                    await pool.query(`
+                        UPDATE product_prices
+                        SET price = $1, price_per_unit = $2, source = 'receipt',
+                            store_name = $3, confidence = GREATEST(confidence, 85),
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $4
+                    `, [item.price, item.pricePerUnit || item.price, storeName, match.id]);
+
+                    results.push({ name: item.name, action: 'updated', matchedTo: match.name, similarity });
+                    continue;
+                }
+            }
+
+            // Создаём новый продукт
+            const newId = `${countryCode.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+            await pool.query(`
+                INSERT INTO product_prices
+                    (id, name, name_en, emoji, category, price, currency_code, unit, price_per_unit,
+                     country_code, source, store_name, confidence)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'receipt', $11, 70)
+            `, [
+                newId, item.name, item.nameEn || item.name, item.emoji || '📦',
+                item.category || 'other', item.price, currencyCode, item.unit || 'шт',
+                item.pricePerUnit || item.price, countryCode.toUpperCase(), storeName
+            ]);
+
+            results.push({ name: item.name, action: 'created', id: newId });
+        }
+
+        res.json({
+            success: true,
+            processed: items.length,
+            created: results.filter(r => r.action === 'created').length,
+            updated: results.filter(r => r.action === 'updated').length,
+            details: results
+        });
+    } catch (e) {
+        console.error('Sync receipt error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Legacy endpoint - redirects to PayPal
 app.post('/api/create-checkout-session', async (req, res) => {
     // Redirect old Stripe calls to PayPal

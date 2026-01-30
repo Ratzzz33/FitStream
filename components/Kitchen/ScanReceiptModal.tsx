@@ -71,29 +71,69 @@ export const ScanReceiptModal: React.FC<ScanReceiptModalProps> = ({
     setSelectedItems(newSelected);
   };
 
-  const handleAddAll = () => {
+  const handleAddAll = async () => {
     if (!receipt) return;
 
-    const items: InventoryItem[] = receipt.items
-      .filter((_, i) => selectedItems.has(i))
-      .map((item: ScannedReceiptItem) => ({
-        id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: item.name,
-        emoji: item.emoji,
-        quantity: item.quantity,
-        unit: item.unit,
-        storageId: item.storageType,
-        expiresAt: item.expiresInDays
-          ? new Date(Date.now() + item.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-          : undefined,
-        addedAt: new Date().toISOString(),
-        source: 'receipt' as const,
-        caloriesPer100: item.caloriesPer100,
-        price: item.price
-      }));
+    const selectedItemsList = receipt.items.filter((_, i) => selectedItems.has(i));
+
+    // 1. Сохраняем в локальный inventory
+    const items: InventoryItem[] = selectedItemsList.map((item: ScannedReceiptItem) => ({
+      id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: item.name,
+      emoji: item.emoji,
+      quantity: item.quantity,
+      unit: item.unit,
+      storageId: item.storageType,
+      expiresAt: item.expiresInDays
+        ? new Date(Date.now() + item.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+        : undefined,
+      addedAt: new Date().toISOString(),
+      source: 'receipt' as const,
+      caloriesPer100: item.caloriesPer100,
+      price: item.price
+    }));
 
     StorageService.saveInventoryBulk(items);
+
+    // 2. Синхронизируем цены с БД (асинхронно, не блокируем UI)
+    const backendUrl = settings.backendUrl || 'https://api.fitstream.health';
+    try {
+      fetch(`${backendUrl}/api/prices/sync-receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: selectedItemsList.map(item => ({
+            name: item.name,
+            emoji: item.emoji,
+            price: item.price,
+            unit: item.unit,
+            category: guessCategory(item.storageType, item.name)
+          })),
+          countryCode: 'GE', // TODO: определять по геолокации
+          currencyCode: currency,
+          storeName: receipt.store
+        })
+      }).then(res => res.json())
+        .then(data => console.log('Prices synced:', data))
+        .catch(err => console.warn('Price sync failed (non-blocking):', err));
+    } catch (e) {
+      // Не блокируем - цены синхронизируются в фоне
+      console.warn('Price sync error:', e);
+    }
+
     onAdded();
+  };
+
+  // Угадываем категорию по типу хранения и названию
+  const guessCategory = (storageType: string, name: string): string => {
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes('молоко') || nameLower.includes('сыр') || nameLower.includes('йогурт') || nameLower.includes('кефир')) return 'dairy';
+    if (nameLower.includes('мясо') || nameLower.includes('курица') || nameLower.includes('свинина') || nameLower.includes('говядина')) return 'meat';
+    if (nameLower.includes('рыба') || nameLower.includes('лосось') || nameLower.includes('креветки')) return 'fish';
+    if (nameLower.includes('хлеб') || nameLower.includes('батон') || nameLower.includes('булка')) return 'bread';
+    if (storageType === 'freezer') return 'frozen';
+    if (storageType === 'fridge') return 'dairy';
+    return 'other';
   };
 
   const storageIcons: Record<StorageType, React.ReactNode> = {
