@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send } from 'lucide-react';
-import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel } from './types';
+import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
 import { getMotivation, getPhoneSpecs, scanScaleDisplay } from './services/geminiService';
@@ -1103,6 +1103,28 @@ const App = () => {
                         <label className="block">
                             <span className="text-gray-500 dark:text-gray-400 text-xs">{t('targetWeight')}</span>
                             <input type="number" value={targetWeightInput} onChange={(e) => setTargetWeightInput(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-2 mt-1 text-sm focus:border-purple-500 outline-none" />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">{t('weightGoal') || 'Цель'}</span>
+                            <div className="flex gap-2 mt-1">
+                                {(['LOSE', 'MAINTAIN', 'GAIN'] as WeightGoal[]).map((goal) => (
+                                    <button
+                                        key={goal}
+                                        onClick={() => {
+                                            const updated = { ...settings, weightGoal: goal };
+                                            setSettings(updated);
+                                            StorageService.saveSettings(updated);
+                                        }}
+                                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all ${
+                                            settings.weightGoal === goal
+                                                ? goal === 'LOSE' ? 'bg-red-500 text-white' : goal === 'GAIN' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                        }`}
+                                    >
+                                        {goal === 'LOSE' ? (t('goalLose') || 'Похудеть') : goal === 'GAIN' ? (t('goalGain') || 'Набрать') : (t('goalMaintain') || 'Поддержать')}
+                                    </button>
+                                ))}
+                            </div>
                         </label>
                     </div>
                 </div>

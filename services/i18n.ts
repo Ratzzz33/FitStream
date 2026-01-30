@@ -27,6 +27,7 @@ const translations = {
     yourName: 'Your Name',
     age: 'Age',
     targetWeight: 'Target Weight',
+    weightGoal: 'Weight Goal',
     currentWeight: 'Current Weight',
     manageGoals: 'Manage Goals',
     saveChanges: 'Save Changes',
@@ -110,6 +111,14 @@ const translations = {
     unitKg: 'kg',
     unitKcal: 'kcal',
     unitMl: 'ml',
+
+    // Calorie calculation info
+    tdeeInfo: 'Maintenance',
+    deficitInfo: 'Deficit',
+    surplusInfo: 'Surplus',
+    goalLose: 'Lose weight',
+    goalMaintain: 'Maintain weight',
+    goalGain: 'Gain weight',
 
     // Bio Data & Nutrition
     bioData: 'Bio Data',
@@ -393,6 +402,7 @@ const translations = {
     yourName: 'Ваше имя',
     age: 'Возраст',
     targetWeight: 'Целевой вес',
+    weightGoal: 'Цель по весу',
     currentWeight: 'Текущий вес',
     manageGoals: 'Управление целями',
     saveChanges: 'Сохранить',
@@ -476,6 +486,14 @@ const translations = {
     unitKg: 'кг',
     unitKcal: 'ккал',
     unitMl: 'мл',
+
+    // Calorie calculation info
+    tdeeInfo: 'Поддержание',
+    deficitInfo: 'Дефицит',
+    surplusInfo: 'Профицит',
+    goalLose: 'Похудение',
+    goalMaintain: 'Поддержание веса',
+    goalGain: 'Набор веса',
 
     // Nutrition & Bio
     bioData: 'Биометрические данные',

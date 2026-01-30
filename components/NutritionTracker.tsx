@@ -357,6 +357,12 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
                         />
                     </div>
+                    {/* Goal explanation */}
+                    {dailyNeeds.deficit > 0 && (
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {t('tdeeInfo') || `TDEE: ${dailyNeeds.tdee} ккал`} · {t('deficitInfo') || `Дефицит: -${dailyNeeds.deficit} ккал`}
+                        </div>
+                    )}
                 </div>
             </div>
 
