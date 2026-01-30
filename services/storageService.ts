@@ -181,6 +181,11 @@ export const StorageService = {
       exercises?: any[];
       weights?: any[];
       nutrition?: any[];
+      inventory?: any[];
+      kitchenStorages?: any[];
+      cookingHistory?: any[];
+      leftovers?: any[];
+      savedRecipes?: any[];
       isPro?: boolean;
   }): void => {
       // Merge exercises
@@ -213,6 +218,61 @@ export const StorageService = {
           if (newN.length > 0) {
               const merged = [...localN, ...newN].sort((a, b) => a.timestamp - b.timestamp);
               localStorage.setItem(KEYS.NUTRITION, JSON.stringify(merged));
+          }
+      }
+
+      // Merge inventory (kitchen items with position data)
+      if (cloudData.inventory?.length) {
+          const localInv = StorageService.getInventory();
+          const existingIds = new Set(localInv.map(i => i.id));
+          const newInv = cloudData.inventory.filter(i => !existingIds.has(i.id));
+          if (newInv.length > 0) {
+              const merged = [...localInv, ...newInv];
+              localStorage.setItem(KEYS.INVENTORY, JSON.stringify(merged));
+          }
+      }
+
+      // Merge kitchen storages (with photos)
+      if (cloudData.kitchenStorages?.length) {
+          const localStorages = StorageService.getStorages();
+          const existingIds = new Set(localStorages.map(s => s.id));
+          const newStorages = cloudData.kitchenStorages.filter(s => !existingIds.has(s.id));
+          if (newStorages.length > 0) {
+              const merged = [...localStorages, ...newStorages];
+              localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(merged));
+          }
+      }
+
+      // Merge cooking history
+      if (cloudData.cookingHistory?.length) {
+          const localHistory = StorageService.getCookingHistory();
+          const existingIds = new Set(localHistory.map(h => h.id));
+          const newHistory = cloudData.cookingHistory.filter(h => !existingIds.has(h.id));
+          if (newHistory.length > 0) {
+              const merged = [...localHistory, ...newHistory];
+              localStorage.setItem(KEYS.COOKING_HISTORY, JSON.stringify(merged));
+          }
+      }
+
+      // Merge leftovers
+      if (cloudData.leftovers?.length) {
+          const localLeftovers = StorageService.getLeftovers();
+          const existingIds = new Set(localLeftovers.map(l => l.id));
+          const newLeftovers = cloudData.leftovers.filter(l => !existingIds.has(l.id));
+          if (newLeftovers.length > 0) {
+              const merged = [...localLeftovers, ...newLeftovers];
+              localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(merged));
+          }
+      }
+
+      // Merge saved recipes
+      if (cloudData.savedRecipes?.length) {
+          const localRecipes = StorageService.getSavedRecipes();
+          const existingIds = new Set(localRecipes.map(r => r.id));
+          const newRecipes = cloudData.savedRecipes.filter(r => !existingIds.has(r.id));
+          if (newRecipes.length > 0) {
+              const merged = [...localRecipes, ...newRecipes];
+              localStorage.setItem(KEYS.SAVED_RECIPES, JSON.stringify(merged));
           }
       }
 
@@ -648,6 +708,9 @@ export const StorageService = {
     storages[idx].photo = photoBase64;
 
     localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'KITCHEN_STORAGES' as any, { storages }, s.backendUrl);
     return photoId;
   },
 
@@ -693,6 +756,10 @@ export const StorageService = {
 
     localStorage.setItem(KEYS.INVENTORY, JSON.stringify(updatedInventory));
     localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'KITCHEN_STORAGES' as any, { storages }, s.backendUrl);
+    ApiService.pushLog(StorageService.getUserId(), 'INVENTORY' as any, { inventory: updatedInventory }, s.backendUrl);
   },
 
   updateStoragePhotoLabel: (storageId: string, photoId: string, label: string): void => {
@@ -842,11 +909,17 @@ export const StorageService = {
       }
     });
     localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'INVENTORY' as any, { inventory }, s.backendUrl);
   },
 
   removeInventoryItem: (id: string): void => {
     const inventory = StorageService.getInventory().filter(i => i.id !== id);
     localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'INVENTORY' as any, { inventory }, s.backendUrl);
   },
 
   updateInventoryQuantity: (id: string, newQuantity: number): void => {
@@ -915,6 +988,9 @@ export const StorageService = {
     const history = StorageService.getCookingHistory();
     history.push(meal);
     localStorage.setItem(KEYS.COOKING_HISTORY, JSON.stringify(history));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'COOKING_HISTORY' as any, { history }, s.backendUrl);
 
     // Also log calories to nutrition
     const nutritionLog: NutritionLog = {
@@ -951,11 +1027,17 @@ export const StorageService = {
     const leftovers = StorageService.getLeftovers();
     leftovers.push(leftover);
     localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'LEFTOVERS' as any, { items: leftovers }, s.backendUrl);
   },
 
   removeLeftover: (id: string): void => {
     const leftovers = StorageService.getLeftovers().filter(l => l.id !== id);
     localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'LEFTOVERS' as any, { items: leftovers }, s.backendUrl);
   },
 
   consumeLeftover: (id: string, portions: number): void => {
@@ -968,6 +1050,9 @@ export const StorageService = {
         leftovers.splice(idx, 1);
       }
       localStorage.setItem(KEYS.LEFTOVERS, JSON.stringify(leftovers));
+      // Sync to backend
+      const s = StorageService.getSettings();
+      ApiService.pushLog(StorageService.getUserId(), 'LEFTOVERS' as any, { items: leftovers }, s.backendUrl);
 
       // Log consumed calories
       const nutritionLog: NutritionLog = {
@@ -991,6 +1076,9 @@ export const StorageService = {
 
   saveSavedRecipes: (recipes: Recipe[]) => {
     localStorage.setItem(KEYS.SAVED_RECIPES, JSON.stringify(recipes));
+    // Sync to backend
+    const s = StorageService.getSettings();
+    ApiService.pushLog(StorageService.getUserId(), 'SAVED_RECIPES' as any, { recipes }, s.backendUrl);
   },
 
   addSavedRecipe: (recipe: Recipe) => {
