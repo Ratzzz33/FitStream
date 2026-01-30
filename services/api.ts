@@ -66,6 +66,16 @@ export interface GoogleAuthResponse {
     nutrition: any[];
 }
 
+// Simple API client for recipe service
+export const api = {
+    async get<T = any>(url: string): Promise<T> {
+        const fullUrl = url.startsWith('http') ? url : `${DEFAULT_API_URL.replace('/api', '')}${url}`;
+        const response = await fetchWithRetry(fullUrl, { method: 'GET', timeout: 15000 });
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        return response.json();
+    }
+};
+
 export const ApiService = {
     // 0. Google Auth - Verify token and get/create user
     async authenticateWithGoogle(idToken: string, localUserId: string, customBaseUrl?: string): Promise<GoogleAuthResponse | null> {
