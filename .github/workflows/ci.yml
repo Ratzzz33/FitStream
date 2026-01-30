@@ -517,32 +517,5 @@ jobs:
           path: security-badge.json
           retention-days: 90
 
-  # ============================================
-  # STAGE 5: Deploy (only on main)
-  # ============================================
-  deploy:
-    name: 🚀 Deploy
-    runs-on: self-hosted
-    needs: [build, security-report]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Download build
-        uses: actions/download-artifact@v7
-        with:
-          name: build-output
-          path: dist/
-
-      - name: Deploy to production
-        run: |
-          echo "🚀 Deploying version ${{ needs.build.outputs.version }}"
-          # Добавь свой деплой скрипт здесь
-          # Например: rsync, S3 sync, или push в container registry
-
-      - name: Post-deploy notification
-        run: |
-          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "Version: \`${{ needs.build.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+  # Deploy moved to separate workflow: deploy.yml
+  # Triggers automatically after CI passes on main
