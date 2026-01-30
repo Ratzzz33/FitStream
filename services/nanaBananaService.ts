@@ -1,29 +1,22 @@
 /**
- * Dish Image Generation Service
- * Generates AI images of dishes for recipes using Google Imagen 4 API
+ * Dish Image Service
+ * Uses Unsplash for free high-quality food images
  */
 
-import { GoogleGenAI } from "@google/genai";
-
-// Cache for generated images to avoid regenerating
+// Cache for generated images
 const imageCache = new Map<string, string>();
 
-// Get API key from environment
-const getApiKey = () => {
-  return process.env.API_KEY || '';
-};
-
-// Generate cache key from dish name and ingredients
+// Generate cache key
 const getCacheKey = (dishName: string, ingredients: string[], stepDescription?: string): string => {
-  const base = `${dishName.toLowerCase()}:${ingredients.map(i => i.toLowerCase().trim()).sort().join('|')}`;
-  return stepDescription ? `step:${stepDescription}:${base}` : `dish:${base}`;
+  const base = `${dishName.toLowerCase()}:${ingredients.slice(0, 3).join('|')}`;
+  return stepDescription ? `step:${stepDescription.slice(0, 30)}:${base}` : `dish:${base}`;
 };
 
 export interface GenerateImageOptions {
   dishName: string;
   ingredients: string[];
   style?: 'photo' | 'illustration';
-  stepDescription?: string; // For step-by-step cooking images
+  stepDescription?: string;
 }
 
 export interface GeneratedImage {
@@ -32,230 +25,236 @@ export interface GeneratedImage {
 }
 
 /**
- * Generate an image of a dish using Google Imagen 4 API
+ * Get dish image from Unsplash (free, unlimited)
  */
 export const generateDishImage = async (options: GenerateImageOptions): Promise<GeneratedImage> => {
-  const { dishName, ingredients, style = 'photo', stepDescription } = options;
+  const { dishName, ingredients, stepDescription } = options;
 
-  // Check cache first
   const cacheKey = getCacheKey(dishName, ingredients, stepDescription);
 
   if (imageCache.has(cacheKey)) {
     return { url: imageCache.get(cacheKey)!, cached: true };
   }
 
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    console.warn('No API key, using placeholder');
-    return { url: getPlaceholderImage(dishName, ingredients), cached: false };
-  }
-
-  // Build optimized prompt for food photography
-  const ingredientsList = ingredients.slice(0, 5).join(', ');
-
-  const prompt = stepDescription
-    ? `Professional food photography of cooking step: ${stepDescription}.
-       Dish: ${dishName}. Visible ingredients: ${ingredientsList}.
-       Kitchen setting, natural lighting, top-down or 45-degree angle view,
-       clean modern style, appetizing presentation.
-       NO TEXT, NO LABELS, NO WATERMARKS, NO CAPTIONS.`
-    : `Professional food photography of ${dishName}.
-       Main ingredients: ${ingredientsList}.
-       Beautifully plated, appetizing, well-lit, shallow depth of field,
-       ${style === 'photo' ? 'realistic photo' : 'clean illustration style'},
-       restaurant quality presentation, neutral background.
-       NO TEXT, NO LABELS, NO WATERMARKS, NO CAPTIONS.`;
-
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // Build search query for Unsplash
+    const searchQuery = stepDescription
+      ? buildStepSearchQuery(stepDescription, ingredients)
+      : buildDishSearchQuery(dishName, ingredients);
 
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: '1:1',
-        outputMimeType: 'image/webp'
-      }
-    });
+    // Unsplash Source API - free, no API key needed
+    const imageUrl = `https://source.unsplash.com/512x512/?${encodeURIComponent(searchQuery)}`;
 
-    if (response.generatedImages && response.generatedImages.length > 0) {
-      const img = response.generatedImages[0];
+    // Verify image loads (prefetch)
+    const isValid = await verifyImageUrl(imageUrl);
 
-      // Check for content filtering
-      if (img.raiFilteredReason) {
-        console.warn(`Image filtered: ${img.raiFilteredReason}`);
-        return { url: getPlaceholderImage(dishName, ingredients), cached: false };
-      }
-
-      if (img.image?.imageBytes) {
-        // Convert to data URL
-        const imageUrl = `data:image/webp;base64,${img.image.imageBytes}`;
-        imageCache.set(cacheKey, imageUrl);
-        return { url: imageUrl, cached: false };
-      }
+    if (isValid) {
+      imageCache.set(cacheKey, imageUrl);
+      return { url: imageUrl, cached: false };
     }
 
-    console.warn('No image generated, using placeholder');
+    // Fallback to placeholder
     return { url: getPlaceholderImage(dishName, ingredients), cached: false };
 
-  } catch (error: any) {
-    console.error('Error generating image:', error.message);
-
-    // Fallback to Unsplash for food images
-    const unsplashUrl = getUnsplashFallback(dishName, ingredients);
-    if (unsplashUrl) {
-      imageCache.set(cacheKey, unsplashUrl);
-      return { url: unsplashUrl, cached: false };
-    }
-
+  } catch (error) {
+    console.error('Error getting image:', error);
     return { url: getPlaceholderImage(dishName, ingredients), cached: false };
   }
 };
 
 /**
- * Get Unsplash fallback image based on dish category
+ * Verify image URL is accessible
  */
-const getUnsplashFallback = (dishName: string, ingredients: string[]): string | null => {
-  const searchTerm = detectDishCategory(dishName, ingredients);
-  // Use Unsplash Source API for relevant food images
-  return `https://source.unsplash.com/512x512/?${encodeURIComponent(searchTerm)},food`;
+const verifyImageUrl = async (url: string): Promise<boolean> => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
 };
 
 /**
- * Detect dish category from name and ingredients for better fallback images
+ * Build search query for dish image
+ */
+const buildDishSearchQuery = (dishName: string, ingredients: string[]): string => {
+  const category = detectDishCategory(dishName, ingredients);
+
+  // Add "food" to ensure food-related results
+  return `${category},food,dish`;
+};
+
+/**
+ * Build search query for cooking step image
+ */
+const buildStepSearchQuery = (stepDescription: string, ingredients: string[]): string => {
+  const step = stepDescription.toLowerCase();
+
+  // Detect cooking action
+  const actions: [RegExp, string][] = [
+    [/нарез|режем|порез|slice|cut|chop/, 'cutting vegetables knife'],
+    [/жарим|жарить|обжар|fry|sauté|sear/, 'frying pan cooking'],
+    [/варим|варить|кипят|boil|simmer/, 'boiling pot cooking'],
+    [/запекаем|запечь|духовк|bake|oven|roast/, 'oven baking'],
+    [/мешаем|перемеш|помеш|stir|mix/, 'stirring pot cooking'],
+    [/взбива|whisk|beat/, 'whisking bowl'],
+    [/добавля|добавь|add/, 'adding ingredients cooking'],
+    [/подаём|подача|серви|serve|plate/, 'plated food presentation'],
+    [/украш|garnish|decorate/, 'food garnish plating'],
+  ];
+
+  for (const [pattern, query] of actions) {
+    if (pattern.test(step)) {
+      return `${query},cooking`;
+    }
+  }
+
+  // Default: use main ingredient + cooking
+  const mainIngredient = ingredients[0] || 'food';
+  return `${mainIngredient},cooking,kitchen`;
+};
+
+/**
+ * Detect dish category for better image search
  */
 const detectDishCategory = (dishName: string, ingredients: string[]): string => {
-  const name = dishName.toLowerCase();
-  const allText = `${name} ${ingredients.join(' ').toLowerCase()}`;
+  const text = `${dishName} ${ingredients.join(' ')}`.toLowerCase();
 
-  // Category detection based on dish name and ingredients
   const categories: [RegExp, string][] = [
-    // Breakfast items
-    [/творог|cottage|каша с бананом|йогурт|мюсли|granola/, 'cottage cheese breakfast'],
-    [/каша|porridge|овсян|oatmeal/, 'oatmeal porridge'],
-    [/яичниц|омлет|scrambled|omelette|eggs/, 'scrambled eggs'],
-    [/блин|pancake|оладь/, 'pancakes'],
-    [/тост|toast|бутерброд|sandwich/, 'toast sandwich'],
+    // Breakfast
+    [/творог|cottage cheese/, 'cottage cheese bowl breakfast'],
+    [/каша|porridge|овсян|oatmeal/, 'oatmeal porridge bowl'],
+    [/яичниц|scrambled|жареные яйца/, 'scrambled eggs breakfast'],
+    [/омлет|omelette|omelet/, 'omelette breakfast'],
+    [/блин|pancake|оладь/, 'pancakes stack breakfast'],
+    [/тост|toast|бутерброд|sandwich/, 'toast sandwich breakfast'],
+    [/мюсли|granola|гранола/, 'granola bowl yogurt'],
 
     // Soups
-    [/суп|soup|борщ|borscht|щи|солянк/, 'soup bowl'],
+    [/борщ|borscht/, 'borscht soup beetroot'],
+    [/суп|soup|щи|солянк/, 'soup bowl hot'],
 
     // Salads
-    [/салат|salad|греческ|цезар|caesar/, 'fresh salad'],
+    [/цезар|caesar/, 'caesar salad'],
+    [/греческ|greek/, 'greek salad feta'],
+    [/салат|salad/, 'fresh salad bowl'],
 
     // Pasta & noodles
-    [/паста|макарон|спагетти|pasta|spaghetti|noodle|лапш/, 'pasta dish'],
+    [/карбонар|carbonara/, 'carbonara pasta'],
+    [/болоньез|bolognese/, 'bolognese pasta meat'],
+    [/паста|pasta|макарон|спагетти/, 'pasta dish italian'],
+    [/лапш|noodle|рамен|ramen/, 'noodles asian'],
 
-    // Rice dishes
-    [/рис|rice|плов|ризотто|risotto/, 'rice dish'],
+    // Rice
+    [/плов|pilaf/, 'pilaf rice meat'],
+    [/ризотто|risotto/, 'risotto creamy'],
+    [/рис|rice/, 'rice dish'],
 
-    // Meat dishes
-    [/стейк|steak|мяс|meat|котлет|cutlet|шашлык|kebab/, 'meat dish'],
-    [/курица|chicken|птиц|индейк|turkey/, 'chicken dish'],
-    [/рыб|fish|лосось|salmon|тунец|tuna/, 'fish dish'],
+    // Meat
+    [/стейк|steak/, 'steak beef grilled'],
+    [/котлет|cutlet|бургер/, 'burger cutlet meat'],
+    [/шашлык|kebab|шаурм/, 'kebab grilled meat'],
+    [/курица|chicken|куриц/, 'chicken dish'],
+    [/индейк|turkey/, 'turkey meat'],
+    [/свинин|pork/, 'pork dish'],
+    [/говядин|beef/, 'beef dish'],
+
+    // Fish
+    [/лосось|salmon/, 'salmon fish'],
+    [/тунец|tuna/, 'tuna fish'],
+    [/рыб|fish/, 'fish dish seafood'],
+    [/креветк|shrimp|морепродукт/, 'shrimp seafood'],
 
     // Desserts
-    [/торт|cake|десерт|dessert|пирог|pie|печень|cookie/, 'dessert'],
-    [/мороженое|ice cream|сорбет/, 'ice cream'],
+    [/торт|cake/, 'cake dessert slice'],
+    [/пирог|pie|пирожок/, 'pie dessert'],
+    [/мороженое|ice cream/, 'ice cream dessert'],
+    [/печень|cookie|печенье/, 'cookies dessert'],
+    [/шоколад|chocolate/, 'chocolate dessert'],
 
     // Drinks
-    [/смузи|smoothie|коктейль|shake/, 'smoothie drink'],
-    [/кофе|coffee|латте|latte|капуччино/, 'coffee drink'],
+    [/смузи|smoothie/, 'smoothie fruit drink'],
+    [/коктейль|shake|милкшейк/, 'milkshake drink'],
 
     // Vegetables
-    [/овощ|vegetable|вегетариан|веган|vegan/, 'vegetable dish'],
+    [/овощ|vegetable|веган|vegan/, 'vegetable dish healthy'],
+    [/грибы|mushroom/, 'mushroom dish'],
   ];
 
   for (const [pattern, category] of categories) {
-    if (pattern.test(allText)) {
+    if (pattern.test(text)) {
       return category;
     }
   }
 
-  // Default: use main ingredient or generic food
-  const mainIngredient = ingredients[0] || 'food';
-  return `${mainIngredient} dish`;
+  // Default: use dish name cleaned up
+  return dishName.replace(/[^a-zA-Zа-яА-Я\s]/g, '').trim() || 'delicious food';
 };
 
 /**
- * Get smart emoji based on dish type and ingredients
+ * Get smart emoji based on dish type
  */
 const getSmartEmoji = (dishName: string, ingredients: string[]): string => {
-  const name = dishName.toLowerCase();
-  const allText = `${name} ${ingredients.join(' ').toLowerCase()}`;
+  const text = `${dishName} ${ingredients.join(' ')}`.toLowerCase();
 
   const emojiMap: [RegExp, string][] = [
-    // Breakfast
     [/творог|cottage/, '🥛'],
-    [/каша|porridge|овсян|oatmeal/, '🥣'],
+    [/каша|porridge|овсян/, '🥣'],
     [/яичниц|scrambled/, '🍳'],
     [/омлет|omelette/, '🥚'],
     [/блин|pancake|оладь/, '🥞'],
     [/тост|toast/, '🍞'],
     [/бутерброд|sandwich/, '🥪'],
-
-    // Fruits
     [/банан|banana/, '🍌'],
     [/яблок|apple/, '🍎'],
-    [/ягод|berry|клубник|strawberry/, '🍓'],
-
-    // Main dishes
+    [/ягод|berry|клубник/, '🍓'],
     [/суп|soup|борщ/, '🍲'],
     [/салат|salad/, '🥗'],
-    [/паста|макарон|спагетти|pasta/, '🍝'],
+    [/паста|макарон|спагетти/, '🍝'],
     [/рис|rice|плов/, '🍚'],
     [/пицц|pizza/, '🍕'],
     [/бургер|burger/, '🍔'],
-
-    // Meat
     [/стейк|steak/, '🥩'],
     [/курица|chicken/, '🍗'],
     [/рыб|fish|лосось/, '🐟'],
-    [/морепродукт|seafood|креветк|shrimp/, '🦐'],
-
-    // Desserts
+    [/креветк|shrimp/, '🦐'],
     [/торт|cake/, '🎂'],
     [/пирог|pie/, '🥧'],
     [/мороженое|ice cream/, '🍨'],
     [/шоколад|chocolate/, '🍫'],
-
-    // Drinks
     [/смузи|smoothie/, '🥤'],
     [/кофе|coffee/, '☕'],
     [/чай|tea/, '🍵'],
-
-    // Vegetables
     [/овощ|vegetable/, '🥦'],
     [/грибы|mushroom/, '🍄'],
   ];
 
   for (const [pattern, emoji] of emojiMap) {
-    if (pattern.test(allText)) {
+    if (pattern.test(text)) {
       return emoji;
     }
   }
 
-  // Default food emoji
   return '🍽️';
 };
 
 /**
- * Generate a placeholder image SVG when API is unavailable
- * Now uses smart emoji detection based on dish and ingredients
+ * Generate placeholder SVG (offline fallback)
  */
 const getPlaceholderImage = (dishName: string, ingredients: string[]): string => {
   const emoji = getSmartEmoji(dishName, ingredients);
 
-  // Generate warm gradient based on dish type
   const gradients: Record<string, [string, string]> = {
-    '🥛': ['#f0f9ff', '#dbeafe'], // Light blue for dairy
-    '🥣': ['#fef3c7', '#fde68a'], // Warm yellow for porridge
-    '🍳': ['#fef9c3', '#fef08a'], // Yellow for eggs
-    '🥗': ['#d1fae5', '#a7f3d0'], // Green for salads
-    '🍝': ['#fee2e2', '#fecaca'], // Red for pasta
-    '🍲': ['#ffedd5', '#fed7aa'], // Orange for soups
-    '🍗': ['#fef3c7', '#fde68a'], // Yellow for chicken
+    '🥛': ['#f0f9ff', '#dbeafe'],
+    '🥣': ['#fef3c7', '#fde68a'],
+    '🍳': ['#fef9c3', '#fef08a'],
+    '🥗': ['#d1fae5', '#a7f3d0'],
+    '🍝': ['#fee2e2', '#fecaca'],
+    '🍲': ['#ffedd5', '#fed7aa'],
+    '🍗': ['#fef3c7', '#fde68a'],
+    '🥩': ['#fecaca', '#fca5a5'],
+    '🐟': ['#dbeafe', '#bfdbfe'],
+    '🍕': ['#fed7aa', '#fdba74'],
   };
 
   const [color1, color2] = gradients[emoji] || ['#fef3c7', '#fde68a'];
@@ -276,19 +275,18 @@ const getPlaceholderImage = (dishName: string, ingredients: string[]): string =>
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 };
 
-
 /**
- * Preload images for a recipe (all steps + main dish)
+ * Preload images for recipe
  */
 export const preloadRecipeImages = async (
   dishName: string,
   ingredients: string[],
   steps: { description: string }[]
 ): Promise<void> => {
-  // Generate main dish image
+  // Preload main dish image
   generateDishImage({ dishName, ingredients });
 
-  // Generate step images in background (don't await)
+  // Preload step images (staggered)
   steps.forEach((step, idx) => {
     setTimeout(() => {
       generateDishImage({
@@ -296,12 +294,12 @@ export const preloadRecipeImages = async (
         ingredients,
         stepDescription: step.description
       });
-    }, idx * 1000); // Stagger requests to avoid rate limiting
+    }, idx * 200);
   });
 };
 
 /**
- * Clear image cache (for memory management)
+ * Clear image cache
  */
 export const clearImageCache = (): void => {
   imageCache.clear();
