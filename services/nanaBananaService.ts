@@ -299,7 +299,7 @@ export interface GenerateImageOptions {
 export interface GeneratedImage {
   url: string;
   cached: boolean;
-  source?: 'cache' | 'unsplash' | 'foodish' | 'picsum' | 'bundle' | 'svg';
+  source?: 'cache' | 'unsplash' | 'foodish' | 'picsum' | 'bundle' | 'svg' | 'imagen';
   placeholder?: string;
 }
 
