@@ -289,6 +289,7 @@ export const Cooking: React.FC<CookingProps> = ({
           imageUrl={selectedRecipeIndex !== undefined ? recipeImages[selectedRecipeIndex] : undefined}
           onClose={handleCloseExpanded}
           onStartCooking={handleStartCooking}
+          onChooseAnother={handleCloseExpanded}
         />
       )}
 

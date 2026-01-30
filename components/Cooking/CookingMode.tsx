@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Check, HelpCircle, Flame } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
-import { CookingStep } from './CookingStep';
+import { CookingStep, TimerState } from './CookingStep';
 import { CookingComplete } from './CookingComplete';
 import { ReminderPopup } from './ReminderPopup';
 import { generateDishImage } from '../../services/nanaBananaService';
@@ -17,6 +17,21 @@ interface ActiveReminder {
   icon: string;
 }
 
+// TTS helper for voice reminders
+const speakReminder = (message: string) => {
+  if ('speechSynthesis' in window) {
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = 'ru-RU';
+    utterance.rate = 1.0;
+    utterance.volume = 0.8;
+
+    window.speechSynthesis.speak(utterance);
+  }
+};
+
 export const CookingMode: React.FC<CookingModeProps> = ({
   recipe,
   onComplete,
@@ -28,8 +43,8 @@ export const CookingMode: React.FC<CookingModeProps> = ({
   const [stepImages, setStepImages] = useState<Map<number, string>>(new Map());
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
 
-  // Timer state
-  const [timerActive, setTimerActive] = useState(false);
+  // Timer state - use explicit state instead of boolean
+  const [timerState, setTimerState] = useState<TimerState>('idle');
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const reminderTimersRef = useRef<NodeJS.Timeout[]>([]);
@@ -53,13 +68,15 @@ export const CookingMode: React.FC<CookingModeProps> = ({
 
   // Handle timer
   useEffect(() => {
-    if (timerActive && timerSeconds > 0) {
+    if (timerState === 'running' && timerSeconds > 0) {
       timerRef.current = setInterval(() => {
         setTimerSeconds(prev => {
           if (prev <= 1) {
-            setTimerActive(false);
+            setTimerState('completed');
             // Play notification sound
             playNotificationSound();
+            // Speak completion
+            speakReminder('Таймер завершён!');
             // Vibrate if available
             if (navigator.vibrate) {
               navigator.vibrate([200, 100, 200]);
@@ -76,7 +93,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
         clearInterval(timerRef.current);
       }
     };
-  }, [timerActive, timerSeconds]);
+  }, [timerState, timerSeconds]);
 
   // Setup reminders for current step
   useEffect(() => {
@@ -118,6 +135,8 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     }
     // Play sound
     playReminderSound();
+    // Speak the reminder with TTS
+    speakReminder(message);
 
     // Auto-hide after 5 seconds
     setTimeout(() => {
@@ -178,14 +197,14 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     // Move to next step or finish
     if (currentStepIndex < totalSteps - 1) {
       setCurrentStepIndex(prev => prev + 1);
-      // Start timer for next step if it has one
+      // Reset timer state for next step
       const nextStep = recipe.steps[currentStepIndex + 1];
       if (nextStep.timerSeconds) {
         setTimerSeconds(nextStep.timerSeconds);
-        setTimerActive(true);
+        setTimerState('running'); // Auto-start for next step
       } else {
         setTimerSeconds(0);
-        setTimerActive(false);
+        setTimerState('idle');
       }
     } else {
       // Cooking complete!
@@ -202,7 +221,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
   const startTimer = () => {
     if (currentStep.timerSeconds) {
       setTimerSeconds(currentStep.timerSeconds);
-      setTimerActive(true);
+      setTimerState('running');
     }
   };
 
@@ -251,13 +270,13 @@ export const CookingMode: React.FC<CookingModeProps> = ({
       </div>
 
       {/* Step content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-4">
         <CookingStep
           step={currentStep}
           stepNumber={currentStepIndex + 1}
           imageUrl={stepImages.get(currentStepIndex)}
           timerSeconds={timerSeconds}
-          timerActive={timerActive}
+          timerState={timerState}
           onStartTimer={startTimer}
           isCompleted={completedSteps.has(currentStepIndex)}
         />
@@ -289,14 +308,14 @@ export const CookingMode: React.FC<CookingModeProps> = ({
         )}
       </div>
 
-      {/* Bottom action */}
-      <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      {/* Bottom action with safe area padding */}
+      <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={handleStepComplete}
           className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           <Check className="w-6 h-6" />
-          <span>Получилось!</span>
+          <span>Готово!</span>
         </button>
       </div>
 
