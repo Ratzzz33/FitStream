@@ -1,15 +1,110 @@
 /**
- * Dish Image Service - Free & Bulletproof
+ * Dish Image Service - AI-Powered with Imagen
  *
  * Features:
- * - Persistent LocalStorage cache (24h TTL)
- * - Rate limit tracking with auto-cooldown
- * - Multiple fallbacks: Unsplash → Foodish → Picsum → Bundle → SVG
- * - Built-in SVG illustrations (works offline)
- * - Similar dish cache matching
+ * - Google Imagen 4.0 for accurate dish images
+ * - IndexedDB storage for generated images (permanent)
+ * - Fallbacks: Imagen → Unsplash → Foodish → Bundle
  * - Adaptive sizes (small/medium/large)
  * - Progressive loading support
  */
+
+import { GoogleGenAI } from '@google/genai';
+
+// ============================================
+// IMAGEN CONFIG
+// ============================================
+
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAF1MbCqcLIaOboSnHS0YU-qEmLYYOCGaQ';
+
+// IndexedDB for dish images
+const DISH_IMAGES_DB = 'fitstream_dish_images';
+const DISH_IMAGES_STORE = 'images';
+let dishImagesDB: IDBDatabase | null = null;
+
+const initDishImagesDB = async (): Promise<IDBDatabase> => {
+  if (dishImagesDB) return dishImagesDB;
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DISH_IMAGES_DB, 1);
+
+    request.onerror = () => reject(request.error);
+
+    request.onsuccess = () => {
+      dishImagesDB = request.result;
+      resolve(dishImagesDB);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(DISH_IMAGES_STORE)) {
+        db.createObjectStore(DISH_IMAGES_STORE, { keyPath: 'id' });
+      }
+    };
+  });
+};
+
+// Get cached image from IndexedDB
+const getCachedDishImage = async (key: string): Promise<string | null> => {
+  try {
+    const db = await initDishImagesDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(DISH_IMAGES_STORE, 'readonly');
+      const store = tx.objectStore(DISH_IMAGES_STORE);
+      const request = store.get(key);
+
+      request.onsuccess = () => {
+        resolve(request.result?.data || null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+};
+
+// Save image to IndexedDB
+const saveDishImage = async (key: string, base64Data: string): Promise<void> => {
+  try {
+    const db = await initDishImagesDB();
+    const tx = db.transaction(DISH_IMAGES_STORE, 'readwrite');
+    const store = tx.objectStore(DISH_IMAGES_STORE);
+    store.put({ id: key, data: base64Data, timestamp: Date.now() });
+  } catch (e) {
+    console.warn('Failed to save dish image:', e);
+  }
+};
+
+// Generate image using Imagen
+const generateWithImagen = async (dishName: string, ingredients: string[]): Promise<string | null> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+    const ingredientsList = ingredients.slice(0, 5).join(', ');
+    const prompt = `Professional food photography of "${dishName}" dish${ingredientsList ? ` with ${ingredientsList}` : ''}, beautifully plated, restaurant quality, appetizing, warm lighting, top-down or 45-degree angle, clean background, high resolution`;
+
+    console.log(`[Imagen] Generating: ${dishName}`);
+
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt,
+      config: {
+        numberOfImages: 1,
+        outputMimeType: 'image/jpeg',
+      },
+    });
+
+    if (response.generatedImages?.[0]?.image?.imageBytes) {
+      const base64 = response.generatedImages[0].image.imageBytes;
+      return `data:image/jpeg;base64,${base64}`;
+    }
+
+    return null;
+  } catch (e) {
+    console.warn('[Imagen] Generation failed:', e);
+    return null;
+  }
+};
 
 // ============================================
 // RATE LIMIT TRACKER
@@ -769,6 +864,7 @@ export const generateDishImage = async (options: GenerateImageOptions): Promise<
   const { dishName, ingredients, stepDescription, size = 'medium' } = options;
   const pixelSize = SIZE_MAP[size];
   const cacheKey = getCacheKey(dishName, ingredients, stepDescription, size);
+  const imagenKey = `imagen_${dishName.toLowerCase().replace(/\s+/g, '_')}_${size}`;
   const category = detectCategory(dishName, ingredients, stepDescription);
   const placeholder = getBlurPlaceholder(dishName, ingredients);
 
@@ -777,10 +873,11 @@ export const generateDishImage = async (options: GenerateImageOptions): Promise<
     return { url: memoryCache.get(cacheKey)!, cached: true, source: 'cache', placeholder };
   }
 
-  // 2. Check for similar dish in cache
-  const similar = findSimilarInCache(category, size);
-  if (similar) {
-    return { url: similar, cached: true, source: 'cache', placeholder };
+  // 2. Check IndexedDB for Imagen-generated image
+  const cachedImagen = await getCachedDishImage(imagenKey);
+  if (cachedImagen) {
+    memoryCache.set(cacheKey, cachedImagen);
+    return { url: cachedImagen, cached: true, source: 'imagen', placeholder };
   }
 
   // 3. Check pending requests (debounce)
@@ -790,9 +887,16 @@ export const generateDishImage = async (options: GenerateImageOptions): Promise<
 
   // 4. Fetch from sources
   const requestPromise = (async (): Promise<GeneratedImage> => {
-    const searchQuery = buildSearchQuery(dishName, ingredients, stepDescription);
+    // Try Imagen FIRST (best quality)
+    const imagenUrl = await generateWithImagen(dishName, ingredients);
+    if (imagenUrl) {
+      await saveDishImage(imagenKey, imagenUrl);
+      memoryCache.set(cacheKey, imagenUrl);
+      return { url: imagenUrl, cached: false, source: 'imagen', placeholder };
+    }
 
-    // Try Unsplash
+    // Fallback: Try Unsplash
+    const searchQuery = buildSearchQuery(dishName, ingredients, stepDescription);
     if (isSourceAvailable('unsplash')) {
       try {
         const url = getUnsplashUrl(searchQuery, pixelSize);
@@ -811,14 +915,14 @@ export const generateDishImage = async (options: GenerateImageOptions): Promise<
       }
     }
 
-    // Try Foodish
+    // Fallback: Try Foodish
     const foodishUrl = await getFoodishUrl(searchQuery);
     if (foodishUrl) {
       saveToPersistentCache(cacheKey, foodishUrl, size, category);
       return { url: foodishUrl, cached: false, source: 'foodish', placeholder };
     }
 
-    // Try Picsum
+    // Fallback: Try Picsum
     if (isSourceAvailable('picsum')) {
       try {
         const url = getPicsumUrl(pixelSize, cacheKey);

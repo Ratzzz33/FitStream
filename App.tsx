@@ -1315,27 +1315,28 @@ const App = () => {
                         <Globe size={20} className="text-blue-500" />
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{t('languageSelection')}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                         {getLanguageList().map((lang) => (
-                            <button
+                            <label
                                 key={lang.code}
-                                onClick={() => {
-                                    setLanguage(lang.code);
-                                    const updated = { ...settings, language: lang.code };
-                                    setSettings(updated);
-                                    StorageService.saveSettings(updated);
-                                    // Force re-render to apply language
-                                    window.location.reload();
-                                }}
-                                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                                    getSavedLanguage() === lang.code
-                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                             >
-                                <span>{lang.flag}</span>
-                                <span className="text-xs">{t(lang.label)}</span>
-                            </button>
+                                <input
+                                    type="radio"
+                                    name="language"
+                                    checked={getSavedLanguage() === lang.code}
+                                    onChange={() => {
+                                        setLanguage(lang.code);
+                                        const updated = { ...settings, language: lang.code };
+                                        setSettings(updated);
+                                        StorageService.saveSettings(updated);
+                                        window.location.reload();
+                                    }}
+                                    className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                                />
+                                <span className="text-lg">{lang.flag}</span>
+                                <span className="text-sm text-gray-700 dark:text-gray-300">{t(lang.label)}</span>
+                            </label>
                         ))}
                     </div>
                 </div>
@@ -1346,24 +1347,26 @@ const App = () => {
                         <Coins size={20} className="text-green-500" />
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{t('currency') || 'Валюта'}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                         {getCurrencyList().map((curr) => (
-                            <button
+                            <label
                                 key={curr.code}
-                                onClick={() => {
-                                    const updated = { ...settings, currency: curr.code as CurrencyCode };
-                                    setSettings(updated);
-                                    StorageService.saveSettings(updated);
-                                }}
-                                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                                    (settings.currency || 'RUB') === curr.code
-                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-2 ring-green-500'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                             >
-                                <span>{curr.flag}</span>
-                                <span>{curr.symbol}</span>
-                            </button>
+                                <input
+                                    type="radio"
+                                    name="currency"
+                                    checked={(settings.currency || 'RUB') === curr.code}
+                                    onChange={() => {
+                                        const updated = { ...settings, currency: curr.code as CurrencyCode };
+                                        setSettings(updated);
+                                        StorageService.saveSettings(updated);
+                                    }}
+                                    className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
+                                />
+                                <span className="text-lg">{curr.flag}</span>
+                                <span className="text-sm text-gray-700 dark:text-gray-300">{curr.symbol} {curr.code}</span>
+                            </label>
                         ))}
                     </div>
                 </div>
