@@ -1145,7 +1145,7 @@ export const StorageService = {
       unit: item.unit,
       caloriesPer100: item.caloriesPer100 || 0,
       typicalQuantity: item.quantity,
-      storageId: item.storageId,
+      storageId: item.storageId as StorageType,
       lastUsed: new Date().toISOString(),
       useCount: 1
     };
