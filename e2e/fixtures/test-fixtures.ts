@@ -45,12 +45,17 @@ export const test = base.extend<{
   },
 
   // Mobile viewport with touch support
-  mobilePage: async ({ browser }, use) => {
-    const context = await browser.newContext({
+  mobilePage: async ({ browser, browserName }, use) => {
+    // Firefox doesn't support isMobile option
+    const contextOptions: any = {
       viewport: { width: 390, height: 844 }, // iPhone 14
       hasTouch: true,
-      isMobile: true,
-    });
+    };
+    // Only add isMobile for chromium (Firefox/WebKit don't support it)
+    if (browserName === 'chromium') {
+      contextOptions.isMobile = true;
+    }
+    const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     await use(page);
     await context.close();
