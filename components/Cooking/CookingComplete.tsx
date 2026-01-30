@@ -3,6 +3,7 @@ import { Camera, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
 import { StorageService } from '../../services/storageService';
 import { CookedMeal, Leftover, InventoryItem } from '../../types';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface CookingCompleteProps {
   recipe: GeneratedRecipe;
@@ -23,6 +24,9 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
   const portionsLeftover = portionsCooked - portionsEaten;
   const caloriesEaten = Math.round(recipe.caloriesPerServing * portionsEaten);
   const caloriesLeftover = Math.round(recipe.caloriesPerServing * portionsLeftover);
+
+  const settings = StorageService.getSettings();
+  const currency = (settings.currency || 'RUB') as CurrencyCode;
 
   // Auto-open camera on mount
   useEffect(() => {
@@ -223,7 +227,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
           <div className="space-y-1 text-sm text-green-600 dark:text-green-400">
             {recipe.restaurantPrice && recipe.costEstimate && (
               <div className="text-lg font-bold">
-                💰 Вы сэкономили {recipe.restaurantPrice - recipe.costEstimate} ₽
+                💰 Вы сэкономили {formatCurrency(recipe.restaurantPrice - recipe.costEstimate, currency)}
               </div>
             )}
             <div>🔥 Съедено: {caloriesEaten} ккал</div>

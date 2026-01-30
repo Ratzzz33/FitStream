@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, TrendingDown, TrendingUp, ShoppingCart, UtensilsCrossed, Truck, Leaf, Trophy, Flame, Calendar, ChevronRight, AlertCircle } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { t } from '../../services/i18n';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 interface MonthlyStats {
     groceries: number;
@@ -27,7 +28,7 @@ export const FoodFinance: React.FC = () => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     const settings = StorageService.getSettings();
-    const currency = settings.currency || '₽';
+    const currency = (settings.currency || 'RUB') as CurrencyCode;
 
     useEffect(() => {
         // Load finance data from storage
@@ -63,9 +64,7 @@ export const FoodFinance: React.FC = () => {
         ? Math.round((monthDiff / data.previousMonth.total) * 100)
         : 0;
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ru-RU').format(amount) + ' ' + currency;
-    };
+    const format = (amount: number) => format(amount, currency);
 
     const getMonthName = () => {
         const date = new Date(selectedMonth + '-01');
@@ -96,10 +95,10 @@ export const FoodFinance: React.FC = () => {
             <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
                 <p className="text-purple-100 text-sm mb-1">{t('totalSpentMonth') || 'Всего потрачено в этом месяце'}</p>
                 <div className="flex items-end gap-3">
-                    <span className="text-3xl font-bold">{formatCurrency(data.currentMonth.total)}</span>
+                    <span className="text-3xl font-bold">{format(data.currentMonth.total)}</span>
                     <div className={`flex items-center gap-1 text-sm ${monthDiff <= 0 ? 'text-green-300' : 'text-red-300'}`}>
                         {monthDiff <= 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-                        <span>{monthDiff <= 0 ? '' : '+'}{formatCurrency(monthDiff)} ({monthDiffPercent}%)</span>
+                        <span>{monthDiff <= 0 ? '' : '+'}{format(monthDiff)} ({monthDiffPercent}%)</span>
                     </div>
                 </div>
                 <p className="text-purple-200 text-xs mt-1">{t('vsLastMonth') || 'по сравнению с прошлым месяцем'}</p>
@@ -120,7 +119,7 @@ export const FoodFinance: React.FC = () => {
                                 <p className="text-xs text-gray-500">{getPercent(data.currentMonth.groceries)}%</p>
                             </div>
                         </div>
-                        <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(data.currentMonth.groceries)}</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{format(data.currentMonth.groceries)}</span>
                     </div>
 
                     {/* Restaurants */}
@@ -134,7 +133,7 @@ export const FoodFinance: React.FC = () => {
                                 <p className="text-xs text-gray-500">{getPercent(data.currentMonth.restaurants)}%</p>
                             </div>
                         </div>
-                        <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(data.currentMonth.restaurants)}</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{format(data.currentMonth.restaurants)}</span>
                     </div>
 
                     {/* Delivery */}
@@ -148,7 +147,7 @@ export const FoodFinance: React.FC = () => {
                                 <p className="text-xs text-gray-500">{getPercent(data.currentMonth.delivery)}%</p>
                             </div>
                         </div>
-                        <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(data.currentMonth.delivery)}</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{format(data.currentMonth.delivery)}</span>
                     </div>
                 </div>
             </div>
@@ -161,7 +160,7 @@ export const FoodFinance: React.FC = () => {
                 </div>
 
                 <div className="flex items-end gap-2 mb-2">
-                    <span className="text-3xl font-bold text-green-600 dark:text-green-400">+{formatCurrency(data.currentMonth.savedFromCooking)}</span>
+                    <span className="text-3xl font-bold text-green-600 dark:text-green-400">+{format(data.currentMonth.savedFromCooking)}</span>
                 </div>
                 <p className="text-sm text-green-700 dark:text-green-300 mb-3">
                     {t('youCooked') || 'Вы приготовили'} <span className="font-bold">{data.currentMonth.mealsCooked}</span> {t('mealsAtHome') || 'блюд дома'}
@@ -172,7 +171,7 @@ export const FoodFinance: React.FC = () => {
                 <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
                     <div className="flex justify-between text-xs text-green-700 dark:text-green-300 mb-1">
                         <span>{t('monthlyGoal') || 'Цель на месяц'}</span>
-                        <span>{formatCurrency(data.currentMonth.savedFromCooking)} / {formatCurrency(10000)}</span>
+                        <span>{format(data.currentMonth.savedFromCooking)} / {format(10000)}</span>
                     </div>
                     <div className="h-2 bg-green-200 dark:bg-green-900 rounded-full overflow-hidden">
                         <div
@@ -193,11 +192,11 @@ export const FoodFinance: React.FC = () => {
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">{t('willSpend') || 'Потратите'}:</span>
-                        <span className="font-bold text-gray-900 dark:text-white">~{formatCurrency(19000)}</span>
+                        <span className="font-bold text-gray-900 dark:text-white">~{format(19000)}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">{t('willSave') || 'Сэкономите'}:</span>
-                        <span className="font-bold text-green-600 dark:text-green-400">~{formatCurrency(9500)}</span>
+                        <span className="font-bold text-green-600 dark:text-green-400">~{format(9500)}</span>
                     </div>
                 </div>
 
@@ -205,7 +204,7 @@ export const FoodFinance: React.FC = () => {
                     <div className="flex items-start gap-2">
                         <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-400 mt-0.5" />
                         <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                            {t('savingsTip') || 'Если приготовить ещё 3 ужина дома, сэкономите дополнительно'} <span className="font-bold">{formatCurrency(1200)}</span>
+                            {t('savingsTip') || 'Если приготовить ещё 3 ужина дома, сэкономите дополнительно'} <span className="font-bold">{format(1200)}</span>
                         </p>
                     </div>
                 </div>
@@ -230,7 +229,7 @@ export const FoodFinance: React.FC = () => {
                     <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 text-center opacity-50">
                         <span className="text-2xl">🏆</span>
                         <p className="text-xs font-medium text-purple-800 dark:text-purple-300 mt-1">{t('savingMaster') || 'Мастер экономии'}</p>
-                        <p className="text-[10px] text-gray-500">{formatCurrency(10000 - data.allTimeSaved)} {t('toUnlock') || 'до открытия'}</p>
+                        <p className="text-[10px] text-gray-500">{format(10000 - data.allTimeSaved)} {t('toUnlock') || 'до открытия'}</p>
                     </div>
                     <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-center opacity-50">
                         <span className="text-2xl">🔥</span>
@@ -243,7 +242,7 @@ export const FoodFinance: React.FC = () => {
             {/* All-time Stats */}
             <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('allTimeSaved') || 'Сэкономлено за всё время'}</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(data.allTimeSaved)}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{format(data.allTimeSaved)}</p>
             </div>
         </div>
     );

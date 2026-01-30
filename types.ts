@@ -115,6 +115,7 @@ export interface UserSettings {
   isPro: boolean;
   backendUrl?: string;
   coachVoice: string; // 'Fenrir' | 'Kore' etc.
+  currency?: 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH'; // Currency for displaying prices
 }
 
 export interface Friend {
