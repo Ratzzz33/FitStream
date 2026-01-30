@@ -476,7 +476,19 @@ const translations = {
     toUnlock: "to unlock",
     weekWithoutDelivery: "Week without delivery",
     days: "days",
-    allTimeSaved: "All-time savings"
+    allTimeSaved: "All-time savings",
+    // Support
+    support: "Support",
+    supportDesc: "Get help with the app",
+    contactUs: "Contact Us",
+    // Nutrition Tools
+    tools: "Tools",
+    kitchen: "Kitchen",
+    kitchenDesc: "What's in the fridge",
+    recipes: "Recipes",
+    recipesDesc: "Cook with nutrition in mind",
+    finance: "Finance",
+    financeDesc: "Track food expenses"
   },
   ru: {
     dashboard: 'Главная',
@@ -951,7 +963,19 @@ const translations = {
     toUnlock: "до открытия",
     weekWithoutDelivery: "Неделя без доставки",
     days: "дней",
-    allTimeSaved: "Сэкономлено за всё время"
+    allTimeSaved: "Сэкономлено за всё время",
+    // Support
+    support: "Поддержка",
+    supportDesc: "Помощь с приложением",
+    contactUs: "Связаться",
+    // Nutrition Tools
+    tools: "Инструменты",
+    kitchen: "Кухня",
+    kitchenDesc: "Что есть в холодильнике",
+    recipes: "Рецепты",
+    recipesDesc: "Готовь с учётом КБЖУ",
+    finance: "Финансы",
+    financeDesc: "Сколько тратишь на еду"
   },
   es: {
     dashboard: 'Inicio',
@@ -1404,7 +1428,19 @@ const translations = {
     toUnlock: "para desbloquear",
     weekWithoutDelivery: "Semana sin delivery",
     days: "días",
-    allTimeSaved: "Ahorro total"
+    allTimeSaved: "Ahorro total",
+    // Support
+    support: "Soporte",
+    supportDesc: "Ayuda con la app",
+    contactUs: "Contactar",
+    // Nutrition Tools
+    tools: "Herramientas",
+    kitchen: "Cocina",
+    kitchenDesc: "Qué hay en el refrigerador",
+    recipes: "Recetas",
+    recipesDesc: "Cocina con nutrición en mente",
+    finance: "Finanzas",
+    financeDesc: "Gastos en comida"
   },
   fr: {
     dashboard: 'Accueil',
@@ -1857,7 +1893,19 @@ const translations = {
     toUnlock: "pour débloquer",
     weekWithoutDelivery: "Semaine sans livraison",
     days: "jours",
-    allTimeSaved: "Économies totales"
+    allTimeSaved: "Économies totales",
+    // Support
+    support: "Support",
+    supportDesc: "Aide avec l'app",
+    contactUs: "Nous contacter",
+    // Nutrition Tools
+    tools: "Outils",
+    kitchen: "Cuisine",
+    kitchenDesc: "Qu'y a-t-il dans le frigo",
+    recipes: "Recettes",
+    recipesDesc: "Cuisinez avec la nutrition en tête",
+    finance: "Finances",
+    financeDesc: "Dépenses alimentaires"
   },
   de: {
     dashboard: 'Dashboard',
@@ -2310,7 +2358,19 @@ const translations = {
     toUnlock: "zum Freischalten",
     weekWithoutDelivery: "Woche ohne Lieferung",
     days: "Tage",
-    allTimeSaved: "Gesamtersparnis"
+    allTimeSaved: "Gesamtersparnis",
+    // Support
+    support: "Support",
+    supportDesc: "Hilfe mit der App",
+    contactUs: "Kontakt",
+    // Nutrition Tools
+    tools: "Werkzeuge",
+    kitchen: "Küche",
+    kitchenDesc: "Was ist im Kühlschrank",
+    recipes: "Rezepte",
+    recipesDesc: "Mit Nährwerten kochen",
+    finance: "Finanzen",
+    financeDesc: "Essensausgaben"
   },
   zh: {
     dashboard: '首页',
@@ -2763,7 +2823,19 @@ const translations = {
     toUnlock: "即可解锁",
     weekWithoutDelivery: "无外卖周",
     days: "天",
-    allTimeSaved: "累计节省"
+    allTimeSaved: "累计节省",
+    // Support
+    support: "支持",
+    supportDesc: "应用帮助",
+    contactUs: "联系我们",
+    // Nutrition Tools
+    tools: "工具",
+    kitchen: "厨房",
+    kitchenDesc: "冰箱里有什么",
+    recipes: "食谱",
+    recipesDesc: "注重营养的烹饪",
+    finance: "财务",
+    financeDesc: "食物支出"
   }
 };
 
@@ -2820,13 +2892,13 @@ export const getSavedLanguage = (): 'auto' | Language => {
 
 // Language list for UI
 export const getLanguageList = () => [
-    { code: 'auto' as const, label: 'languageAuto', flag: '🌐' },
-    { code: 'en' as const, label: 'languageEn', flag: '🇬🇧' },
-    { code: 'ru' as const, label: 'languageRu', flag: '🇷🇺' },
-    { code: 'es' as const, label: 'languageEs', flag: '🇪🇸' },
-    { code: 'fr' as const, label: 'languageFr', flag: '🇫🇷' },
-    { code: 'de' as const, label: 'languageDe', flag: '🇩🇪' },
-    { code: 'zh' as const, label: 'languageZh', flag: '🇨🇳' },
+    { code: 'auto' as const, label: 'languageAuto' as const, flag: '🌐' },
+    { code: 'en' as const, label: 'languageEn' as const, flag: '🇬🇧' },
+    { code: 'ru' as const, label: 'languageRu' as const, flag: '🇷🇺' },
+    { code: 'es' as const, label: 'languageEs' as const, flag: '🇪🇸' },
+    { code: 'fr' as const, label: 'languageFr' as const, flag: '🇫🇷' },
+    { code: 'de' as const, label: 'languageDe' as const, flag: '🇩🇪' },
+    { code: 'zh' as const, label: 'languageZh' as const, flag: '🇨🇳' },
 ];
 
 export const t = (key: keyof typeof translations.en): string => {

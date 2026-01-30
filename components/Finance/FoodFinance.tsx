@@ -64,7 +64,7 @@ export const FoodFinance: React.FC = () => {
         ? Math.round((monthDiff / data.previousMonth.total) * 100)
         : 0;
 
-    const format = (amount: number) => format(amount, currency);
+    const format = (amount: number) => formatCurrency(amount, currency);
 
     const getMonthName = () => {
         const date = new Date(selectedMonth + '-01');
