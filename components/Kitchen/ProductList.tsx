@@ -1,6 +1,8 @@
 import React, { useState, useRef, TouchEvent } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, Minus, PlusIcon } from 'lucide-react';
 import { InventoryItem } from '../../types';
+import { StorageService } from '../../services/storageService';
+import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 
 // PRD Gesture thresholds
 const SWIPE_THRESHOLD = 50; // pixels
@@ -20,6 +22,9 @@ export const ProductList: React.FC<ProductListProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const settings = StorageService.getSettings();
+  const currency = (settings?.currency || 'GEL') as CurrencyCode;
 
   // Sort items: expiring soon first, then alphabetically
   const sortedItems = [...items].sort((a, b) => {
@@ -134,6 +139,11 @@ export const ProductList: React.FC<ProductListProps> = ({
           <span>📋</span>
           <span className="font-medium dark:text-white">Список</span>
           <span className="text-sm text-gray-500 dark:text-gray-400">({items.length})</span>
+          {items.some(i => i.price) && (
+            <span className="text-sm text-green-600 dark:text-green-400">
+              ~{formatCurrency(items.reduce((sum, i) => sum + (i.price || 0), 0), currency)}
+            </span>
+          )}
         </div>
         {isExpanded ? (
           <ChevronUp className="w-5 h-5 text-gray-400" />
@@ -177,6 +187,9 @@ export const ProductList: React.FC<ProductListProps> = ({
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {item.quantity} {item.unit}
+                  {item.price && (
+                    <span className="ml-2 text-green-600 dark:text-green-400">· {formatCurrency(item.price, currency)}</span>
+                  )}
                   {item.caloriesPer100 > 0 && (
                     <span className="ml-2">· {item.caloriesPer100} ккал/100{item.unit === 'мл' ? 'мл' : 'г'}</span>
                   )}
