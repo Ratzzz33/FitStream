@@ -729,9 +729,9 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
 
                 {/* Categories preview */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {Object.entries(groupedList).map(([cat, items]) => (
+                    {(Object.entries(groupedList) as [ShoppingCategory, ShoppingListItem[]][]).map(([cat, items]) => (
                         <span key={cat} className="bg-white dark:bg-gray-800 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                            {CATEGORY_ICONS[cat as ShoppingCategory]} {items.length}
+                            {CATEGORY_ICONS[cat]} {items.length}
                         </span>
                     ))}
                 </div>
@@ -888,19 +888,19 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             </div>
 
             {/* Categories */}
-            {Object.entries(groupedList).map(([category, items]) => (
+            {(Object.entries(groupedList) as [ShoppingCategory, ShoppingListItem[]][]).map(([category, items]) => (
                 <div key={category} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
-                        <span className="text-xl">{CATEGORY_ICONS[category as ShoppingCategory]}</span>
+                        <span className="text-xl">{CATEGORY_ICONS[category]}</span>
                         <span className="font-bold text-gray-900 dark:text-white">
                             {t(category as any)}
                         </span>
                         <span className="text-xs text-gray-400 ml-auto">
-                            {items.filter(i => i.isChecked).length}/{items.length}
+                            {items.filter((i: ShoppingListItem) => i.isChecked).length}/{items.length}
                         </span>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {items.map(item => (
+                        {items.map((item: ShoppingListItem) => (
                             <div
                                 key={item.id}
                                 className={`p-3 flex items-center gap-3 transition ${

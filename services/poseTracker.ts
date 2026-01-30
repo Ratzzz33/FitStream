@@ -778,6 +778,8 @@ export class PoseTracker {
   private isRunning = false;
   private lastFormCheck = 0;
   private formCheckInterval = 2000;
+  private isCalibrationMode = false;
+  private calibrationResolve: (() => void) | null = null;
 
   // Smoothing for angle calculations
   private angleHistory: { left: number[]; right: number[] } = { left: [], right: [] };
@@ -866,33 +868,42 @@ export class PoseTracker {
         return;
       }
 
-      // Register temporary callback for calibration
-      this.pose.onResults((results: Results) => {
-        if (results.poseLandmarks) {
-          // Update calibration
-          this.updateCalibration(results.poseLandmarks);
-
-          // Detect and report orientation
-          const orientation = detectBodyOrientation(results.poseLandmarks);
-          const visibleSide = getMoreVisibleSide(results.poseLandmarks);
-
-          if (orientation !== this.state.bodyOrientation) {
-            this.state.bodyOrientation = orientation;
-            this.state.activeSide = visibleSide;
-            this.callbacks.onOrientationDetected?.(orientation, visibleSide);
-          }
-
-          // Draw pose without counting
-          this.callbacks.onPoseUpdate(results.poseLandmarks, 0, 0, 0);
-        }
-        resolve();
-      });
+      // Set calibration mode - processResults will handle differently
+      this.isCalibrationMode = true;
+      this.calibrationResolve = resolve;
 
       this.pose.send({ image: videoElement }).then(() => {
-        // Restore original callback
-        this.pose!.onResults((results: Results) => this.processResults(results));
+        // Mode will be reset when results are processed
       });
     });
+  }
+
+  // Handle calibration results (called from processResults when in calibration mode)
+  private handleCalibrationResults(results: Results): void {
+    if (results.poseLandmarks) {
+      // Update calibration
+      this.updateCalibration(results.poseLandmarks);
+
+      // Detect and report orientation
+      const orientation = detectBodyOrientation(results.poseLandmarks);
+      const visibleSide = getMoreVisibleSide(results.poseLandmarks);
+
+      if (orientation !== this.state.bodyOrientation) {
+        this.state.bodyOrientation = orientation;
+        this.state.activeSide = visibleSide;
+        this.callbacks.onOrientationDetected?.(orientation, visibleSide);
+      }
+
+      // Draw pose without counting
+      this.callbacks.onPoseUpdate(results.poseLandmarks, 0, 0, 0);
+    }
+
+    // Exit calibration mode
+    this.isCalibrationMode = false;
+    if (this.calibrationResolve) {
+      this.calibrationResolve();
+      this.calibrationResolve = null;
+    }
   }
 
   async initialize(videoElement: HTMLVideoElement): Promise<void> {
@@ -950,6 +961,12 @@ export class PoseTracker {
   }
 
   private processResults(results: Results): void {
+    // Handle calibration mode separately
+    if (this.isCalibrationMode) {
+      this.handleCalibrationResults(results);
+      return;
+    }
+
     if (!results.poseLandmarks || !this.isRunning) return;
 
     const landmarks = results.poseLandmarks;

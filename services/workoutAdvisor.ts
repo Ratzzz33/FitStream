@@ -168,6 +168,7 @@ export interface WorkoutRecommendation {
 }
 
 export interface RecommendedExercise {
+  type?: 'tracked';
   exercise: TrackableExercise;
   reps: number;
   duration?: number;
@@ -471,7 +472,7 @@ export class WorkoutAdvisor {
     }
 
     if (hour >= 10 && hour < 14) {
-      recommendations.push(this.createOfficeBreak());
+      recommendations.push(this.createOfficeBreak() as unknown as WorkoutRecommendation);
     }
 
     if (hour >= 14 && hour < 18) {

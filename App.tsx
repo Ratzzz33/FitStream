@@ -1168,7 +1168,7 @@ const App = () => {
                                 }`}
                             >
                                 <span>{lang.flag}</span>
-                                <span className="text-xs">{t(lang.label as keyof ReturnType<typeof t>)}</span>
+                                <span className="text-xs">{t(lang.label)}</span>
                             </button>
                         ))}
                     </div>

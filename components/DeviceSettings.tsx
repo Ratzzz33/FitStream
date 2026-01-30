@@ -128,7 +128,11 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
     setScaleError(null);
 
     try {
-      const connected = await scaleService.connect(device.id);
+      const connected = await scaleService.connect(
+        device.id,
+        (_reading) => {}, // onReading callback - not used in settings
+        (_connected, _device) => {} // onConnectionChange callback - handled manually below
+      );
 
       if (connected) {
         const newConnectedScale: ConnectedScale = {
