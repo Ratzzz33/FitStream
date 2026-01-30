@@ -670,13 +670,17 @@ function openFeatureModal(featureKey) {
     };
 
     // Build tiles grid (Yandex-style with AI images)
-    const tileLabels = i18n[lang]?.tiles?.[featureKey] || {};
-    tilesGrid.innerHTML = feature.tiles.map((tile, i) => `
-        <div class="group bg-gradient-to-br ${tileColors[feature.color]} border rounded-2xl p-2 transition-all duration-300 hover:scale-105" style="animation: fadeIn 0.3s ease ${i * 60}ms both">
+    const tileData = i18n[lang]?.tiles?.[featureKey] || {};
+    tilesGrid.innerHTML = feature.tiles.map((tile, i) => {
+        const tileInfo = tileData[tile.id] || { label: tile.label, desc: '' };
+        return `
+        <div class="group bg-gradient-to-br ${tileColors[feature.color]} border rounded-2xl p-2 transition-all duration-300 hover:scale-105 cursor-pointer"
+             style="animation: fadeIn 0.3s ease ${i * 60}ms both"
+             onclick="openTilePopup('${featureKey}', '${tile.id}', '${feature.color}')">
             <div class="aspect-square rounded-xl overflow-hidden mb-2 bg-slate-800/50 flex items-center justify-center">
                 <img
                     src="covers/tiles/${featureKey}-${tile.id}.png"
-                    alt="${tile.label}"
+                    alt="${tileInfo.label}"
                     class="w-full h-full object-cover"
                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 >
@@ -685,10 +689,10 @@ function openFeatureModal(featureKey) {
                 </div>
             </div>
             <p class="text-[10px] font-medium text-center text-slate-200 leading-tight">
-                ${tileLabels[tile.id] || tile.label}
+                ${tileInfo.label}
             </p>
         </div>
-    `).join('');
+    `}).join('');
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -701,6 +705,63 @@ function closeFeatureModal() {
     setTimeout(() => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+    }, 200);
+}
+
+// ===== TILE POPUP =====
+function openTilePopup(featureKey, tileId, color) {
+    const tileData = i18n[lang]?.tiles?.[featureKey]?.[tileId] || {};
+    const fallbackTile = featureDetails[featureKey]?.tiles?.find(t => t.id === tileId);
+
+    const popup = document.getElementById('tilePopup');
+    const img = popup.querySelector('[data-tile-img]');
+    const emoji = popup.querySelector('[data-tile-emoji]');
+    const title = popup.querySelector('[data-tile-title]');
+    const desc = popup.querySelector('[data-tile-desc]');
+    const content = popup.querySelector('[data-tile-content]');
+
+    // Set image with fallback to emoji
+    img.src = `covers/tiles/${featureKey}-${tileId}.png`;
+    img.alt = tileData.label || fallbackTile?.label || tileId;
+    img.style.display = 'block';
+    emoji.style.display = 'none';
+    emoji.textContent = placeholderIcons[featureKey]?.[tileId] || '⚡';
+    img.onerror = () => { img.style.display = 'none'; emoji.style.display = 'flex'; };
+
+    // Set content
+    title.textContent = tileData.label || fallbackTile?.label || tileId;
+    desc.textContent = tileData.desc || '';
+
+    // Color theme
+    const colorClasses = {
+        violet: 'from-violet-600/40 to-violet-900/60 border-violet-500/50',
+        amber: 'from-amber-600/40 to-amber-900/60 border-amber-500/50',
+        rose: 'from-rose-600/40 to-rose-900/60 border-rose-500/50',
+        blue: 'from-blue-600/40 to-blue-900/60 border-blue-500/50',
+        emerald: 'from-emerald-600/40 to-emerald-900/60 border-emerald-500/50',
+        orange: 'from-orange-600/40 to-orange-900/60 border-orange-500/50',
+        teal: 'from-teal-600/40 to-teal-900/60 border-teal-500/50',
+        lime: 'from-lime-600/40 to-lime-900/60 border-lime-500/50',
+        red: 'from-red-600/40 to-red-900/60 border-red-500/50',
+        purple: 'from-purple-600/40 to-purple-900/60 border-purple-500/50',
+        cyan: 'from-cyan-600/40 to-cyan-900/60 border-cyan-500/50',
+        slate: 'from-slate-600/40 to-slate-800/60 border-slate-500/50',
+        pink: 'from-pink-600/40 to-pink-900/60 border-pink-500/50'
+    };
+    content.className = `bg-gradient-to-br ${colorClasses[color] || colorClasses.blue} border rounded-2xl p-5 max-w-xs w-full transform transition-all duration-200 scale-95 opacity-0 shadow-2xl`;
+
+    popup.classList.remove('hidden');
+    popup.classList.add('flex');
+    setTimeout(() => content.classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+function closeTilePopup() {
+    const popup = document.getElementById('tilePopup');
+    const content = popup.querySelector('[data-tile-content]');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        popup.classList.add('hidden');
+        popup.classList.remove('flex');
     }, 200);
 }
 
@@ -753,6 +814,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 Got it!
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Tile Detail Popup -->
+<div id="tilePopup" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onclick="if(event.target === this) closeTilePopup()">
+    <div data-tile-content class="bg-gradient-to-br border rounded-2xl p-5 max-w-xs w-full transform transition-all duration-200 scale-95 opacity-0 shadow-2xl">
+        <div class="w-24 h-24 mx-auto mb-4 rounded-xl overflow-hidden bg-slate-800/50 flex items-center justify-center">
+            <img data-tile-img src="" alt="" class="w-full h-full object-cover">
+            <div data-tile-emoji class="text-5xl hidden items-center justify-center w-full h-full">⚡</div>
+        </div>
+        <h4 data-tile-title class="text-lg font-bold text-white text-center mb-2">Tile Title</h4>
+        <p data-tile-desc class="text-slate-300 text-sm text-center leading-relaxed mb-4">Description</p>
+        <button onclick="closeTilePopup()" class="w-full bg-white/10 hover:bg-white/20 py-2.5 rounded-xl font-medium text-white transition text-sm" data-t="modal.close">Close</button>
     </div>
 </div>
 
