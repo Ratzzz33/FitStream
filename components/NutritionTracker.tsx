@@ -47,15 +47,45 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [showHomeMadeDialog, setShowHomeMadeDialog] = useState(false);
     const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
 
-    // Alternative reference objects
+    // Alternative reference objects with SVG icons
     const alternativeObjects = [
-        { id: 'fork', emoji: '🍴', label: 'alternativeFork', dimensions: '19cm length' },
-        { id: 'spoon', emoji: '🥄', label: 'alternativeSpoon', dimensions: '15cm length' },
-        { id: 'hand', emoji: '✋', label: 'alternativeHand', dimensions: 'average adult hand' },
-        { id: 'card', emoji: '💳', label: 'alternativeCard', dimensions: '85.6mm x 53.98mm' },
-        { id: 'coin', emoji: '🪙', label: 'alternativeCoin', dimensions: '25mm diameter' },
-        { id: 'lighter', emoji: '🔥', label: 'alternativeLighter', dimensions: '8cm height' },
+        { id: 'fork', label: 'alternativeFork', dimensions: '19cm length', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="3" y1="6" x2="11" y2="6" />
+            </svg>
+        )},
+        { id: 'spoon', label: 'alternativeSpoon', dimensions: '15cm length', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <ellipse cx="12" cy="6" rx="5" ry="4" /><path d="M12 10v12" />
+            </svg>
+        )},
+        { id: 'hand', label: 'alternativeHand', dimensions: 'average adult hand', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 11V6a2 2 0 00-4 0v4M14 10V4a2 2 0 00-4 0v6M10 10V5a2 2 0 00-4 0v9" />
+                <path d="M6 14v-3a2 2 0 00-4 0v5a8 8 0 0016 0v-5a2 2 0 00-4 0" />
+            </svg>
+        )},
+        { id: 'card', label: 'alternativeCard', dimensions: '85.6mm x 53.98mm', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+            </svg>
+        )},
+        { id: 'coin', label: 'alternativeCoin', dimensions: '25mm diameter', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><path d="M12 6v2M12 16v2M8 12h8" />
+            </svg>
+        )},
+        { id: 'lighter', label: 'alternativeLighter', dimensions: '8cm height', icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="8" width="12" height="14" rx="2" /><path d="M12 8V4M9 4h6" /><circle cx="12" cy="14" r="2" />
+            </svg>
+        )},
     ];
+
+    // State for custom reference object modal
+    const [showAddCustomRef, setShowAddCustomRef] = useState(false);
+    const [customRefName, setCustomRefName] = useState('');
+    const [customRefDimensions, setCustomRefDimensions] = useState('');
 
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -286,14 +316,17 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     };
 
     // Handle selecting an alternative object and re-analyze
-    const handleUseAlternative = async (altObject: typeof alternativeObjects[0]) => {
+    const handleUseAlternative = async (altObject: { id: string; label: string; dimensions: string; icon?: React.ReactNode }) => {
         if (!pendingPhotoBase64) return;
 
         setShowRefNotDetected(false);
         setMode('ANALYZING');
 
+        // For predefined objects, translate the label; for custom ones, use as-is
+        const objectName = altObject.id === 'custom' ? altObject.label : t(altObject.label as any);
+
         try {
-            const result = await analyzeFood(pendingPhotoBase64, altObject.emoji + ' ' + t(altObject.label as any), altObject.dimensions);
+            const result = await analyzeFood(pendingPhotoBase64, objectName, altObject.dimensions);
             // Skip reference check - user explicitly chose an alternative, just save the result
             await saveFoodResult(result, pendingPhotoBase64);
         } catch (e) {
@@ -1090,12 +1123,26 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                             onClick={() => handleUseAlternative(obj)}
                                             className="bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 p-3 rounded-xl flex flex-col items-center gap-1 transition active:scale-95"
                                         >
-                                            <span className="text-2xl">{obj.emoji}</span>
+                                            <div className="w-8 h-8 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+                                                {obj.icon}
+                                            </div>
                                             <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
                                                 {t(obj.label as any)}
                                             </span>
                                         </button>
                                     ))}
+                                    {/* Add custom object button */}
+                                    <button
+                                        onClick={() => setShowAddCustomRef(true)}
+                                        className="bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-dashed border-gray-300 dark:border-gray-600 p-3 rounded-xl flex flex-col items-center gap-1 transition active:scale-95"
+                                    >
+                                        <div className="w-8 h-8 text-gray-400 dark:text-gray-500 flex items-center justify-center">
+                                            <Plus size={24} />
+                                        </div>
+                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate w-full text-center">
+                                            {t('addCustom') || 'Своё'}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -1109,6 +1156,75 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             >
                                 {t('dismiss')}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Custom Reference Object Modal */}
+            {showAddCustomRef && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[85] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95">
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-center">
+                                {t('addCustomRefObject') || 'Добавить свой предмет'}
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">
+                                        {t('objectName') || 'Название'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={customRefName}
+                                        onChange={(e) => setCustomRefName(e.target.value)}
+                                        placeholder={t('exampleAirpods') || 'Напр: AirPods, IQOS'}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm text-gray-500 dark:text-gray-400 mb-1 block">
+                                        {t('dimensions') || 'Размеры'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={customRefDimensions}
+                                        onChange={(e) => setCustomRefDimensions(e.target.value)}
+                                        placeholder={t('exampleDimensions') || 'Напр: 5.4 x 4.5 см'}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setShowAddCustomRef(false);
+                                        setCustomRefName('');
+                                        setCustomRefDimensions('');
+                                    }}
+                                    className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-xl"
+                                >
+                                    {t('cancel')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (customRefName.trim()) {
+                                            handleUseAlternative({
+                                                id: 'custom',
+                                                label: customRefName,
+                                                dimensions: customRefDimensions || 'custom size'
+                                            });
+                                            setShowAddCustomRef(false);
+                                            setCustomRefName('');
+                                            setCustomRefDimensions('');
+                                        }
+                                    }}
+                                    disabled={!customRefName.trim()}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:dark:bg-gray-700 text-white font-bold py-3 rounded-xl transition"
+                                >
+                                    {t('add')}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
