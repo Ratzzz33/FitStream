@@ -5,6 +5,7 @@ import {
     RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus
 } from 'lucide-react';
 import { t, tf } from '../services/i18n';
+import { formatCurrency, getCurrencySymbol, CurrencyCode } from '../services/currencyService';
 import {
     ShoppingPreferences,
     ShoppingSession,
@@ -83,9 +84,12 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Get currency from settings
+    const settings = StorageService.getSettings();
+    const currency = (settings.currency || 'RUB') as CurrencyCode;
+
     // Planning state - load from settings
     const [preferences, setPreferences] = useState<ShoppingPreferences>(() => {
-        const settings = StorageService.getSettings();
         return settings.shoppingPreferences || {
             daysCount: 3,
             peopleCount: 2,
@@ -727,7 +731,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                         placeholder="5000"
                         className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 outline-none focus:border-emerald-500"
                     />
-                    <span className="text-gray-500">₽</span>
+                    <span className="text-gray-500">{getCurrencySymbol(currency)}</span>
                 </div>
             </div>
 
@@ -869,7 +873,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     </span>
                 </div>
                 <p className="text-emerald-700 dark:text-emerald-400 text-sm mb-3">
-                    {t('estimatedCost')}: ~{session?.totalEstimatedCost} ₽
+                    {t('estimatedCost')}: ~{formatCurrency(session?.totalEstimatedCost || 0, currency)}
                 </p>
 
                 {/* Categories preview */}
@@ -1426,13 +1430,13 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     <div>
                         <p className="text-sm text-gray-500">{t('estimatedCost')}</p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {session?.totalEstimatedCost} ₽
+                            {formatCurrency(session?.totalEstimatedCost || 0, currency)}
                         </p>
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">{t('savedAmount')}</p>
                         <p className="text-2xl font-bold text-emerald-500">
-                            ~{Math.round((session?.totalEstimatedCost || 0) * 0.15)} ₽
+                            ~{formatCurrency(Math.round((session?.totalEstimatedCost || 0) * 0.15), currency)}
                         </p>
                     </div>
                 </div>
