@@ -16,6 +16,8 @@ import {
 import { NormalizedLandmark } from '@mediapipe/pose';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
+import { platformService, CameraCapability } from '../services/platformService';
+import { ExerciseRecognitionFallback } from './ExerciseRecognitionFallback';
 
 // Russian number words for voice counting
 const RUSSIAN_NUMBERS = [
@@ -210,6 +212,10 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [coachModeEnabled, setCoachModeEnabled] = useState(true);
   const [showPreview, setShowPreview] = useState(true); // Show exercise preview first
   const [showSummary, setShowSummary] = useState(false);
+
+  // Camera availability for Telegram/browser fallback
+  const [cameraCapability, setCameraCapability] = useState<CameraCapability | null>(null);
+  const [checkingCamera, setCheckingCamera] = useState(true);
   const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({
     reps: [],
     totalTime: 0,
@@ -229,6 +235,17 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   // Get camera tips for this exercise
   const cameraTips = getCameraPlacementTips(exercise);
   const exerciseDemo = EXERCISE_DEMOS[exercise];
+
+  // Check camera availability on mount
+  useEffect(() => {
+    const checkCamera = async () => {
+      setCheckingCamera(true);
+      const capability = await platformService.checkCameraCapability();
+      setCameraCapability(capability);
+      setCheckingCamera(false);
+    };
+    checkCamera();
+  }, []);
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -838,6 +855,40 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           </button>
         </div>
       </div>
+    );
+  }
+
+  // ==================== CAMERA UNAVAILABLE - SHOW FALLBACK ====================
+  // Show loading while checking camera
+  if (checkingCamera) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Проверка камеры...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show fallback if camera is not available
+  if (cameraCapability && !cameraCapability.available) {
+    return (
+      <ExerciseRecognitionFallback
+        exercise={exercise}
+        targetReps={targetReps}
+        targetSeconds={targetSeconds}
+        onManualEntry={(reps, formScore) => {
+          onComplete(reps, formScore, {
+            reps: [],
+            totalTime: 0,
+            averageFormScore: formScore,
+            bestRep: 0,
+            worstRep: 0
+          });
+        }}
+        onCancel={onCancel}
+      />
     );
   }
 

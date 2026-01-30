@@ -46,6 +46,8 @@ const getNativeSettings = async () => {
 
 export type Platform = 'web' | 'android' | 'ios';
 
+export type WebViewType = 'telegram' | 'instagram' | 'facebook' | 'vk' | 'tiktok' | 'snapchat' | 'twitter' | 'linkedin' | 'unknown';
+
 interface PlatformInfo {
   platform: Platform;
   isNative: boolean;
@@ -54,7 +56,16 @@ interface PlatformInfo {
   isMobile: boolean;
   isIOS: boolean;
   isAndroid: boolean;
+  isTelegramMiniApp: boolean;
+  isInAppBrowser: boolean;
+  inAppBrowserType: WebViewType | null;
+  isBrowser: boolean;
   version?: string;
+}
+
+export interface CameraCapability {
+  available: boolean;
+  reason?: 'not_supported' | 'permission_denied' | 'webview_restricted' | 'insecure_context';
 }
 
 class PlatformService {
@@ -82,6 +93,16 @@ class PlatformService {
                   (window.navigator as any).standalone === true ||
                   document.referrer.includes('android-app://');
 
+    // Check for Telegram Mini App
+    const isTelegramMiniApp = this.detectTelegramMiniApp();
+
+    // Check for in-app browsers (Instagram, Facebook, VK, etc.)
+    const inAppBrowserType = this.detectInAppBrowser();
+    const isInAppBrowser = inAppBrowserType !== null;
+
+    // Is running in regular browser (not native, not PWA, not in-app browser)
+    const isBrowser = !isCapacitor && !isPWA && !isTelegramMiniApp && !isInAppBrowser;
+
     let platform: Platform = 'web';
     let version: string | undefined;
 
@@ -102,10 +123,143 @@ class PlatformService {
       isMobile,
       isIOS,
       isAndroid,
+      isTelegramMiniApp,
+      isInAppBrowser,
+      inAppBrowserType,
+      isBrowser,
       version
     };
 
     return this._info;
+  }
+
+  /**
+   * Detect if running inside Telegram Mini App (WebApp)
+   */
+  private detectTelegramMiniApp(): boolean {
+    // Check for Telegram WebApp object
+    if (typeof (window as any).Telegram !== 'undefined') {
+      const telegram = (window as any).Telegram;
+      if (telegram.WebApp) {
+        return true;
+      }
+    }
+
+    // Fallback: check URL parameters that Telegram uses
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('tgWebAppData') || urlParams.has('tgWebAppStartParam')) {
+      return true;
+    }
+
+    // Check hash for Telegram data
+    if (window.location.hash.includes('tgWebAppData')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Detect if running inside an in-app browser (Instagram, Facebook, VK, etc.)
+   * These browsers often restrict camera access
+   */
+  private detectInAppBrowser(): WebViewType | null {
+    const ua = navigator.userAgent.toLowerCase();
+
+    // Instagram in-app browser
+    if (ua.includes('instagram')) {
+      return 'instagram';
+    }
+
+    // Facebook in-app browser (FBAN = Facebook App Native, FBAV = Facebook App Version)
+    if (ua.includes('fban') || ua.includes('fbav') || ua.includes('fb_iab')) {
+      return 'facebook';
+    }
+
+    // VK (VKontakte) in-app browser
+    if (ua.includes('vkandroidapp') || ua.includes('vkclient')) {
+      return 'vk';
+    }
+
+    // TikTok in-app browser
+    if (ua.includes('bytedance') || ua.includes('musical_ly') || ua.includes('tiktok')) {
+      return 'tiktok';
+    }
+
+    // Snapchat in-app browser
+    if (ua.includes('snapchat')) {
+      return 'snapchat';
+    }
+
+    // Twitter/X in-app browser
+    if (ua.includes('twitter')) {
+      return 'twitter';
+    }
+
+    // LinkedIn in-app browser
+    if (ua.includes('linkedinapp')) {
+      return 'linkedin';
+    }
+
+    // Telegram check (already handled separately but include for completeness)
+    if (this.detectTelegramMiniApp()) {
+      return 'telegram';
+    }
+
+    // Generic WebView detection (last resort)
+    // Android WebView
+    if (ua.includes('wv') && ua.includes('android')) {
+      return 'unknown';
+    }
+
+    // iOS WebView (not Safari, but webkit-based)
+    if ((ua.includes('iphone') || ua.includes('ipad')) &&
+        !ua.includes('safari') &&
+        ua.includes('webkit')) {
+      return 'unknown';
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if running in Telegram Mini App
+   */
+  isTelegramMiniApp(): boolean {
+    return this.getInfo().isTelegramMiniApp;
+  }
+
+  /**
+   * Check if running in any in-app browser
+   */
+  isInAppBrowser(): boolean {
+    return this.getInfo().isInAppBrowser;
+  }
+
+  /**
+   * Get the type of in-app browser
+   */
+  getInAppBrowserType(): WebViewType | null {
+    return this.getInfo().inAppBrowserType;
+  }
+
+  /**
+   * Get localized name of the in-app browser
+   */
+  getInAppBrowserNameRu(): string {
+    const type = this.getInAppBrowserType();
+    const names: Record<WebViewType, string> = {
+      telegram: 'Telegram',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+      vk: 'ВКонтакте',
+      tiktok: 'TikTok',
+      snapchat: 'Snapchat',
+      twitter: 'Twitter',
+      linkedin: 'LinkedIn',
+      unknown: 'встроенный браузер'
+    };
+    return type ? names[type] : 'браузер';
   }
 
   /**
@@ -120,6 +274,170 @@ class PlatformService {
    */
   isPWA(): boolean {
     return this.getInfo().isPWA;
+  }
+
+  /**
+   * Check if camera is available for exercise recognition
+   * Returns detailed information about camera availability
+   */
+  async checkCameraCapability(): Promise<CameraCapability> {
+    const info = this.getInfo();
+
+    // Check if we're in a secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      return { available: false, reason: 'insecure_context' };
+    }
+
+    // Check if mediaDevices API exists
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // In-app browsers often restrict camera access
+      if (info.isTelegramMiniApp || info.isInAppBrowser) {
+        return { available: false, reason: 'webview_restricted' };
+      }
+      return { available: false, reason: 'not_supported' };
+    }
+
+    // For in-app browsers, camera access is often blocked even if API exists
+    // We need to actually try to access it
+    if (info.isTelegramMiniApp || info.isInAppBrowser) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // If we got here, camera works - stop the stream
+        stream.getTracks().forEach(track => track.stop());
+        return { available: true };
+      } catch (error: any) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          return { available: false, reason: 'permission_denied' };
+        }
+        return { available: false, reason: 'webview_restricted' };
+      }
+    }
+
+    // For other platforms, just check if API exists (permission will be requested later)
+    return { available: true };
+  }
+
+  /**
+   * Check if exercise recognition with camera is supported
+   */
+  async canUseExerciseRecognition(): Promise<boolean> {
+    const capability = await this.checkCameraCapability();
+    return capability.available;
+  }
+
+  /**
+   * Get user-friendly message explaining why exercise recognition is unavailable
+   */
+  getExerciseRecognitionUnavailableReason(): {
+    title: string;
+    message: string;
+    action: string;
+    browserName?: string;
+  } {
+    const info = this.getInfo();
+
+    if (info.isTelegramMiniApp) {
+      return {
+        title: 'Камера недоступна в Telegram',
+        message: 'Распознавание упражнений требует доступа к камере, который ограничен в Telegram Mini App.',
+        action: 'Скачайте приложение FitStream для полного функционала или добавьте результат вручную.',
+        browserName: 'Telegram'
+      };
+    }
+
+    if (info.isInAppBrowser) {
+      const browserName = this.getInAppBrowserNameRu();
+      return {
+        title: `Камера недоступна в ${browserName}`,
+        message: `Встроенный браузер ${browserName} ограничивает доступ к камере для безопасности.`,
+        action: 'Откройте ссылку в браузере или скачайте приложение FitStream.',
+        browserName
+      };
+    }
+
+    if (info.isBrowser && !info.isMobile) {
+      return {
+        title: 'Функция для мобильных устройств',
+        message: 'Распознавание упражнений оптимизировано для мобильных устройств с камерой.',
+        action: 'Откройте приложение на телефоне или добавьте результат вручную.'
+      };
+    }
+
+    if (!window.isSecureContext) {
+      return {
+        title: 'Требуется защищённое соединение',
+        message: 'Доступ к камере требует HTTPS соединения.',
+        action: 'Откройте приложение через защищённое соединение (https://).'
+      };
+    }
+
+    return {
+      title: 'Камера недоступна',
+      message: 'Не удалось получить доступ к камере устройства.',
+      action: 'Проверьте разрешения камеры в настройках или добавьте результат вручную.'
+    };
+  }
+
+  /**
+   * Get deep link URL to open the native app
+   * Returns null if deep links are not configured
+   */
+  getDeepLinkUrl(path?: string): string {
+    const appScheme = 'fitstream://';
+    return path ? `${appScheme}${path}` : appScheme;
+  }
+
+  /**
+   * Try to open the native app via deep link
+   * Returns true if deep link was triggered (but doesn't guarantee app opened)
+   */
+  async tryOpenNativeApp(path?: string): Promise<boolean> {
+    const deepLink = this.getDeepLinkUrl(path);
+
+    return new Promise((resolve) => {
+      // Create a hidden iframe to try opening the deep link
+      // This method is more reliable than window.location for detecting if app is installed
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const timeout = setTimeout(() => {
+        document.body.removeChild(iframe);
+        resolve(false); // App probably not installed
+      }, 2500);
+
+      // If page becomes hidden, app likely opened
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          clearTimeout(timeout);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          document.body.removeChild(iframe);
+          resolve(true);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Try to open deep link
+      iframe.src = deepLink;
+    });
+  }
+
+  /**
+   * Get the URL to open current page in system browser
+   * Useful for escaping in-app browsers
+   */
+  getOpenInBrowserUrl(): string {
+    const currentUrl = window.location.href;
+    const info = this.getInfo();
+
+    // For Android, use intent URL
+    if (info.isAndroid) {
+      return `intent://${currentUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+    }
+
+    // For iOS, try universal link or just return the URL
+    return currentUrl;
   }
 
   /**
