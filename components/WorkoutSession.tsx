@@ -1,18 +1,20 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles, Cpu, ChevronRight } from 'lucide-react';
+import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles, Cpu, ChevronRight, ArrowLeft } from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
 import { PoseWorkout } from './PoseWorkout';
 import { TrackableExercise, isExerciseTrackable, getExerciseNameRu, isTimeBased } from '../services/poseTracker';
+import { SmartWorkoutPanel, WorkoutFeedback, WarmupReminder } from './SmartWorkoutPanel';
+import { getWorkoutAdvisor, RecommendedExercise, DifficultyFeedback } from '../services/workoutAdvisor';
 
 interface WorkoutSessionProps {
   onFinish: () => void;
 }
 
 // Workout modes
-type WorkoutMode = 'select' | 'local' | 'local_active' | 'ai';
+type WorkoutMode = 'smart_panel' | 'warmup_reminder' | 'select' | 'local' | 'local_active' | 'feedback' | 'ai';
 
 // Exercise selection for local mode - ordered by popularity
 const LOCAL_EXERCISES: TrackableExercise[] = [
@@ -99,10 +101,26 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({ onFinish }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Mode selection - skip to local mode (AI Coach disabled for now, will add for VIPs later)
-  const [mode, setMode] = useState<WorkoutMode>('local');
+  // Mode selection - start with smart panel for recommendations
+  const [mode, setMode] = useState<WorkoutMode>('smart_panel');
   const [selectedExercise, setSelectedExercise] = useState<TrackableExercise>('SQUATS');
   const [targetReps, setTargetReps] = useState(10);
+
+  // Smart workout queue
+  const [workoutQueue, setWorkoutQueue] = useState<RecommendedExercise[]>([]);
+  const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
+  const [needsWarmup, setNeedsWarmup] = useState(false);
+
+  // Feedback state
+  const [lastExerciseInfo, setLastExerciseInfo] = useState<{
+    exercise: TrackableExercise;
+    reps: number;
+    formScore: number;
+    duration: number;
+  } | null>(null);
+
+  // Get theme from settings
+  const settings = StorageService.getSettings();
 
   // AI mode state
   const [isStreaming, setIsStreaming] = useState(false);
@@ -387,8 +405,66 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     onFinish();
   };
 
+  // ========== SMART WORKOUT HANDLERS ==========
+  const handleStartWorkout = (exercises: RecommendedExercise[], warmupNeeded: boolean) => {
+    setWorkoutQueue(exercises);
+    setCurrentQueueIndex(0);
+    setNeedsWarmup(warmupNeeded);
+
+    if (warmupNeeded) {
+      setMode('warmup_reminder');
+    } else {
+      startQueuedExercise(exercises, 0);
+    }
+  };
+
+  const handleStartExercise = (exercise: TrackableExercise, reps: number) => {
+    setSelectedExercise(exercise);
+    setTargetReps(reps);
+    setWorkoutQueue([{ exercise, reps }]); // Single exercise
+    setCurrentQueueIndex(0);
+
+    const advisor = getWorkoutAdvisor();
+    if (advisor.needsWarmup()) {
+      setNeedsWarmup(true);
+      setMode('warmup_reminder');
+    } else {
+      setMode('local_active');
+    }
+  };
+
+  const startQueuedExercise = (queue: RecommendedExercise[], index: number) => {
+    if (index < queue.length) {
+      const ex = queue[index];
+      setSelectedExercise(ex.exercise);
+      setTargetReps(ex.duration || ex.reps);
+      setMode('local_active');
+    } else {
+      // All exercises done
+      onFinish();
+    }
+  };
+
+  const handleWarmupComplete = () => {
+    setNeedsWarmup(false);
+    if (workoutQueue.length > 0) {
+      startQueuedExercise(workoutQueue, currentQueueIndex);
+    } else {
+      setMode('local');
+    }
+  };
+
+  const handleSkipWarmup = () => {
+    setNeedsWarmup(false);
+    if (workoutQueue.length > 0) {
+      startQueuedExercise(workoutQueue, currentQueueIndex);
+    } else {
+      setMode('local');
+    }
+  };
+
   // ========== LOCAL MODE HANDLERS ==========
-  const handleLocalComplete = (reps: number, formScore: number) => {
+  const handleLocalComplete = (reps: number, formScore: number, stats?: { totalTime: number }) => {
     // Save exercise log
     const log: ExerciseLog = {
       id: Date.now().toString(),
@@ -399,7 +475,49 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
       feedback: `Форма: ${formScore}%`
     };
     StorageService.saveExercise(log);
-    onFinish();
+
+    // Show feedback screen
+    setLastExerciseInfo({
+      exercise: selectedExercise,
+      reps,
+      formScore,
+      duration: stats?.totalTime || 0
+    });
+    setMode('feedback');
+  };
+
+  const handleFeedbackSubmit = (difficulty: DifficultyFeedback) => {
+    // Check if there are more exercises in queue
+    const nextIndex = currentQueueIndex + 1;
+    if (nextIndex < workoutQueue.length) {
+      setCurrentQueueIndex(nextIndex);
+      startQueuedExercise(workoutQueue, nextIndex);
+    } else {
+      onFinish();
+    }
+  };
+
+  const handleFeedbackSkip = () => {
+    // Record without explicit feedback
+    if (lastExerciseInfo) {
+      const advisor = getWorkoutAdvisor();
+      advisor.recordExercise({
+        exercise: lastExerciseInfo.exercise,
+        reps: lastExerciseInfo.reps,
+        duration: lastExerciseInfo.duration,
+        formScore: lastExerciseInfo.formScore,
+        difficulty: 'normal', // Default
+        timestamp: Date.now()
+      });
+    }
+
+    const nextIndex = currentQueueIndex + 1;
+    if (nextIndex < workoutQueue.length) {
+      setCurrentQueueIndex(nextIndex);
+      startQueuedExercise(workoutQueue, nextIndex);
+    } else {
+      onFinish();
+    }
   };
 
   // Cleanup
@@ -422,6 +540,123 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ========== SMART PANEL (MAIN ENTRY) ==========
+  if (mode === 'smart_panel') {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <button onClick={onFinish} className="p-2 text-gray-400">
+            <X size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-white">Тренировка</h1>
+          <button onClick={() => setMode('local')} className="p-2 text-gray-400">
+            <ChevronRight size={24} />
+          </button>
+        </div>
+
+        {/* Smart recommendations */}
+        <div className="flex-1 p-4 overflow-auto">
+          <SmartWorkoutPanel
+            onStartWorkout={handleStartWorkout}
+            onStartExercise={handleStartExercise}
+            theme={settings.theme}
+          />
+        </div>
+
+        {/* Custom workout button */}
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={() => setMode('local')}
+            className="w-full py-3 rounded-xl text-gray-400 border border-gray-700 flex items-center justify-center gap-2"
+          >
+            <Cpu className="w-5 h-5" />
+            Своя тренировка
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== WARMUP REMINDER ==========
+  if (mode === 'warmup_reminder') {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <button onClick={() => setMode('smart_panel')} className="p-2 text-gray-400">
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-white">Разминка</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Warmup reminder */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <WarmupReminder
+            onStartWarmup={() => {
+              // Start warmup routine
+              const advisor = getWorkoutAdvisor();
+              const warmupExercises = advisor.getWarmupExercises();
+              setWorkoutQueue([...warmupExercises, ...workoutQueue]);
+              setNeedsWarmup(false);
+              startQueuedExercise([...warmupExercises, ...workoutQueue], 0);
+            }}
+            onSkipWarmup={handleSkipWarmup}
+            onAlreadyWarmedUp={handleWarmupComplete}
+            theme={settings.theme}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ========== FEEDBACK SCREEN ==========
+  if (mode === 'feedback' && lastExerciseInfo) {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="w-10" />
+          <h1 className="text-lg font-bold text-white">{getExerciseNameRu(lastExerciseInfo.exercise)}</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Feedback */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <WorkoutFeedback
+            exercise={lastExerciseInfo.exercise}
+            reps={lastExerciseInfo.reps}
+            formScore={lastExerciseInfo.formScore}
+            duration={lastExerciseInfo.duration}
+            onFeedback={handleFeedbackSubmit}
+            onSkip={handleFeedbackSkip}
+            theme={settings.theme}
+          />
+        </div>
+
+        {/* Queue progress */}
+        {workoutQueue.length > 1 && (
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center justify-center gap-2">
+              {workoutQueue.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`w-3 h-3 rounded-full ${
+                    idx < currentQueueIndex + 1 ? 'bg-green-500' : 'bg-gray-700'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-center text-gray-500 text-sm mt-2">
+              {currentQueueIndex + 1} из {workoutQueue.length}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ========== MODE SELECTION SCREEN ==========
   if (mode === 'select') {
@@ -527,11 +762,13 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
       <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <button onClick={() => setMode('smart_panel')} className="p-2 text-gray-400">
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-white">Выбор упражнения</h1>
           <button onClick={onFinish} className="p-2 text-gray-400">
             <X size={24} />
           </button>
-          <h1 className="text-lg font-bold text-white">Выбор упражнения</h1>
-          <div className="w-10" />
         </div>
 
         {/* Exercise selection */}
