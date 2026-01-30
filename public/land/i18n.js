@@ -24,7 +24,8 @@ const i18n = {
             health: "Health Platform Sync", healthDesc: "Seamless sync with Google Fit, Apple Health & Samsung Health.",
             goals: "Daily Goals", goalsDesc: "Set custom goals for steps, pushups, squats, and more",
             charts: "Progress Charts", chartsDesc: "Visualize your weight and workout history",
-            offline: "Offline First", offlineDesc: "Works without internet — syncs when back online"
+            offline: "Offline First", offlineDesc: "Works without internet — syncs when back online",
+            shop: "Shopping Assistant", shopDesc: "AI plans meals and creates smart shopping lists"
         },
         ai: {
             powered: "Powered by Advanced Gemini",
@@ -73,6 +74,7 @@ const i18n = {
             goals: ["Custom daily goals", "Steps, pushups, squats & more", "Streak tracking", "Progress visualization", "Reminder notifications"],
             charts: ["Weight trend charts", "Workout history graphs", "Progress over time", "Body composition tracking", "Export data as CSV"],
             offline: ["Full offline functionality", "Automatic sync when online", "No data loss", "Local storage backup", "Works anywhere"],
+            shop: ["AI meal planning for any period", "Smart shopping list generation", "Shelf scanner finds products", "Product verification via photo", "Health score for items"],
             gotIt: "Got it!"
         }
     },
@@ -98,7 +100,8 @@ const i18n = {
             health: "Синхронизация здоровья", healthDesc: "Интеграция с Google Fit, Apple Health и Samsung Health.",
             goals: "Дневные цели", goalsDesc: "Цели по шагам, отжиманиям, приседаниям",
             charts: "Графики прогресса", chartsDesc: "Визуализация истории веса и тренировок",
-            offline: "Работает офлайн", offlineDesc: "Без интернета — синхронизация автоматически"
+            offline: "Работает офлайн", offlineDesc: "Без интернета — синхронизация автоматически",
+            shop: "Помощник покупок", shopDesc: "ИИ планирует меню и создаёт умные списки"
         },
         ai: {
             powered: "На базе Advanced Gemini",
@@ -147,6 +150,7 @@ const i18n = {
             goals: ["Пользовательские дневные цели", "Шаги, отжимания, приседания и др.", "Отслеживание серий", "Визуализация прогресса", "Напоминания"],
             charts: ["Графики динамики веса", "Графики истории тренировок", "Прогресс со временем", "Отслеживание состава тела", "Экспорт данных в CSV"],
             offline: ["Полная работа офлайн", "Автосинхронизация при подключении", "Без потери данных", "Локальное резервное копирование", "Работает везде"],
+            shop: ["ИИ планирование меню на любой срок", "Умная генерация списка покупок", "Сканер полки находит продукты", "Проверка продукта по фото", "Оценка полезности товаров"],
             gotIt: "Понятно!"
         }
     },
@@ -172,7 +176,8 @@ const i18n = {
             health: "Gesundheits-Sync", healthDesc: "Nahtlose Sync mit Google Fit, Apple Health & Samsung Health.",
             goals: "Tägliche Ziele", goalsDesc: "Setze Ziele für Schritte, Liegestütze, Kniebeugen und mehr",
             charts: "Fortschritts-Diagramme", chartsDesc: "Visualisiere dein Gewicht und Workout-Verlauf",
-            offline: "Offline-First", offlineDesc: "Funktioniert ohne Internet — synchronisiert automatisch"
+            offline: "Offline-First", offlineDesc: "Funktioniert ohne Internet — synchronisiert automatisch",
+            shop: "Einkaufsassistent", shopDesc: "KI plant Mahlzeiten und erstellt smarte Einkaufslisten"
         },
         ai: {
             powered: "Powered by Advanced Gemini",
@@ -221,6 +226,7 @@ const i18n = {
             goals: ["Benutzerdefinierte Tagesziele", "Schritte, Liegestütze, Kniebeugen & mehr", "Streak-Tracking", "Fortschrittsvisualisierung", "Erinnerungsbenachrichtigungen"],
             charts: ["Gewichtstrend-Diagramme", "Trainingshistorie-Grafiken", "Fortschritt über Zeit", "Körperzusammensetzung-Tracking", "Daten als CSV exportieren"],
             offline: ["Volle Offline-Funktionalität", "Automatische Sync wenn online", "Kein Datenverlust", "Lokale Speicher-Backup", "Funktioniert überall"],
+            shop: ["KI-Mahlzeitenplanung für jeden Zeitraum", "Smarte Einkaufslisten-Generierung", "Regalscanner findet Produkte", "Produktverifizierung per Foto", "Gesundheitsbewertung für Artikel"],
             gotIt: "Verstanden!"
         }
     },
@@ -240,7 +246,8 @@ const i18n = {
             food: "Scanner alimentaire IA", foodDesc: "Prenez une photo pour une estimation instantanée des calories et macros",
             goals: "Objectifs quotidiens", goalsDesc: "Définissez des objectifs pour les pas, pompes, squats et plus",
             charts: "Graphiques de progrès", chartsDesc: "Visualisez votre poids et historique d'entraînement",
-            offline: "Hors ligne d'abord", offlineDesc: "Fonctionne sans internet — synchronise automatiquement"
+            offline: "Hors ligne d'abord", offlineDesc: "Fonctionne sans internet — synchronise automatiquement",
+            shop: "Assistant courses", shopDesc: "L'IA planifie les repas et crée des listes de courses intelligentes"
         },
         ai: {
             powered: "Propulsé par Advanced Gemini",
@@ -289,6 +296,7 @@ const i18n = {
             goals: ["Objectifs quotidiens personnalisés", "Pas, pompes, squats et plus", "Suivi des séries", "Visualisation du progrès", "Notifications de rappel"],
             charts: ["Graphiques tendance de poids", "Graphiques historique d'entraînement", "Progrès dans le temps", "Suivi composition corporelle", "Export données en CSV"],
             offline: ["Fonctionnalité offline complète", "Sync auto quand en ligne", "Pas de perte de données", "Sauvegarde stockage local", "Fonctionne partout"],
+            shop: ["Planification de repas IA pour toute période", "Génération de liste de courses intelligente", "Scanner d'étagère trouve les produits", "Vérification produit par photo", "Score santé des articles"],
             gotIt: "Compris!"
         }
     },
@@ -308,7 +316,8 @@ const i18n = {
             food: "Escáner de comida IA", foodDesc: "Toma una foto para estimaciones instantáneas de calorías y macros",
             goals: "Metas diarias", goalsDesc: "Establece metas para pasos, flexiones, sentadillas y más",
             charts: "Gráficos de progreso", chartsDesc: "Visualiza tu peso e historial de entrenamientos",
-            offline: "Sin conexión primero", offlineDesc: "Funciona sin internet — sincroniza automáticamente"
+            offline: "Sin conexión primero", offlineDesc: "Funciona sin internet — sincroniza automáticamente",
+            shop: "Asistente de compras", shopDesc: "IA planifica comidas y crea listas de compras inteligentes"
         },
         ai: {
             powered: "Impulsado por Advanced Gemini",
@@ -357,6 +366,7 @@ const i18n = {
             goals: ["Metas diarias personalizadas", "Pasos, flexiones, sentadillas y más", "Seguimiento de rachas", "Visualización de progreso", "Notificaciones de recordatorio"],
             charts: ["Gráficos de tendencia de peso", "Gráficos de historial de entrenamiento", "Progreso en el tiempo", "Seguimiento de composición corporal", "Exportar datos a CSV"],
             offline: ["Funcionalidad offline completa", "Sync automático cuando en línea", "Sin pérdida de datos", "Copia de seguridad local", "Funciona en cualquier lugar"],
+            shop: ["Planificación de comidas IA para cualquier período", "Generación de lista de compras inteligente", "Escáner de estante encuentra productos", "Verificación de producto por foto", "Puntuación de salud de artículos"],
             gotIt: "¡Entendido!"
         }
     },
@@ -376,7 +386,8 @@ const i18n = {
             food: "Scanner cibo IA", foodDesc: "Scatta una foto per stime istantanee di calorie e macro",
             goals: "Obiettivi giornalieri", goalsDesc: "Imposta obiettivi per passi, flessioni, squat e altro",
             charts: "Grafici progressi", chartsDesc: "Visualizza peso e cronologia allenamenti",
-            offline: "Offline First", offlineDesc: "Funziona senza internet — sincronizza automaticamente"
+            offline: "Offline First", offlineDesc: "Funziona senza internet — sincronizza automaticamente",
+            shop: "Assistente spesa", shopDesc: "L'IA pianifica pasti e crea liste della spesa intelligenti"
         },
         ai: {
             powered: "Alimentato da Advanced Gemini",
@@ -425,6 +436,7 @@ const i18n = {
             goals: ["Obiettivi giornalieri personalizzati", "Passi, flessioni, squat e altro", "Tracciamento serie", "Visualizzazione progressi", "Notifiche promemoria"],
             charts: ["Grafici tendenza peso", "Grafici cronologia allenamenti", "Progressi nel tempo", "Tracciamento composizione corporea", "Esporta dati in CSV"],
             offline: ["Funzionalità offline completa", "Sync automatico quando online", "Nessuna perdita dati", "Backup storage locale", "Funziona ovunque"],
+            shop: ["Pianificazione pasti IA per qualsiasi periodo", "Generazione lista spesa intelligente", "Scanner scaffale trova prodotti", "Verifica prodotto via foto", "Punteggio salute articoli"],
             gotIt: "Capito!"
         }
     },
@@ -444,7 +456,8 @@ const i18n = {
             food: "Scanner de comida IA", foodDesc: "Tire uma foto para estimativas instantâneas de calorias e macros",
             goals: "Metas diárias", goalsDesc: "Defina metas para passos, flexões, agachamentos e mais",
             charts: "Gráficos de progresso", chartsDesc: "Visualize seu peso e histórico de treinos",
-            offline: "Offline primeiro", offlineDesc: "Funciona sem internet — sincroniza automaticamente"
+            offline: "Offline primeiro", offlineDesc: "Funciona sem internet — sincroniza automaticamente",
+            shop: "Assistente de compras", shopDesc: "IA planeja refeições e cria listas de compras inteligentes"
         },
         ai: {
             powered: "Powered by Advanced Gemini",
@@ -493,6 +506,7 @@ const i18n = {
             goals: ["Metas diárias personalizadas", "Passos, flexões, agachamentos e mais", "Rastreamento de sequências", "Visualização de progresso", "Notificações de lembrete"],
             charts: ["Gráficos de tendência de peso", "Gráficos de histórico de treinos", "Progresso ao longo do tempo", "Rastreamento de composição corporal", "Exportar dados para CSV"],
             offline: ["Funcionalidade offline completa", "Sync automático quando online", "Sem perda de dados", "Backup de armazenamento local", "Funciona em qualquer lugar"],
+            shop: ["Planejamento de refeições IA para qualquer período", "Geração de lista de compras inteligente", "Scanner de prateleira encontra produtos", "Verificação de produto por foto", "Pontuação de saúde dos itens"],
             gotIt: "Entendi!"
         }
     },
@@ -512,7 +526,8 @@ const i18n = {
             food: "AI食品スキャナー", foodDesc: "写真を撮るだけでカロリーとマクロを即座に推定",
             goals: "デイリーゴール", goalsDesc: "歩数、腕立て、スクワットなどの目標を設定",
             charts: "進捗チャート", chartsDesc: "体重とワークアウト履歴を可視化",
-            offline: "オフラインファースト", offlineDesc: "インターネットなしでも動作 — 自動で同期"
+            offline: "オフラインファースト", offlineDesc: "インターネットなしでも動作 — 自動で同期",
+            shop: "お買い物アシスタント", shopDesc: "AIが食事計画を立て、スマートな買い物リストを作成"
         },
         ai: {
             powered: "Advanced Gemini搭載",
@@ -561,6 +576,7 @@ const i18n = {
             goals: ["カスタムデイリー目標", "歩数、腕立て、スクワットなど", "ストリーク追跡", "進捗の可視化", "リマインダー通知"],
             charts: ["体重トレンドチャート", "ワークアウト履歴グラフ", "時間経過での進捗", "体組成追跡", "CSVでデータエクスポート"],
             offline: ["完全オフライン機能", "オンライン時に自動同期", "データ損失なし", "ローカルストレージバックアップ", "どこでも動作"],
+            shop: ["任意期間のAI食事計画", "スマート買い物リスト生成", "棚スキャナーで商品を探す", "写真で商品確認", "商品の健康スコア"],
             gotIt: "了解！"
         }
     },
@@ -580,7 +596,8 @@ const i18n = {
             food: "AI 음식 스캐너", foodDesc: "사진 한 장으로 칼로리와 영양소 즉시 추정",
             goals: "일일 목표", goalsDesc: "걸음, 푸시업, 스쿼트 등의 목표 설정",
             charts: "진행 차트", chartsDesc: "체중과 운동 기록 시각화",
-            offline: "오프라인 우선", offlineDesc: "인터넷 없이도 작동 — 자동 동기화"
+            offline: "오프라인 우선", offlineDesc: "인터넷 없이도 작동 — 자동 동기화",
+            shop: "쇼핑 어시스턴트", shopDesc: "AI가 식단을 계획하고 스마트 쇼핑 리스트 생성"
         },
         ai: {
             powered: "Advanced Gemini 기반",
@@ -629,6 +646,7 @@ const i18n = {
             goals: ["맞춤 일일 목표", "걸음, 푸시업, 스쿼트 등", "연속 기록 추적", "진행 시각화", "알림"],
             charts: ["체중 트렌드 차트", "운동 기록 그래프", "시간 경과에 따른 진행", "체성분 추적", "CSV로 데이터 내보내기"],
             offline: ["완전한 오프라인 기능", "온라인 시 자동 동기화", "데이터 손실 없음", "로컬 저장소 백업", "어디서나 작동"],
+            shop: ["모든 기간에 대한 AI 식단 계획", "스마트 쇼핑 리스트 생성", "선반 스캐너로 제품 찾기", "사진으로 제품 확인", "제품 건강 점수"],
             gotIt: "알겠어요!"
         }
     },
@@ -648,7 +666,8 @@ const i18n = {
             food: "AI食物扫描", foodDesc: "拍张照片即可获得卡路里和营养素估算",
             goals: "每日目标", goalsDesc: "设定步数、俯卧撑、深蹲等目标",
             charts: "进度图表", chartsDesc: "可视化你的体重和锻炼历史",
-            offline: "离线优先", offlineDesc: "无需网络即可使用 — 自动同步"
+            offline: "离线优先", offlineDesc: "无需网络即可使用 — 自动同步",
+            shop: "购物助手", shopDesc: "AI规划餐食并创建智能购物清单"
         },
         ai: {
             powered: "由Advanced Gemini驱动",
@@ -697,6 +716,7 @@ const i18n = {
             goals: ["自定义每日目标", "步数、俯卧撑、深蹲等", "连续打卡追踪", "进度可视化", "提醒通知"],
             charts: ["体重趋势图表", "锻炼历史图表", "随时间的进度", "身体成分追踪", "导出CSV数据"],
             offline: ["完全离线功能", "在线时自动同步", "无数据丢失", "本地存储备份", "随处可用"],
+            shop: ["任意时期的AI餐食规划", "智能购物清单生成", "货架扫描器查找产品", "照片验证产品", "商品健康评分"],
             gotIt: "明白了！"
         }
     },
@@ -716,7 +736,8 @@ const i18n = {
             food: "AI Voedsel Scanner", foodDesc: "Maak een foto voor directe calorie- en macroschattingen",
             goals: "Dagelijkse Doelen", goalsDesc: "Stel doelen voor stappen, push-ups, squats en meer",
             charts: "Voortgangsgrafieken", chartsDesc: "Visualiseer je gewicht en workoutgeschiedenis",
-            offline: "Offline Eerst", offlineDesc: "Werkt zonder internet — synchroniseert automatisch"
+            offline: "Offline Eerst", offlineDesc: "Werkt zonder internet — synchroniseert automatisch",
+            shop: "Boodschappenassistent", shopDesc: "AI plant maaltijden en maakt slimme boodschappenlijsten"
         },
         ai: {
             powered: "Powered by Advanced Gemini",
@@ -765,6 +786,7 @@ const i18n = {
             goals: ["Aangepaste dagelijkse doelen", "Stappen, push-ups, squats en meer", "Reeksregistratie", "Voortgangsvisualisatie", "Herinneringsmeldingen"],
             charts: ["Gewichtstrend grafieken", "Trainingsgeschiedenis grafieken", "Voortgang in de tijd", "Lichaamssamenstelling tracking", "Data exporteren als CSV"],
             offline: ["Volledige offline functionaliteit", "Automatische sync wanneer online", "Geen gegevensverlies", "Lokale opslag backup", "Werkt overal"],
+            shop: ["AI-maaltijdplanning voor elke periode", "Slimme boodschappenlijst generatie", "Schapscanner vindt producten", "Productverificatie via foto", "Gezondheidsscore voor artikelen"],
             gotIt: "Begrepen!"
         }
     },
@@ -784,7 +806,8 @@ const i18n = {
             food: "AI-Matskanner", foodDesc: "Ta ett foto för direkta kalori- och makrouppskattningar",
             goals: "Dagliga Mål", goalsDesc: "Sätt mål för steg, armhävningar, knäböj och mer",
             charts: "Framstegsdiagram", chartsDesc: "Visualisera din vikt och träningshistorik",
-            offline: "Offline Först", offlineDesc: "Fungerar utan internet — synkar automatiskt"
+            offline: "Offline Först", offlineDesc: "Fungerar utan internet — synkar automatiskt",
+            shop: "Inköpsassistent", shopDesc: "AI planerar måltider och skapar smarta inköpslistor"
         },
         ai: {
             powered: "Drivs av Advanced Gemini",
@@ -833,6 +856,7 @@ const i18n = {
             goals: ["Anpassade dagliga mål", "Steg, armhävningar, knäböj och mer", "Seriespårning", "Framstegsvisualisering", "Påminnelsenotifikationer"],
             charts: ["Vikttrenddiagram", "Träningshistorikgrafer", "Framsteg över tid", "Kroppssammansättningsspårning", "Exportera data som CSV"],
             offline: ["Full offline-funktionalitet", "Automatisk synk när online", "Ingen dataförlust", "Lokal lagringsbackup", "Fungerar överallt"],
+            shop: ["AI-måltidsplanering för valfri period", "Smart inköpslista-generering", "Hyllskanner hittar produkter", "Produktverifiering via foto", "Hälsopoäng för varor"],
             gotIt: "Uppfattat!"
         }
     },
@@ -852,7 +876,8 @@ const i18n = {
             food: "Skaner jedzenia AI", foodDesc: "Zrób zdjęcie dla natychmiastowych szacunków kalorii i makro",
             goals: "Dzienne cele", goalsDesc: "Ustaw cele dla kroków, pompek, przysiadów i więcej",
             charts: "Wykresy postępu", chartsDesc: "Wizualizuj wagę i historię treningów",
-            offline: "Najpierw offline", offlineDesc: "Działa bez internetu — synchronizuje automatycznie"
+            offline: "Najpierw offline", offlineDesc: "Działa bez internetu — synchronizuje automatycznie",
+            shop: "Asystent zakupów", shopDesc: "AI planuje posiłki i tworzy inteligentne listy zakupów"
         },
         ai: {
             powered: "Napędzane przez Advanced Gemini",
@@ -901,6 +926,7 @@ const i18n = {
             goals: ["Niestandardowe cele dzienne", "Kroki, pompki, przysiady i więcej", "Śledzenie serii", "Wizualizacja postępów", "Powiadomienia przypominające"],
             charts: ["Wykresy trendu wagi", "Wykresy historii treningów", "Postępy w czasie", "Śledzenie składu ciała", "Eksport danych do CSV"],
             offline: ["Pełna funkcjonalność offline", "Automatyczna synchronizacja online", "Bez utraty danych", "Kopia zapasowa lokalnego magazynu", "Działa wszędzie"],
+            shop: ["Planowanie posiłków AI na dowolny okres", "Inteligentna generacja listy zakupów", "Skaner półek znajduje produkty", "Weryfikacja produktu przez zdjęcie", "Ocena zdrowotna produktów"],
             gotIt: "Rozumiem!"
         }
     },
@@ -920,7 +946,8 @@ const i18n = {
             food: "AI Yemek Tarayıcı", foodDesc: "Anlık kalori ve makro tahmini için fotoğraf çek",
             goals: "Günlük Hedefler", goalsDesc: "Adım, şınav, squat ve daha fazlası için hedef belirle",
             charts: "İlerleme Grafikleri", chartsDesc: "Kilo ve antrenman geçmişini görselleştir",
-            offline: "Önce Çevrimdışı", offlineDesc: "İnternetsiz çalışır — otomatik senkronize eder"
+            offline: "Önce Çevrimdışı", offlineDesc: "İnternetsiz çalışır — otomatik senkronize eder",
+            shop: "Alışveriş Asistanı", shopDesc: "AI öğünleri planlar ve akıllı alışveriş listeleri oluşturur"
         },
         ai: {
             powered: "Advanced Gemini ile güçlendirildi",
@@ -969,6 +996,7 @@ const i18n = {
             goals: ["Özel günlük hedefler", "Adımlar, şınavlar, squat ve daha fazlası", "Seri takibi", "İlerleme görselleştirme", "Hatırlatma bildirimleri"],
             charts: ["Kilo trend grafikleri", "Antrenman geçmişi grafikleri", "Zaman içinde ilerleme", "Vücut kompozisyonu takibi", "CSV olarak veri dışa aktarma"],
             offline: ["Tam çevrimdışı işlevsellik", "Çevrimiçi olduğunda otomatik senkronizasyon", "Veri kaybı yok", "Yerel depolama yedeklemesi", "Her yerde çalışır"],
+            shop: ["Herhangi bir dönem için AI öğün planlama", "Akıllı alışveriş listesi oluşturma", "Raf tarayıcı ürünleri bulur", "Fotoğraf ile ürün doğrulama", "Ürünler için sağlık puanı"],
             gotIt: "Anladım!"
         }
     },
@@ -988,7 +1016,8 @@ const i18n = {
             food: "ماسح الطعام AI", foodDesc: "التقط صورة لتقدير السعرات والمغذيات فوراً",
             goals: "أهداف يومية", goalsDesc: "حدد أهدافاً للخطوات والضغط والقرفصاء والمزيد",
             charts: "مخططات التقدم", chartsDesc: "تصور وزنك وسجل التمارين",
-            offline: "يعمل بدون إنترنت", offlineDesc: "يعمل بدون اتصال — يزامن تلقائياً"
+            offline: "يعمل بدون إنترنت", offlineDesc: "يعمل بدون اتصال — يزامن تلقائياً",
+            shop: "مساعد التسوق", shopDesc: "الذكاء الاصطناعي يخطط الوجبات وينشئ قوائم تسوق ذكية"
         },
         ai: {
             powered: "مدعوم بـ Advanced Gemini",
@@ -1037,6 +1066,7 @@ const i18n = {
             goals: ["أهداف يومية مخصصة", "الخطوات والضغط والقرفصاء والمزيد", "تتبع السلاسل", "تصور التقدم", "إشعارات التذكير"],
             charts: ["مخططات اتجاه الوزن", "رسوم بيانية لسجل التمارين", "التقدم عبر الزمن", "تتبع تركيب الجسم", "تصدير البيانات كـ CSV"],
             offline: ["وظائف كاملة بدون اتصال", "مزامنة تلقائية عند الاتصال", "لا فقدان للبيانات", "نسخ احتياطي للتخزين المحلي", "يعمل في أي مكان"],
+            shop: ["تخطيط وجبات بالذكاء الاصطناعي لأي فترة", "إنشاء قائمة تسوق ذكية", "ماسح الرفوف يجد المنتجات", "التحقق من المنتج عبر الصورة", "درجة صحية للمنتجات"],
             gotIt: "فهمت!"
         }
     },
@@ -1062,7 +1092,8 @@ const i18n = {
             health: "ჯანმრთელობის პლატფორმის სინქრონიზაცია", healthDesc: "უწყვეტი სინქრონიზაცია Google Fit, Apple Health და Samsung Health-თან.",
             goals: "ყოველდღიური მიზნები", goalsDesc: "დასახე მიზნები ნაბიჯებისთვის, ბრუნვებისთვის, სკვოტებისთვის და სხვა",
             charts: "პროგრესის დიაგრამები", chartsDesc: "ვიზუალიზე შენი წონა და ვარჯიშების ისტორია",
-            offline: "ჯერ ოფლაინ", offlineDesc: "მუშაობს ინტერნეტის გარეშე — ავტომატურად სინქრონდება"
+            offline: "ჯერ ოფლაინ", offlineDesc: "მუშაობს ინტერნეტის გარეშე — ავტომატურად სინქრონდება",
+            shop: "საყიდლების ასისტენტი", shopDesc: "AI გეგმავს კვებას და ქმნის ჭკვიან საყიდლების სიებს"
         },
         ai: {
             powered: "Advanced Gemini-ზე დაფუძნებული",
@@ -1111,6 +1142,7 @@ const i18n = {
             goals: ["მორგებული ყოველდღიური მიზნები", "ნაბიჯები, ბრუნვები, სკვოტები და სხვა", "სერიების თვალყურისდევნება", "პროგრესის ვიზუალიზაცია", "შეხსენების შეტყობინებები"],
             charts: ["წონის ტრენდის დიაგრამები", "ვარჯიშის ისტორიის გრაფიკები", "პროგრესი დროთა განმავლობაში", "სხეულის შემადგენლობის თვალყურისდევნება", "მონაცემების ექსპორტი CSV-ში"],
             offline: ["სრული ოფლაინ ფუნქციონალობა", "ავტომატური სინქრონიზაცია ონლაინ რეჟიმში", "მონაცემთა დაკარგვა არ ხდება", "ლოკალური შენახვის სარეზერვო ასლი", "მუშაობს ყველგან"],
+            shop: ["AI კვების დაგეგმვა ნებისმიერი პერიოდისთვის", "ჭკვიანი საყიდლების სიის გენერაცია", "თაროს სკანერი პოულობს პროდუქტებს", "პროდუქტის ვერიფიკაცია ფოტოთი", "პროდუქტების ჯანმრთელობის ქულა"],
             gotIt: "გასაგებია!"
         }
     }

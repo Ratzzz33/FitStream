@@ -24,7 +24,8 @@ const i18n = {
             health: "Health Platform Sync", healthDesc: "Seamless sync with Google Fit, Apple Health & Samsung Health.",
             goals: "Daily Goals", goalsDesc: "Set custom goals for steps, pushups, squats, and more",
             charts: "Progress Charts", chartsDesc: "Visualize your weight and workout history",
-            offline: "Offline First", offlineDesc: "Works without internet — syncs when back online"
+            offline: "Offline First", offlineDesc: "Works without internet — syncs when back online",
+            shop: "Shopping Assistant", shopDesc: "AI plans meals and creates smart shopping lists"
         },
         ai: {
             powered: "Powered by Advanced Gemini",
@@ -73,6 +74,7 @@ const i18n = {
             goals: ["Custom daily goals", "Steps, pushups, squats & more", "Streak tracking", "Progress visualization", "Reminder notifications"],
             charts: ["Weight trend charts", "Workout history graphs", "Progress over time", "Body composition tracking", "Export data as CSV"],
             offline: ["Full offline functionality", "Automatic sync when online", "No data loss", "Local storage backup", "Works anywhere"],
+            shop: ["AI meal planning for any period", "Smart shopping list generation", "Shelf scanner finds products", "Product verification via photo", "Health score for items"],
             gotIt: "Got it!"
         }
     },
@@ -98,7 +100,8 @@ const i18n = {
             health: "Синхронизация здоровья", healthDesc: "Интеграция с Google Fit, Apple Health и Samsung Health.",
             goals: "Дневные цели", goalsDesc: "Цели по шагам, отжиманиям, приседаниям",
             charts: "Графики прогресса", chartsDesc: "Визуализация истории веса и тренировок",
-            offline: "Работает офлайн", offlineDesc: "Без интернета — синхронизация автоматически"
+            offline: "Работает офлайн", offlineDesc: "Без интернета — синхронизация автоматически",
+            shop: "Помощник покупок", shopDesc: "ИИ планирует меню и создаёт умные списки"
         },
         ai: {
             powered: "На базе Advanced Gemini",
@@ -147,6 +150,7 @@ const i18n = {
             goals: ["Пользовательские дневные цели", "Шаги, отжимания, приседания и др.", "Отслеживание серий", "Визуализация прогресса", "Напоминания"],
             charts: ["Графики динамики веса", "Графики истории тренировок", "Прогресс со временем", "Отслеживание состава тела", "Экспорт данных в CSV"],
             offline: ["Полная работа офлайн", "Автосинхронизация при подключении", "Без потери данных", "Локальное резервное копирование", "Работает везде"],
+            shop: ["ИИ планирование меню на любой срок", "Умная генерация списка покупок", "Сканер полки находит продукты", "Проверка продукта по фото", "Оценка полезности товаров"],
             gotIt: "Понятно!"
         }
     },

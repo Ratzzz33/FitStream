@@ -39,6 +39,22 @@
         .phone-light { background: #f8fafc; color: #0f172a; }
         .phone-light .phone-card { background: white; border-color: #e2e8f0; }
         .phone-light .phone-muted { color: #64748b; }
+
+        /* Feature tile animations */
+        .feature-tile {
+            opacity: 0;
+            animation: tileSlideIn 0.4s ease forwards;
+        }
+        @keyframes tileSlideIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.2s ease forwards;
+        }
+        .feature-tile.expanded .tile-desc {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-white font-sans antialiased">
@@ -224,6 +240,11 @@ function populateLangDropdown() {
                     <h3 class="text-xl font-bold mb-2" data-t="features.offline">Offline First</h3>
                     <p class="text-slate-400" data-t="features.offlineDesc">Works without internet — syncs when back online</p>
                 </div>
+                <div class="feature-card bg-slate-900/50 border border-slate-800 rounded-2xl p-6 transition-all duration-300 hover:border-pink-500/50">
+                    <div class="w-12 h-12 bg-pink-600/20 rounded-xl flex items-center justify-center mb-4 text-2xl">🛒</div>
+                    <h3 class="text-xl font-bold mb-2" data-t="features.shop">Shopping Assistant</h3>
+                    <p class="text-slate-400" data-t="features.shopDesc">AI plans meals and creates smart shopping lists</p>
+                </div>
             </div>
         </div>
     </section>
@@ -233,7 +254,7 @@ function populateLangDropdown() {
         <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div>
                 <div class="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-2 mb-6">
-                    <span class="text-sm text-blue-300" data-t="ai.powered">Powered by Gemini 2.5 Flash</span>
+                    <span class="text-sm text-blue-300" data-t="ai.powered">Powered by Advanced Gemini</span>
                 </div>
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
                     <span data-t="ai.title1">AI That Actually</span><br>
@@ -536,6 +557,11 @@ const featureDetails = {
         icon: '📶',
         color: 'slate',
         features: ['Full offline functionality', 'Automatic sync when online', 'No data loss', 'Local storage backup', 'Works anywhere']
+    },
+    shop: {
+        icon: '🛒',
+        color: 'pink',
+        features: ['AI meal planning for X days', 'Smart shopping list generation', 'Shelf scanner finds products', 'Product verification via photo', 'Health score for items']
     }
 };
 
@@ -549,6 +575,11 @@ function openFeatureModal(featureKey) {
     const icon = modal.querySelector('[data-modal-icon]');
     const featureList = modal.querySelector('[data-modal-features]');
     const iconBg = modal.querySelector('[data-modal-icon-bg]');
+    const coverImg = modal.querySelector('[data-modal-cover]');
+
+    // Set cover image
+    coverImg.src = `covers/${featureKey}.png`;
+    coverImg.alt = featureKey;
 
     // Get translations
     const titleKey = `features.${featureKey}`;
@@ -560,29 +591,59 @@ function openFeatureModal(featureKey) {
 
     // Update color classes
     const colorClasses = {
-        violet: 'bg-violet-600/20 border-violet-500/50',
-        amber: 'bg-amber-600/20 border-amber-500/50',
-        rose: 'bg-rose-600/20 border-rose-500/50',
-        blue: 'bg-blue-600/20 border-blue-500/50',
-        emerald: 'bg-emerald-600/20 border-emerald-500/50',
-        orange: 'bg-orange-600/20 border-orange-500/50',
-        teal: 'bg-teal-600/20 border-teal-500/50',
-        lime: 'bg-lime-600/20 border-lime-500/50',
-        red: 'bg-red-600/20 border-red-500/50',
-        purple: 'bg-purple-600/20 border-purple-500/50',
-        cyan: 'bg-cyan-600/20 border-cyan-500/50',
-        slate: 'bg-slate-600/20 border-slate-500/50'
+        violet: { bg: 'bg-violet-600/20', border: 'border-violet-500/50', text: 'text-violet-400', gradient: 'from-violet-600 to-purple-600' },
+        amber: { bg: 'bg-amber-600/20', border: 'border-amber-500/50', text: 'text-amber-400', gradient: 'from-amber-600 to-orange-600' },
+        rose: { bg: 'bg-rose-600/20', border: 'border-rose-500/50', text: 'text-rose-400', gradient: 'from-rose-600 to-pink-600' },
+        blue: { bg: 'bg-blue-600/20', border: 'border-blue-500/50', text: 'text-blue-400', gradient: 'from-blue-600 to-indigo-600' },
+        emerald: { bg: 'bg-emerald-600/20', border: 'border-emerald-500/50', text: 'text-emerald-400', gradient: 'from-emerald-600 to-teal-600' },
+        orange: { bg: 'bg-orange-600/20', border: 'border-orange-500/50', text: 'text-orange-400', gradient: 'from-orange-600 to-red-600' },
+        teal: { bg: 'bg-teal-600/20', border: 'border-teal-500/50', text: 'text-teal-400', gradient: 'from-teal-600 to-cyan-600' },
+        lime: { bg: 'bg-lime-600/20', border: 'border-lime-500/50', text: 'text-lime-400', gradient: 'from-lime-600 to-green-600' },
+        red: { bg: 'bg-red-600/20', border: 'border-red-500/50', text: 'text-red-400', gradient: 'from-red-600 to-rose-600' },
+        purple: { bg: 'bg-purple-600/20', border: 'border-purple-500/50', text: 'text-purple-400', gradient: 'from-purple-600 to-indigo-600' },
+        cyan: { bg: 'bg-cyan-600/20', border: 'border-cyan-500/50', text: 'text-cyan-400', gradient: 'from-cyan-600 to-blue-600' },
+        slate: { bg: 'bg-slate-600/20', border: 'border-slate-500/50', text: 'text-slate-400', gradient: 'from-slate-600 to-gray-600' },
+        pink: { bg: 'bg-pink-600/20', border: 'border-pink-500/50', text: 'text-pink-400', gradient: 'from-pink-600 to-rose-600' }
     };
-    iconBg.className = `w-20 h-20 ${colorClasses[feature.color]} border-2 rounded-2xl flex items-center justify-center text-4xl`;
+    const colors = colorClasses[feature.color] || colorClasses.blue;
+    iconBg.className = `w-14 h-14 ${colors.bg} border-2 ${colors.border} rounded-xl flex items-center justify-center text-2xl flex-shrink-0`;
 
-    // Build feature list with translations
+    // Tile icons for each feature (5 icons per feature)
+    const tileIcons = {
+        pose: ['🎯', '🏋️', '📐', '🔢', '📹'],
+        kitchen: ['🧊', '📸', '⏰', '📝', '🔔'],
+        cooking: ['📋', '⏱️', '🔊', '💡', '🔄'],
+        coach: ['🎙️', '🔢', '✨', '🗣️', '📈'],
+        scale: ['📷', '🤖', '⚖️', '📱', '📊'],
+        food: ['⚡', '🥗', '📏', '📚', '📅'],
+        receipt: ['📄', '💲', '📆', '💰', '📉'],
+        finance: ['💳', '🏠', '📊', '💵', '🍽️'],
+        health: ['💚', '🍎', '💙', '👟', '😴'],
+        goals: ['🎯', '💪', '🔥', '📈', '⏰'],
+        charts: ['📈', '📊', '⏳', '💪', '📤'],
+        offline: ['✈️', '🔄', '💾', '🗂️', '🌍'],
+        shop: ['📅', '📝', '📷', '✅', '💚']
+    };
+    const icons = tileIcons[featureKey] || ['✨', '✨', '✨', '✨', '✨'];
+
+    // Build interactive tiles with translations
     const modalFeatures = i18n[lang]?.modal?.[featureKey] || feature.features;
-    featureList.innerHTML = modalFeatures.map(f =>
-        `<li class="flex items-start gap-3">
-            <span class="text-${feature.color}-500 mt-0.5">✓</span>
-            <span class="text-slate-300">${f}</span>
-        </li>`
-    ).join('');
+    const shortLabels = modalFeatures.map(f => f.split(' ').slice(0, 3).join(' '));
+
+    featureList.innerHTML = modalFeatures.map((f, i) => `
+        <div class="feature-tile group cursor-pointer" onclick="this.classList.toggle('expanded')" style="animation-delay: ${i * 80}ms">
+            <div class="flex items-center gap-3 p-3 rounded-xl ${colors.bg} border ${colors.border} hover:border-opacity-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                <span class="text-2xl">${icons[i] || '✨'}</span>
+                <span class="font-medium text-white text-sm flex-1">${shortLabels[i]}</span>
+                <svg class="w-4 h-4 ${colors.text} transition-transform group-[.expanded]:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="tile-desc hidden group-[.expanded]:block px-3 pb-3 pt-1 text-xs text-slate-400 animate-fadeIn">
+                ${f}
+            </div>
+        </div>
+    `).join('');
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -620,27 +681,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Feature Modal -->
 <div id="featureModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target === this) closeFeatureModal()">
-    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
-        <div class="flex justify-between items-start mb-6">
-            <div class="flex items-center gap-4">
-                <div data-modal-icon-bg class="w-20 h-20 bg-blue-600/20 border-2 border-blue-500/50 rounded-2xl flex items-center justify-center text-4xl">
+    <div data-modal-content class="bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden max-w-md w-full transform transition-all duration-200 scale-95 opacity-0">
+        <!-- Cover Image -->
+        <div class="relative w-full aspect-video overflow-hidden">
+            <img data-modal-cover src="" alt="" class="w-full h-full object-cover">
+            <button onclick="closeFeatureModal()" class="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div data-modal-icon-bg class="w-14 h-14 bg-blue-600/20 border-2 border-blue-500/50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
                     <span data-modal-icon>💪</span>
                 </div>
                 <div>
-                    <h3 data-modal-title class="text-2xl font-bold">Feature Title</h3>
-                    <p data-modal-desc class="text-slate-400 text-sm mt-1">Feature description goes here</p>
+                    <h3 data-modal-title class="text-xl font-bold">Feature Title</h3>
+                    <p data-modal-desc class="text-slate-400 text-sm">Feature description</p>
                 </div>
             </div>
-            <button onclick="closeFeatureModal()" class="text-slate-500 hover:text-white transition p-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            <div data-modal-features class="space-y-2 mb-6">
+                <!-- Feature tiles will be populated by JS -->
+            </div>
+            <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
+                Got it!
             </button>
         </div>
-        <ul data-modal-features class="space-y-3 mb-6">
-            <!-- Features will be populated by JS -->
-        </ul>
-        <button onclick="closeFeatureModal()" class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 py-3 rounded-xl font-semibold transition" data-t="modal.gotIt">
-            Got it!
-        </button>
     </div>
 </div>
 
