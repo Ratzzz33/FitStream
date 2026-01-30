@@ -1,9 +1,9 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation } from '../services/geminiService';
+import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
@@ -36,6 +36,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
     // UI Logic
     const [showRefWarning, setShowRefWarning] = useState(false);
+    const [showRefNotDetected, setShowRefNotDetected] = useState(false);
+    const [pendingFoodResult, setPendingFoodResult] = useState<FoodAnalysisResult | null>(null);
+    const [pendingPhotoBase64, setPendingPhotoBase64] = useState<string | null>(null);
+
+    // Alternative reference objects
+    const alternativeObjects = [
+        { id: 'fork', emoji: '🍴', label: 'alternativeFork', dimensions: '19cm length' },
+        { id: 'spoon', emoji: '🥄', label: 'alternativeSpoon', dimensions: '15cm length' },
+        { id: 'hand', emoji: '✋', label: 'alternativeHand', dimensions: 'average adult hand' },
+        { id: 'card', emoji: '💳', label: 'alternativeCard', dimensions: '85.6mm x 53.98mm' },
+        { id: 'coin', emoji: '🪙', label: 'alternativeCoin', dimensions: '25mm diameter' },
+        { id: 'lighter', emoji: '🔥', label: 'alternativeLighter', dimensions: '8cm height' },
+    ];
 
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -170,22 +183,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         try {
             if (currentMode === 'CAMERA_FOOD') {
                 const result = await analyzeFood(base64, settings.referenceObject || 'Hand');
-                const foodLog: NutritionLog = {
-                    id: Date.now().toString(),
-                    date: new Date().toISOString().split('T')[0],
-                    timestamp: Date.now(),
-                    type: 'FOOD',
-                    name: result.name,
-                    calories: result.calories,
-                    protein: result.protein,
-                    carbs: result.carbs,
-                    fat: result.fat
-                };
-                // Save photo with the log
-                const photoId = await offlineStorage.savePhoto(base64, 'image/jpeg', foodLog.id, 'NUTRITION');
-                foodLog.photoId = photoId;
-                setScannedFood(foodLog);
-                setMode('RESULT_FOOD');
+
+                // Check if reference object was detected
+                if (settings.referenceObject && !result.referenceDetected) {
+                    // Reference configured but not found in photo - show warning
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowRefNotDetected(true);
+                    setMode('IDLE');
+                    return;
+                }
+
+                // Reference detected or not configured - proceed normally
+                await saveFoodResult(result, base64);
             } else if (currentMode === 'CAMERA_MENU') {
                 const recs = await analyzeMenu(base64);
                 setMenuRecommendations(recs);
@@ -195,6 +205,63 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             // If analysis fails (maybe went offline during), offer manual entry with photo
             setCapturedPhotoBase64(base64);
             setMode('OFFLINE_PHOTO');
+        }
+    };
+
+    // Helper to save food result
+    const saveFoodResult = async (result: FoodAnalysisResult, base64: string) => {
+        const foodLog: NutritionLog = {
+            id: Date.now().toString(),
+            date: new Date().toISOString().split('T')[0],
+            timestamp: Date.now(),
+            type: 'FOOD',
+            name: result.name,
+            calories: result.calories,
+            protein: result.protein,
+            carbs: result.carbs,
+            fat: result.fat
+        };
+        // Save photo with the log
+        const photoId = await offlineStorage.savePhoto(base64, 'image/jpeg', foodLog.id, 'NUTRITION');
+        foodLog.photoId = photoId;
+        setScannedFood(foodLog);
+        setMode('RESULT_FOOD');
+    };
+
+    // Handle "Continue without scale" from ref not detected modal
+    const handleContinueWithoutRef = async () => {
+        if (pendingFoodResult && pendingPhotoBase64) {
+            await saveFoodResult(pendingFoodResult, pendingPhotoBase64);
+        }
+        setShowRefNotDetected(false);
+        setPendingFoodResult(null);
+        setPendingPhotoBase64(null);
+    };
+
+    // Handle "Retake photo" from ref not detected modal
+    const handleRetakePhoto = () => {
+        setShowRefNotDetected(false);
+        setPendingFoodResult(null);
+        setPendingPhotoBase64(null);
+        startCamera('CAMERA_FOOD');
+    };
+
+    // Handle selecting an alternative object and re-analyze
+    const handleUseAlternative = async (altObject: typeof alternativeObjects[0]) => {
+        if (!pendingPhotoBase64) return;
+
+        setShowRefNotDetected(false);
+        setMode('ANALYZING');
+
+        try {
+            const result = await analyzeFood(pendingPhotoBase64, altObject.emoji + ' ' + t(altObject.label as any), altObject.dimensions);
+            await saveFoodResult(result, pendingPhotoBase64);
+        } catch (e) {
+            setCapturedPhotoBase64(pendingPhotoBase64);
+            setMode('OFFLINE_PHOTO');
+        } finally {
+            setPendingFoodResult(null);
+            setPendingPhotoBase64(null);
         }
     };
 
@@ -667,7 +734,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
             </div>
 
-            {/* Reference Object Warning Modal */}
+            {/* Reference Object Warning Modal - No object configured */}
             {showRefWarning && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95">
@@ -676,14 +743,26 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 <AlertTriangle size={32} className="text-yellow-600 dark:text-yellow-400" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('missingRefObject')}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                                 {t('missingRefWarningBody')}
                             </p>
+
+                            {/* Common objects hint */}
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                                {t('orUseCommonObject')}
+                            </p>
+                            <div className="flex justify-center gap-2 mb-6">
+                                {alternativeObjects.slice(0, 4).map(obj => (
+                                    <span key={obj.id} className="text-2xl" title={t(obj.label as any)}>
+                                        {obj.emoji}
+                                    </span>
+                                ))}
+                            </div>
 
                             <div className="flex flex-col gap-3">
                                 <button
                                     onClick={confirmRefWarning}
-                                    className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition"
+                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-orange-500/20"
                                 >
                                     {t('continueAnyway')}
                                 </button>
@@ -694,6 +773,77 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     {t('dismiss')}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reference Not Detected Modal - Object configured but not found in photo */}
+            {showRefNotDetected && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <AlertCircle size={32} className="text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('refNotDetected')}</h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                                    {t('refNotDetectedBody')}
+                                </p>
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">
+                                    {t('usingForScale')} <span className="font-bold">{settings.referenceObject}</span>
+                                </p>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex flex-col gap-3 mb-6">
+                                <button
+                                    onClick={handleRetakePhoto}
+                                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                                >
+                                    <RefreshCw size={18} />
+                                    {t('retakePhoto')}
+                                </button>
+                                <button
+                                    onClick={handleContinueWithoutRef}
+                                    className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-xl transition"
+                                >
+                                    {t('continueWithoutRef')}
+                                </button>
+                            </div>
+
+                            {/* Alternative objects */}
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
+                                    {t('orUseCommonObject')}
+                                </p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {alternativeObjects.map(obj => (
+                                        <button
+                                            key={obj.id}
+                                            onClick={() => handleUseAlternative(obj)}
+                                            className="bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 p-3 rounded-xl flex flex-col items-center gap-1 transition active:scale-95"
+                                        >
+                                            <span className="text-2xl">{obj.emoji}</span>
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                                                {t(obj.label as any)}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setShowRefNotDetected(false);
+                                    setPendingFoodResult(null);
+                                    setPendingPhotoBase64(null);
+                                }}
+                                className="w-full text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white py-3 mt-4"
+                            >
+                                {t('dismiss')}
+                            </button>
                         </div>
                     </div>
                 </div>

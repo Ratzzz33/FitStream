@@ -61,19 +61,29 @@ export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: n
 };
 
 // 2. Nutrition Analysis
+export interface FoodAnalysisResult {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    referenceDetected: boolean;
+    confidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
 export const analyzeFood = async (
-    base64Image: string, 
+    base64Image: string,
     referenceObject: string,
     referenceDimensions?: string
-): Promise<{ name: string, calories: number, protein: number, carbs: number, fat: number }> => {
+): Promise<FoodAnalysisResult> => {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
     const lang = navigator.language;
 
-    const refContext = referenceDimensions 
-        ? `User is using a "${referenceObject}" (${referenceDimensions}) for scale.`
-        : `A "${referenceObject}" is used for scale.`;
+    const refContext = referenceDimensions
+        ? `User should have placed a "${referenceObject}" (${referenceDimensions}) for scale.`
+        : `User should have placed a "${referenceObject}" for scale.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -82,7 +92,13 @@ export const analyzeFood = async (
                 {
                     parts: [
                         { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
-                        { text: `Identify food. ${refContext} Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
+                        { text: `Identify food in this photo. ${refContext}
+
+IMPORTANT: Check if the reference object "${referenceObject}" is actually visible in the photo.
+- referenceDetected: true ONLY if you can clearly see the reference object
+- confidenceLevel: HIGH if reference visible, MEDIUM if using hand/common object, LOW if no reference
+
+Estimate size, calories, protein, carbs, fat. JSON output. Language: ${lang}.` }
                     ]
                 }
             ],
@@ -95,13 +111,15 @@ export const analyzeFood = async (
                         calories: { type: Type.NUMBER },
                         protein: { type: Type.NUMBER },
                         carbs: { type: Type.NUMBER },
-                        fat: { type: Type.NUMBER }
+                        fat: { type: Type.NUMBER },
+                        referenceDetected: { type: Type.BOOLEAN },
+                        confidenceLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] }
                     },
-                    required: ["name", "calories", "protein", "carbs", "fat"]
+                    required: ["name", "calories", "protein", "carbs", "fat", "referenceDetected", "confidenceLevel"]
                 }
             }
         });
-        
+
         if (response.text) return JSON.parse(response.text);
         throw new Error("Empty AI response");
     } catch (error) {
