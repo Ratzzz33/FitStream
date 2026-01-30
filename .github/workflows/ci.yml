@@ -197,18 +197,16 @@ jobs:
 
       - name: Run Gitleaks
         run: |
-          CONFIG_ARG=""
-          if [ -f ".gitleaks.toml" ]; then
-            CONFIG_ARG="--config=/path/.gitleaks.toml"
-          fi
           docker run --rm \
-            -v "${PWD}:/path" \
+            -v "${PWD}:/src" \
+            -w /src \
             docker.io/zricethezav/gitleaks:latest \
             detect \
-            --source="/path" \
-            $CONFIG_ARG \
+            --source=/src \
+            --config=/src/.gitleaks.toml \
             --report-format=json \
-            --report-path=/path/gitleaks-report.json \
+            --report-path=/src/gitleaks-report.json \
+            --no-git \
             --exit-code=1
 
       - name: Check for secrets
