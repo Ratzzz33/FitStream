@@ -4,6 +4,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const telegramService = require('./services/telegramService');
+const currencyService = require('./services/currencyService');
 
 // --- 0. SAFETY NETS (CRASH HANDLERS) ---
 process.on('uncaughtException', (err) => {
@@ -969,6 +970,22 @@ app.get('/api/prices/search/:query', async (req, res) => {
     }
 });
 
+// Force update all currency rates (manual trigger)
+app.post('/api/prices/currencies/refresh', async (req, res) => {
+    try {
+        const success = await currencyService.updateRatesInDb(pool);
+        if (success) {
+            const result = await pool.query('SELECT * FROM currencies ORDER BY code');
+            res.json({ success: true, currencies: result.rows });
+        } else {
+            res.status(500).json({ error: 'Failed to fetch rates' });
+        }
+    } catch (e) {
+        console.error('Currency refresh error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Update currency rate
 app.put('/api/prices/currencies/:code', async (req, res) => {
     const { code } = req.params;
@@ -1169,6 +1186,9 @@ const server = app.listen(PORT, HOST, () => {
 
   // Initialize Telegram bot
   telegramService.initBot(pool);
+
+  // Initialize currency updater (weekly cron)
+  currencyService.initCurrencyUpdater(pool);
 
   // Set webhook in production
   if (process.env.NODE_ENV === 'production' && process.env.TELEGRAM_WEBHOOK_URL) {
