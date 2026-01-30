@@ -1,6 +1,18 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap } from 'lucide-react';
-import { PoseTracker, TrackableExercise, getExerciseNameRu, isExerciseTrackable, isTimeBased } from '../services/poseTracker';
+import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap, Settings, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  PoseTracker,
+  TrackableExercise,
+  getExerciseNameRu,
+  isExerciseTrackable,
+  isTimeBased,
+  getCameraPlacementTips,
+  getCameraPlacementNameRu,
+  getBodyOrientationNameRu,
+  CameraPlacement,
+  CameraCalibration,
+  BodyOrientation
+} from '../services/poseTracker';
 import { NormalizedLandmark } from '@mediapipe/pose';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
@@ -11,6 +23,7 @@ interface PoseWorkoutProps {
   targetSeconds?: number; // For plank
   onComplete: (reps: number, formScore: number) => void;
   onCancel: () => void;
+  initialCameraPlacement?: CameraPlacement;
 }
 
 export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
@@ -18,7 +31,8 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   targetReps = 10,
   targetSeconds = 60,
   onComplete,
-  onCancel
+  onCancel,
+  initialCameraPlacement = 'auto'
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,53 +43,97 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [repCount, setRepCount] = useState(0);
   const [formScore, setFormScore] = useState(100);
   const [currentAngle, setCurrentAngle] = useState(0);
+  const [leftAngle, setLeftAngle] = useState(0);
+  const [rightAngle, setRightAngle] = useState(0);
   const [feedback, setFeedback] = useState<string[]>([]);
   const [plankTime, setPlankTime] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
 
+  // New states for improved tracking
+  const [cameraPlacement, setCameraPlacement] = useState<CameraPlacement>(initialCameraPlacement);
+  const [calibration, setCalibration] = useState<CameraCalibration | null>(null);
+  const [bodyOrientation, setBodyOrientation] = useState<BodyOrientation>('unknown');
+  const [activeSide, setActiveSide] = useState<'left' | 'right' | 'both'>('both');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTips, setShowTips] = useState(true);
+
+  // Countdown states
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const countdownDuration = 5; // seconds to get into position
+
   // Audio for rep counting
   const beepAudio = useRef<HTMLAudioElement | null>(null);
+  const countdownAudio = useRef<HTMLAudioElement | null>(null);
+  const calibrationInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Get camera tips for this exercise
+  const cameraTips = getCameraPlacementTips(exercise);
 
   useEffect(() => {
-    // Create beep sound
+    // Create beep sound for reps
     beepAudio.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAw/l9zZo3gMP5fc2aN4DD+X3NmjeAw/l9zZo3gMP5fc2aN4DD+X3NmjeAw/');
+    // Create countdown beep (shorter, higher pitch)
+    countdownAudio.current = new Audio('data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoFAABhgoODg4WIioqLi4uLioqIhoOBfXt5eHd4eXt9f4KFh4mKioqKiomHhYJ/');
   }, []);
 
   // Initialize tracker
   useEffect(() => {
     if (!videoRef.current) return;
 
-    const tracker = new PoseTracker(exercise, {
-      onRepComplete: (count, score) => {
-        setRepCount(count);
-        setFormScore(score);
-        // Play beep
-        if (soundEnabled && beepAudio.current) {
-          beepAudio.current.currentTime = 0;
-          beepAudio.current.play().catch(() => {});
-        }
-        // Check if target reached
-        if (exercise !== 'PLANK' && count >= targetReps) {
-          handleComplete();
+    const tracker = new PoseTracker(
+      exercise,
+      {
+        onRepComplete: (count, score) => {
+          setRepCount(count);
+          setFormScore(score);
+          // Play beep
+          if (soundEnabled && beepAudio.current) {
+            beepAudio.current.currentTime = 0;
+            beepAudio.current.play().catch(() => {});
+          }
+          // Check if target reached
+          if (!isTimeBased(exercise) && count >= targetReps) {
+            handleComplete();
+          }
+        },
+        onFormFeedback: (fb) => {
+          setFeedback(fb);
+          // Clear feedback after 3 seconds
+          setTimeout(() => setFeedback([]), 3000);
+        },
+        onPoseUpdate: (landmarks, angle, left, right) => {
+          setCurrentAngle(Math.round(angle));
+          if (left !== undefined) setLeftAngle(Math.round(left));
+          if (right !== undefined) setRightAngle(Math.round(right));
+          drawPose(landmarks);
+        },
+        onPlankTime: (seconds) => {
+          setPlankTime(seconds);
+          if (seconds >= targetSeconds) {
+            handleComplete();
+          }
+        },
+        onCalibrationUpdate: (cal) => {
+          setCalibration(cal);
+          // Hide tips once calibrated
+          if (cal.isCalibrated) {
+            setShowTips(false);
+          }
+        },
+        onOrientationDetected: (orientation, side) => {
+          setBodyOrientation(orientation);
+          setActiveSide(side);
         }
       },
-      onFormFeedback: (fb) => {
-        setFeedback(fb);
-        // Clear feedback after 3 seconds
-        setTimeout(() => setFeedback([]), 3000);
-      },
-      onPoseUpdate: (landmarks, angle) => {
-        setCurrentAngle(Math.round(angle));
-        drawPose(landmarks);
-      },
-      onPlankTime: (seconds) => {
-        setPlankTime(seconds);
-        if (seconds >= targetSeconds) {
-          handleComplete();
-        }
+      {
+        cameraPlacement: cameraPlacement,
+        useCalibration: cameraPlacement === 'auto',
+        smoothingFactor: 0.3
       }
-    });
+    );
 
     trackerRef.current = tracker;
 
@@ -87,8 +145,19 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
     return () => {
       tracker.stop();
+      if (calibrationInterval.current) {
+        clearInterval(calibrationInterval.current);
+      }
     };
-  }, [exercise, cameraFacing]);
+  }, [exercise, cameraFacing, cameraPlacement]);
+
+  // Update camera placement on tracker when changed
+  const handleCameraPlacementChange = (placement: CameraPlacement) => {
+    setCameraPlacement(placement);
+    if (trackerRef.current) {
+      trackerRef.current.setCameraPlacement(placement);
+    }
+  };
 
   const drawPose = useCallback((landmarks: NormalizedLandmark[]) => {
     const canvas = canvasRef.current;
@@ -119,16 +188,82 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     });
   }, []);
 
+  // Start countdown with calibration
   const handleStart = async () => {
     if (!trackerRef.current || !isInitialized) return;
-    await trackerRef.current.start();
-    setIsRunning(true);
+
+    // Start countdown
+    setCountdown(countdownDuration);
+    setIsCalibrating(true);
+    setCalibrationProgress(0);
+    setShowTips(false);
+    setShowSettings(false);
+
+    // Start the tracker in calibration mode (process frames without counting)
+    trackerRef.current.startCalibration();
+
+    // Start calibration frame processing
+    if (videoRef.current) {
+      calibrationInterval.current = setInterval(async () => {
+        if (trackerRef.current && videoRef.current) {
+          await trackerRef.current.processCalibrationFrame(videoRef.current);
+          setCalibrationProgress(prev => Math.min(100, prev + 10));
+        }
+      }, 200); // Process 5 frames per second during calibration
+    }
+
+    // Countdown timer
+    let remaining = countdownDuration;
+
+    const countdownTimer = setInterval(() => {
+      remaining--;
+      setCountdown(remaining);
+
+      // Play countdown beep
+      if (soundEnabled && countdownAudio.current && remaining > 0) {
+        countdownAudio.current.currentTime = 0;
+        countdownAudio.current.play().catch(() => {});
+      }
+
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+
+        // Stop calibration interval
+        if (calibrationInterval.current) {
+          clearInterval(calibrationInterval.current);
+          calibrationInterval.current = null;
+        }
+
+        setCountdown(null);
+        setIsCalibrating(false);
+
+        // Play start sound (louder/different)
+        if (soundEnabled && beepAudio.current) {
+          beepAudio.current.currentTime = 0;
+          beepAudio.current.play().catch(() => {});
+        }
+
+        // Actually start the workout
+        trackerRef.current?.start();
+        setIsRunning(true);
+      }
+    }, 1000);
   };
 
   const handlePause = () => {
     if (!trackerRef.current) return;
     trackerRef.current.stop();
     setIsRunning(false);
+
+    // Cancel countdown if running
+    if (countdown !== null) {
+      setCountdown(null);
+      setIsCalibrating(false);
+      if (calibrationInterval.current) {
+        clearInterval(calibrationInterval.current);
+        calibrationInterval.current = null;
+      }
+    }
   };
 
   const handleReset = () => {
@@ -138,6 +273,9 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     setFormScore(100);
     setPlankTime(0);
     setFeedback([]);
+    setCountdown(null);
+    setIsCalibrating(false);
+    setCalibrationProgress(0);
   };
 
   const handleComplete = () => {
@@ -174,6 +312,20 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
           <div className="flex gap-2">
             <button
+              onClick={() => setShowTips(!showTips)}
+              className={`p-2 rounded-full backdrop-blur-sm ${showTips ? 'bg-blue-500' : 'bg-white/20'}`}
+              title="Подсказки"
+            >
+              <Info className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-full backdrop-blur-sm ${showSettings ? 'bg-blue-500' : 'bg-white/20'}`}
+              title="Настройки камеры"
+            >
+              <Settings className="w-5 h-5 text-white" />
+            </button>
+            <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="p-2 rounded-full bg-white/20 backdrop-blur-sm"
             >
@@ -208,27 +360,181 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           style={{ transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none' }}
         />
 
-        {/* Rep counter overlay */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-          {isTimeBased(exercise) ? (
-            <div className="text-8xl font-bold text-white drop-shadow-lg">
-              {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
+        {/* Countdown overlay */}
+        {countdown !== null && (
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-30">
+            <div className="text-center">
+              <div className="text-9xl font-bold text-white animate-pulse">
+                {countdown}
+              </div>
+              <div className="text-2xl text-white/90 mt-4">
+                Займите позицию
+              </div>
+
+              {/* Calibration status */}
+              <div className="mt-8 bg-white/10 rounded-xl p-4 mx-4 max-w-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white/80 text-sm">Калибровка камеры</span>
+                  <span className="text-green-400 text-sm">
+                    {calibration?.isCalibrated ? '✓' : `${calibrationProgress}%`}
+                  </span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 transition-all duration-200"
+                    style={{ width: `${calibrationProgress}%` }}
+                  />
+                </div>
+
+                {bodyOrientation !== 'unknown' && (
+                  <div className="mt-3 text-white/70 text-sm">
+                    Позиция: {getBodyOrientationNameRu(bodyOrientation)}
+                  </div>
+                )}
+
+                {calibration?.placement && calibration.placement !== 'auto' && (
+                  <div className="mt-1 text-blue-300 text-sm">
+                    Камера: {getCameraPlacementNameRu(calibration.placement)}
+                  </div>
+                )}
+
+                {activeSide !== 'both' && (
+                  <div className="mt-1 text-amber-300 text-sm">
+                    Видна {activeSide === 'left' ? 'левая' : 'правая'} сторона
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-9xl font-bold text-white drop-shadow-lg">
-              {repCount}
+          </div>
+        )}
+
+        {/* Rep counter overlay (only when running, not during countdown) */}
+        {countdown === null && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+            {isTimeBased(exercise) ? (
+              <div className="text-8xl font-bold text-white drop-shadow-lg">
+                {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
+              </div>
+            ) : (
+              <div className="text-9xl font-bold text-white drop-shadow-lg">
+                {repCount}
+              </div>
+            )}
+            <div className="text-xl text-white/80 mt-2">
+              {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
+            </div>
+          </div>
+        )}
+
+        {/* Angle indicator with bilateral info */}
+        <div className="absolute top-20 right-4 bg-black/60 rounded-lg px-3 py-2 backdrop-blur-sm">
+          <div className="text-white text-sm font-medium">Угол: {currentAngle}°</div>
+          {activeSide === 'both' && (
+            <div className="flex gap-2 text-xs mt-1">
+              <span className={`${Math.abs(leftAngle - rightAngle) > 15 ? 'text-amber-400' : 'text-white/70'}`}>
+                Л: {leftAngle}°
+              </span>
+              <span className={`${Math.abs(leftAngle - rightAngle) > 15 ? 'text-amber-400' : 'text-white/70'}`}>
+                П: {rightAngle}°
+              </span>
             </div>
           )}
-          <div className="text-xl text-white/80 mt-2">
-            {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
-          </div>
+          <div className="text-green-400 text-sm mt-1">Форма: {formScore}%</div>
+          {calibration && (
+            <div className="text-blue-300 text-xs mt-1">
+              📷 {getCameraPlacementNameRu(calibration.placement)}
+            </div>
+          )}
+          {bodyOrientation !== 'unknown' && (
+            <div className="text-purple-300 text-xs">
+              {bodyOrientation === 'front' ? '👤 Спереди' :
+               bodyOrientation === 'front_left' ? '↖️ Спереди-слева' :
+               bodyOrientation === 'front_right' ? '↗️ Спереди-справа' :
+               bodyOrientation === 'back' ? '🔙 Сзади' :
+               bodyOrientation === 'back_left' ? '↙️ Сзади-слева' :
+               bodyOrientation === 'back_right' ? '↘️ Сзади-справа' :
+               bodyOrientation === 'left_side' ? '◀️ Левый бок' :
+               bodyOrientation === 'right_side' ? '▶️ Правый бок' : ''}
+            </div>
+          )}
         </div>
 
-        {/* Angle indicator (debug) */}
-        <div className="absolute top-20 right-4 bg-black/50 rounded-lg px-3 py-2">
-          <div className="text-white text-sm">Угол: {currentAngle}°</div>
-          <div className="text-green-400 text-sm">Форма: {formScore}%</div>
-        </div>
+        {/* Camera tips panel (collapsible) */}
+        {showTips && !isRunning && (
+          <div className="absolute top-20 left-4 right-20 bg-blue-900/80 rounded-lg p-3 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-300" />
+                <span className="text-white text-sm font-medium">Как расположить камеру</span>
+              </div>
+              <button
+                onClick={() => setShowTips(false)}
+                className="text-white/60 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="text-white/80 text-xs space-y-1">
+              {cameraTips.tips.slice(0, 2).map((tip, i) => (
+                <p key={i}>• {tip}</p>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {cameraTips.recommended.map(placement => (
+                <button
+                  key={placement}
+                  onClick={() => handleCameraPlacementChange(placement)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    cameraPlacement === placement
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white/20 text-white/80'
+                  }`}
+                >
+                  {getCameraPlacementNameRu(placement)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Settings panel */}
+        {showSettings && (
+          <div className="absolute top-20 left-4 right-4 bg-gray-900/90 rounded-lg p-4 backdrop-blur-sm z-20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white font-medium">Настройки камеры</span>
+              <button onClick={() => setShowSettings(false)}>
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-white/70 text-sm block mb-2">Расположение камеры</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['auto', 'floor_front', 'floor_side', 'chest_front', 'chest_side'] as CameraPlacement[]).map(placement => (
+                    <button
+                      key={placement}
+                      onClick={() => handleCameraPlacementChange(placement)}
+                      className={`text-sm px-3 py-2 rounded ${
+                        cameraPlacement === placement
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white/10 text-white/80'
+                      }`}
+                    >
+                      {getCameraPlacementNameRu(placement)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {calibration && (
+                <div className="text-white/60 text-xs">
+                  Статус: {calibration.isCalibrated ? '✓ Откалибровано' : 'Калибровка...'}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Form feedback */}
         {feedback.length > 0 && (
@@ -260,13 +566,20 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
             <RotateCcw className="w-6 h-6 text-white" />
           </button>
 
-          {!isRunning ? (
+          {!isRunning && countdown === null ? (
             <button
               onClick={handleStart}
               disabled={!isInitialized}
               className="p-6 rounded-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 transition-colors"
             >
               <Play className="w-10 h-10 text-white" fill="white" />
+            </button>
+          ) : countdown !== null ? (
+            <button
+              onClick={handlePause}
+              className="p-6 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+            >
+              <X className="w-10 h-10 text-white" />
             </button>
           ) : (
             <button
