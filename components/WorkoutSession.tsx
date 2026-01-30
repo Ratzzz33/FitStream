@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Play, Square, Mic, MicOff, AlertCircle, Sparkles, Dumbbell, Timer, Flame, Activity, Footprints, ArrowUp, ArrowDown, Move, Zap } from 'lucide-react';
 import { ExerciseLog } from '../types';
 import { StorageService } from '../services/storageService';
 import { t } from '../services/i18n';
@@ -21,26 +21,28 @@ const LOCAL_EXERCISES: TrackableExercise[] = [
   'GLUTE_BRIDGES', 'CALF_RAISES', 'WALL_SIT', 'SIDE_LUNGES', 'TRICEP_DIPS'
 ];
 
-// Exercise icon component - uses generated SVGs
+// Exercise icon component - uses Lucide icons (temporary until custom pack is found)
 const ExerciseIcon: React.FC<{ exercise: TrackableExercise; className?: string }> = ({ exercise, className = "w-8 h-8" }) => {
-  const iconMap: Record<TrackableExercise, string> = {
-    SQUATS: 'squats',
-    PUSHUPS: 'pushups',
-    PLANK: 'plank',
-    LUNGES: 'lunges',
-    SITUPS: 'situps',
-    BURPEES: 'burpees',
-    JUMPING_JACKS: 'jumping_jacks',
-    HIGH_KNEES: 'high_knees',
-    MOUNTAIN_CLIMBERS: 'mountain_climbers',
-    LEG_RAISES: 'leg_raises',
-    GLUTE_BRIDGES: 'glute_bridges',
-    CALF_RAISES: 'calf_raises',
-    WALL_SIT: 'wall_sit',
-    SIDE_LUNGES: 'side_lunges',
-    TRICEP_DIPS: 'tricep_dips'
-  };
-  return <img src={`/icons/exercises/${iconMap[exercise]}.svg`} alt="" className={className} />;
+  const iconProps = { className, strokeWidth: 1.5 };
+
+  switch (exercise) {
+    case 'SQUATS': return <Dumbbell {...iconProps} />;
+    case 'PUSHUPS': return <ArrowDown {...iconProps} />;
+    case 'PLANK': return <Timer {...iconProps} />;
+    case 'LUNGES': return <Footprints {...iconProps} />;
+    case 'SITUPS': return <ArrowUp {...iconProps} />;
+    case 'BURPEES': return <Zap {...iconProps} />;
+    case 'JUMPING_JACKS': return <Move {...iconProps} />;
+    case 'HIGH_KNEES': return <Flame {...iconProps} />;
+    case 'MOUNTAIN_CLIMBERS': return <Activity {...iconProps} />;
+    case 'LEG_RAISES': return <ArrowUp {...iconProps} />;
+    case 'GLUTE_BRIDGES': return <ArrowUp {...iconProps} />;
+    case 'CALF_RAISES': return <ArrowUp {...iconProps} />;
+    case 'WALL_SIT': return <Timer {...iconProps} />;
+    case 'SIDE_LUNGES': return <Footprints {...iconProps} />;
+    case 'TRICEP_DIPS': return <ArrowDown {...iconProps} />;
+    default: return <Dumbbell {...iconProps} />;
+  }
 };
 
 // Function declaration for the model
