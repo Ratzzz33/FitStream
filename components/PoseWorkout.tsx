@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Zap, Settings, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Volume2, VolumeX, Camera, Check, Settings, Info, User, AlertCircle } from 'lucide-react';
 import {
   PoseTracker,
   TrackableExercise,
@@ -64,6 +64,10 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   const [calibrationProgress, setCalibrationProgress] = useState(0);
   const countdownDuration = 5; // seconds to get into position
 
+  // UI states
+  const [isPersonVisible, setIsPersonVisible] = useState(false);
+  const [lastPoseTime, setLastPoseTime] = useState(0);
+
   // Audio for rep counting
   const beepAudio = useRef<HTMLAudioElement | null>(null);
   const countdownAudio = useRef<HTMLAudioElement | null>(null);
@@ -78,6 +82,17 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
     // Create countdown beep (shorter, higher pitch)
     countdownAudio.current = new Audio('data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoFAABhgoODg4WIioqLi4uLioqIhoOBfXt5eHd4eXt9f4KFh4mKioqKiomHhYJ/');
   }, []);
+
+  // Track person visibility - if no pose update for 1.5 seconds, consider person gone
+  useEffect(() => {
+    const checkVisibility = setInterval(() => {
+      if (lastPoseTime > 0 && Date.now() - lastPoseTime > 1500) {
+        setIsPersonVisible(false);
+      }
+    }, 500);
+
+    return () => clearInterval(checkVisibility);
+  }, [lastPoseTime]);
 
   // Initialize tracker
   useEffect(() => {
@@ -109,6 +124,12 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           if (left !== undefined) setLeftAngle(Math.round(left));
           if (right !== undefined) setRightAngle(Math.round(right));
           drawPose(landmarks);
+
+          // Track if person is visible in frame
+          if (landmarks && landmarks.length > 0) {
+            setIsPersonVisible(true);
+            setLastPoseTime(Date.now());
+          }
         },
         onPlankTime: (seconds) => {
           setPlankTime(seconds);
@@ -347,6 +368,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
       {/* Video with overlay */}
       <div className="flex-1 relative">
+        {/* Video feed */}
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
@@ -354,11 +376,53 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
           muted
           style={{ transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none' }}
         />
+
+        {/* Dark overlay for better UI visibility */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `
+              radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.4) 100%),
+              linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.5) 100%)
+            `
+          }}
+        />
+
+        {/* Pose skeleton canvas */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           style={{ transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none' }}
         />
+
+        {/* Person not visible indicator */}
+        {!isPersonVisible && isInitialized && !countdown && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              {/* Silhouette placeholder */}
+              <div className="relative mx-auto w-32 h-48 mb-4">
+                <User className="w-32 h-48 text-white/20" strokeWidth={0.5} />
+                <div className="absolute inset-0 border-2 border-dashed border-white/30 rounded-xl" />
+              </div>
+              <div className="bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2">
+                <div className="flex items-center gap-2 text-amber-400">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>Встаньте в кадр камеры</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {!isInitialized && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+              <div className="text-white/80">Загрузка камеры...</div>
+            </div>
+          </div>
+        )}
 
         {/* Countdown overlay */}
         {countdown !== null && (
@@ -412,15 +476,28 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
         {countdown === null && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
             {isTimeBased(exercise) ? (
-              <div className="text-8xl font-bold text-white drop-shadow-lg">
+              <div
+                className="text-8xl font-bold text-white"
+                style={{
+                  textShadow: '0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.4)'
+                }}
+              >
                 {Math.floor(plankTime / 60)}:{(plankTime % 60).toString().padStart(2, '0')}
               </div>
             ) : (
-              <div className="text-9xl font-bold text-white drop-shadow-lg">
+              <div
+                className="text-9xl font-bold text-white"
+                style={{
+                  textShadow: '0 0 20px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.4)'
+                }}
+              >
                 {repCount}
               </div>
             )}
-            <div className="text-xl text-white/80 mt-2">
+            <div
+              className="text-xl text-white/90 mt-2"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
+            >
               {isTimeBased(exercise) ? `/ ${targetSeconds}с` : `/ ${targetReps}`}
             </div>
           </div>
@@ -557,50 +634,78 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
       </div>
 
       {/* Controls */}
-      <div className="bg-gradient-to-t from-black/80 to-transparent p-6">
-        <div className="flex items-center justify-center gap-6">
-          <button
-            onClick={handleReset}
-            className="p-4 rounded-full bg-white/20 backdrop-blur-sm"
-          >
-            <RotateCcw className="w-6 h-6 text-white" />
-          </button>
-
-          {!isRunning && countdown === null ? (
+      <div className="bg-gradient-to-t from-black/80 to-transparent p-4 pb-6">
+        <div className="flex items-end justify-center gap-4">
+          {/* Reset button */}
+          <div className="flex flex-col items-center gap-1">
             <button
-              onClick={handleStart}
+              onClick={handleReset}
+              className="p-3 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
               disabled={!isInitialized}
-              className="p-6 rounded-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 transition-colors"
             >
-              <Play className="w-10 h-10 text-white" fill="white" />
+              <RotateCcw className="w-6 h-6 text-white" />
             </button>
-          ) : countdown !== null ? (
-            <button
-              onClick={handlePause}
-              className="p-6 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-            >
-              <X className="w-10 h-10 text-white" />
-            </button>
-          ) : (
-            <button
-              onClick={handlePause}
-              className="p-6 rounded-full bg-amber-500 hover:bg-amber-600 transition-colors"
-            >
-              <Pause className="w-10 h-10 text-white" fill="white" />
-            </button>
-          )}
+            <span className="text-white/60 text-xs">Сброс</span>
+          </div>
 
-          <button
-            onClick={handleComplete}
-            className="p-4 rounded-full bg-blue-500 hover:bg-blue-600"
-          >
-            <Zap className="w-6 h-6 text-white" />
-          </button>
+          {/* Main action button */}
+          <div className="flex flex-col items-center gap-1">
+            {!isRunning && countdown === null ? (
+              <button
+                onClick={handleStart}
+                disabled={!isInitialized}
+                className="p-5 rounded-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 transition-colors shadow-lg shadow-green-500/30"
+              >
+                <Play className="w-10 h-10 text-white" fill="white" />
+              </button>
+            ) : countdown !== null ? (
+              <button
+                onClick={handlePause}
+                className="p-5 rounded-full bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+              >
+                <X className="w-10 h-10 text-white" />
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                className="p-5 rounded-full bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30"
+              >
+                <Pause className="w-10 h-10 text-white" fill="white" />
+              </button>
+            )}
+            <span className="text-white/60 text-xs">
+              {!isRunning && countdown === null ? 'Начать' :
+               countdown !== null ? 'Отмена' : 'Пауза'}
+            </span>
+          </div>
+
+          {/* Complete button */}
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={handleComplete}
+              disabled={repCount === 0 && plankTime === 0}
+              className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors"
+              title="Завершить тренировку"
+            >
+              <Check className="w-6 h-6 text-white" />
+            </button>
+            <span className="text-white/60 text-xs">Готово</span>
+          </div>
         </div>
 
+        {/* Status text */}
         {!isInitialized && (
-          <div className="text-center mt-4">
+          <div className="text-center mt-3">
             <div className="text-white/60 text-sm">Загрузка модели...</div>
+          </div>
+        )}
+
+        {/* Person visibility status */}
+        {isInitialized && !isRunning && countdown === null && (
+          <div className="text-center mt-3">
+            <div className={`text-sm ${isPersonVisible ? 'text-green-400' : 'text-amber-400'}`}>
+              {isPersonVisible ? '✓ Вы в кадре' : '⚠ Встаньте перед камерой'}
+            </div>
           </div>
         )}
       </div>
