@@ -32,6 +32,7 @@
     "cap:build:android": "npm run build && npx cap sync android",
     "cap:build:ios": "npm run build && npx cap sync ios",
     "apk:copy": "node -e \"require('fs').copyFileSync('android/app/build/outputs/apk/debug/app-debug.apk', 'public/land/FitStream.apk'); console.log('APK copied to public/land/FitStream.apk')\"",
+    "apk:upload": "node scripts/upload-apk.js",
     "deploy:landing": "npm run cap:build:android && npm run apk:copy"
   },
   "dependencies": {

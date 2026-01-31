@@ -13,7 +13,14 @@
     "badge": "Powered by Google Gemini AI",
     "title1": "Your AI-Powered",
     "title2": "Fitness Companion",
+    "dynamicTitles": [
+      "Track workouts with AI",
+      "Scan food instantly",
+      "Cook smarter recipes",
+      "Reach your goals faster"
+    ],
     "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
+    "demoLabel": "Interactive app preview",
     "downloadFree": "Download Free",
     "tryWebApp": "Try Web App"
   },
@@ -162,9 +169,17 @@
     "appStore": "App Store",
     "googlePlay": "Google Play",
     "webApp": "Web App",
+    "androidApk": "Android APK",
     "on": "Download on the",
     "get": "Get it on",
-    "use": "Use in"
+    "use": "Use in",
+    "download": "Download",
+    "directDownload": "Direct Download",
+    "version": "Version",
+    "size": "Size",
+    "comingSoon": "Coming Soon",
+    "androidDirect": "Android (Direct)",
+    "anyAndroid": "Any Android 8.0+"
   },
   "footer": {
     "privacy": "Privacy Policy",
