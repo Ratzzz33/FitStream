@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store } from 'lucide-react';
+import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store, WifiOff } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
+import { findMatchingRecipes, convertToGeneratedRecipe } from '../../data/offlineRecipes';
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
@@ -48,6 +49,8 @@ export const Cooking: React.FC<CookingProps> = ({
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [selectedRecipeIndex, setSelectedRecipeIndex] = useState<number | undefined>();
   const [recipeImages, setRecipeImages] = useState<Record<number, string>>({});
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
 
@@ -139,6 +142,8 @@ export const Cooking: React.FC<CookingProps> = ({
     setError('');
     setRecipeImages({});
     setSelectedRecipeIndex(undefined);
+    setIsOfflineMode(false);
+    setMissingIngredients([]);
 
     try {
       const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
@@ -149,6 +154,7 @@ export const Cooking: React.FC<CookingProps> = ({
         return;
       }
 
+      const ingredientNames = inventory.map(i => i.name);
       const { meals, macros } = getTodayMealsContext();
 
       const context: RecipeGenerationContext = {
@@ -162,7 +168,33 @@ export const Cooking: React.FC<CookingProps> = ({
         todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
       };
 
-      const generatedRecipes = await generateRecipes(inventory, context);
+      // Try AI recipes first
+      let generatedRecipes: GeneratedRecipe[] = [];
+      try {
+        generatedRecipes = await generateRecipes(inventory, context);
+      } catch (aiError) {
+        console.warn('AI recipes failed, trying offline:', aiError);
+      }
+
+      // Fallback to offline recipes if AI fails or returns nothing
+      if (generatedRecipes.length === 0) {
+        console.log('Using offline recipes');
+        setIsOfflineMode(true);
+
+        const mealType = getTimeOfDay();
+        const offlineMatches = findMatchingRecipes(ingredientNames, mealType, 2);
+
+        if (offlineMatches.length > 0) {
+          // Collect all missing ingredients
+          const allMissing = new Set<string>();
+          offlineMatches.slice(0, 3).forEach(m => m.missing.forEach(i => allMissing.add(i)));
+          setMissingIngredients(Array.from(allMissing));
+
+          generatedRecipes = offlineMatches
+            .slice(0, 3)
+            .map(match => convertToGeneratedRecipe(match.recipe, ingredientNames));
+        }
+      }
 
       if (generatedRecipes.length === 0) {
         setError('Не удалось подобрать рецепты. Попробуйте добавить больше продуктов.');
@@ -173,10 +205,12 @@ export const Cooking: React.FC<CookingProps> = ({
       setRecipes(generatedRecipes);
       setState('menu');
 
-      // Generate images for ALL recipes in parallel
-      generatedRecipes.forEach((recipe, index) => {
-        generateImageForRecipe(recipe, index);
-      });
+      // Generate images only if online (skip for offline mode)
+      if (!isOfflineMode) {
+        generatedRecipes.forEach((recipe, index) => {
+          generateImageForRecipe(recipe, index);
+        });
+      }
 
     } catch (err) {
       console.error('Error loading recipes:', err);
@@ -328,6 +362,51 @@ export const Cooking: React.FC<CookingProps> = ({
               Выберите блюдо • {recipes.length} варианта
             </p>
           </div>
+
+          {/* Offline mode indicator */}
+          {isOfflineMode && (
+            <div className="px-4 mb-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                    Офлайн-рецепты
+                  </p>
+                </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Показаны рецепты из встроенной базы
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Missing ingredients */}
+          {missingIngredients.length > 0 && onOpenShopping && (
+            <div className="px-4 mb-4">
+              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+                <p className="text-xs text-orange-700 dark:text-orange-300 font-medium mb-2">
+                  🛒 Не хватает базовых продуктов:
+                </p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {missingIngredients.slice(0, 5).map((ing, idx) => (
+                    <span key={idx} className="text-xs bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded">
+                      {ing}
+                    </span>
+                  ))}
+                  {missingIngredients.length > 5 && (
+                    <span className="text-xs text-orange-500">+{missingIngredients.length - 5}</span>
+                  )}
+                </div>
+                <button
+                  onClick={onOpenShopping}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Store className="w-4 h-4" />
+                  В магазин за продуктами
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Today's context */}
           {todayMeals.length > 0 && (
