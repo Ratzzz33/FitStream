@@ -56,6 +56,71 @@ export const getYouTubeWatchUrl = (videoId: string, timestamp?: number): string 
   return timestamp ? `${base}&t=${timestamp}` : base;
 };
 
+export type VideoLanguage = 'ru' | 'en';
+
+export interface VideoInfo {
+  id: string;
+  timestamp?: number;
+  title: string;
+  language: VideoLanguage;
+  isFallback: boolean; // true если показываем видео на другом языке
+}
+
+/**
+ * Получить видео для техники с fallback на другой язык
+ * Если видео на запрошенном языке нет (пустой id), вернёт видео на другом языке
+ */
+export const getVideoForTechnique = (
+  technique: CookingTechnique,
+  preferredLanguage: VideoLanguage = 'ru'
+): VideoInfo | null => {
+  const primary = technique.video[preferredLanguage];
+  const fallbackLang: VideoLanguage = preferredLanguage === 'ru' ? 'en' : 'ru';
+  const fallback = technique.video[fallbackLang];
+
+  // Если есть видео на предпочитаемом языке
+  if (primary?.id) {
+    return {
+      id: primary.id,
+      timestamp: primary.timestamp,
+      title: primary.title,
+      language: preferredLanguage,
+      isFallback: false
+    };
+  }
+
+  // Fallback на другой язык
+  if (fallback?.id) {
+    return {
+      id: fallback.id,
+      timestamp: fallback.timestamp,
+      title: fallback.title,
+      language: fallbackLang,
+      isFallback: true
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Получить URL видео для техники с fallback
+ */
+export const getVideoUrlForTechnique = (
+  technique: CookingTechnique,
+  preferredLanguage: VideoLanguage = 'ru',
+  urlType: 'embed' | 'watch' = 'watch'
+): { url: string; info: VideoInfo } | null => {
+  const videoInfo = getVideoForTechnique(technique, preferredLanguage);
+  if (!videoInfo) return null;
+
+  const url = urlType === 'embed'
+    ? getYouTubeEmbedUrl(videoInfo.id, videoInfo.timestamp)
+    : getYouTubeWatchUrl(videoInfo.id, videoInfo.timestamp);
+
+  return { url, info: videoInfo };
+};
+
 // ============================================
 // БАЗА КУЛИНАРНЫХ ТЕХНИК
 // ============================================
