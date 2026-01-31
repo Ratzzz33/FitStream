@@ -1,20 +1,14 @@
 name: 🍎 iOS Build
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - 'landing/**'
-      - 'landing-next/**'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - 'landing/**'
-      - 'landing-next/**'
+  # Disabled auto-triggers until macOS runner billing is configured
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - 'docs/**'
+  #     - '*.md'
+  #     - 'landing/**'
+  #     - 'landing-next/**'
   workflow_dispatch:
     inputs:
       upload_to_testflight:
