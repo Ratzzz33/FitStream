@@ -141,13 +141,14 @@ export enum AppTab {
 
 // === SMART KITCHEN TYPES ===
 
-export type StorageType = 'fridge' | 'cabinet' | 'freezer';
+export type StorageType = 'fridge' | 'cabinet' | 'freezer' | 'appliances';
 
 export interface StoragePhoto {
   id: string;
   base64: string;                  // base64 фото
   createdAt: string;               // ISO date
   label?: string;                  // опциональная метка ("верхняя полка", "дверца")
+  parseStatus?: 'success' | 'empty' | 'error';  // статус парсинга для retry
 }
 
 export interface KitchenStorage {
