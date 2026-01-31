@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Camera, Check, AlertCircle, Package, Thermometer, Snowflake } from 'lucide-react';
+import { X, Camera, Check, AlertCircle, Package, Thermometer, Snowflake, Microwave } from 'lucide-react';
 import { InventoryItem, StorageType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { scanReceipt, ScannedReceipt, ScannedReceiptItem } from '../../services/geminiService';
@@ -139,7 +139,8 @@ export const ScanReceiptModal: React.FC<ScanReceiptModalProps> = ({
   const storageIcons: Record<StorageType, React.ReactNode> = {
     fridge: <Thermometer className="w-4 h-4" />,
     cabinet: <Package className="w-4 h-4" />,
-    freezer: <Snowflake className="w-4 h-4" />
+    freezer: <Snowflake className="w-4 h-4" />,
+    appliances: <Microwave className="w-4 h-4" />
   };
 
   return (
