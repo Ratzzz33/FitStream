@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, Check, HelpCircle, Flame, Pause, Play, Clock, ArrowRight } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
 import { CookingStep, TimerState } from './CookingStep';
@@ -6,6 +6,15 @@ import { CookingComplete } from './CookingComplete';
 import { ReminderPopup } from './ReminderPopup';
 import { generateDishImage } from '../../services/nanaBananaService';
 import { t, tf } from '../../services/i18n';
+import {
+  startTimer as startBackgroundTimer,
+  cancelTimer,
+  getRemainingTime,
+  addTimerCompletionListener,
+  getTimerEndTime
+} from '../../services/timerService';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 interface CookingModeProps {
   recipe: GeneratedRecipe;
@@ -17,6 +26,10 @@ interface ActiveReminder {
   message: string;
   icon: string;
 }
+
+// Generate unique timer ID for each step
+const getTimerId = (recipeId: string, stepIndex: number) =>
+  `cooking_${recipeId}_step_${stepIndex}`;
 
 // TTS helper for voice reminders
 const speakReminder = (message: string) => {
@@ -47,7 +60,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({
   // Timer state - use explicit state instead of boolean
   const [timerState, setTimerState] = useState<TimerState>('idle');
   const [timerSeconds, setTimerSeconds] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerDisplayRef = useRef<NodeJS.Timeout | null>(null);
   const reminderTimersRef = useRef<NodeJS.Timeout[]>([]);
 
   // Overall cooking timeline
@@ -60,6 +73,62 @@ export const CookingMode: React.FC<CookingModeProps> = ({
   const currentStep = recipe.steps[currentStepIndex];
   const totalSteps = recipe.steps.length;
   const progress = ((currentStepIndex + 1) / totalSteps) * 100;
+
+  // Get current timer ID
+  const currentTimerId = getTimerId(recipe.name, currentStepIndex);
+
+  // Handle timer completion (from background notification or foreground)
+  const handleTimerComplete = useCallback(() => {
+    setTimerState('completed');
+    setTimerSeconds(0);
+    // Play notification sound
+    playNotificationSound();
+    // Speak completion
+    speakReminder(t('cookingTimerDone'));
+    // Vibrate if available
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  }, []);
+
+  // Sync timer state when app comes to foreground
+  const syncTimerState = useCallback(() => {
+    const remaining = getRemainingTime(currentTimerId);
+    if (remaining > 0) {
+      setTimerSeconds(remaining);
+      setTimerState('running');
+    } else if (getTimerEndTime(currentTimerId)) {
+      // Timer existed but completed while in background
+      handleTimerComplete();
+    }
+  }, [currentTimerId, handleTimerComplete]);
+
+  // Listen for app state changes
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listener = App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        // App came to foreground - sync timer
+        syncTimerState();
+      }
+    });
+
+    return () => {
+      listener.then(l => l.remove());
+    };
+  }, [syncTimerState]);
+
+  // Listen for timer completion notifications
+  useEffect(() => {
+    const cleanup = addTimerCompletionListener((timerId) => {
+      if (timerId === currentTimerId) {
+        handleTimerComplete();
+      }
+    });
+
+    return cleanup;
+  }, [currentTimerId, handleTimerComplete]);
 
   // Load step images progressively
   useEffect(() => {
@@ -87,6 +156,30 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     return () => clearInterval(timelineInterval);
   }, [cookingStartedAt, isPaused, totalPausedMs]);
 
+  // Display timer update (foreground only)
+  useEffect(() => {
+    if (timerState === 'running' && timerSeconds > 0) {
+      timerDisplayRef.current = setInterval(() => {
+        const remaining = getRemainingTime(currentTimerId);
+        if (remaining > 0) {
+          setTimerSeconds(remaining);
+        } else {
+          // Timer completed
+          handleTimerComplete();
+          if (timerDisplayRef.current) {
+            clearInterval(timerDisplayRef.current);
+          }
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerDisplayRef.current) {
+        clearInterval(timerDisplayRef.current);
+      }
+    };
+  }, [timerState, currentTimerId, handleTimerComplete]);
+
   // Handle pause/resume
   const togglePause = () => {
     if (isPaused && pausedAt) {
@@ -106,35 +199,6 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Handle timer
-  useEffect(() => {
-    if (timerState === 'running' && timerSeconds > 0) {
-      timerRef.current = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev <= 1) {
-            setTimerState('completed');
-            // Play notification sound
-            playNotificationSound();
-            // Speak completion
-            speakReminder(t('cookingTimerDone'));
-            // Vibrate if available
-            if (navigator.vibrate) {
-              navigator.vibrate([200, 100, 200]);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [timerState, timerSeconds]);
 
   // Setup reminders for current step
   useEffect(() => {
@@ -226,13 +290,16 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     }
   };
 
-  const handleStepComplete = () => {
+  const handleStepComplete = async () => {
     // Mark step as complete
     setCompletedSteps(prev => new Set(prev).add(currentStepIndex));
 
-    // Clear timers
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
+    // Cancel any running timer for current step
+    await cancelTimer(currentTimerId);
+
+    // Clear display timer
+    if (timerDisplayRef.current) {
+      clearInterval(timerDisplayRef.current);
     }
 
     // Move to next step or finish
@@ -241,8 +308,15 @@ export const CookingMode: React.FC<CookingModeProps> = ({
       // Reset timer state for next step
       const nextStep = recipe.steps[currentStepIndex + 1];
       if (nextStep.timerSeconds) {
+        // Start background timer for next step
+        const nextTimerId = getTimerId(recipe.name, currentStepIndex + 1);
+        await startBackgroundTimer(
+          nextTimerId,
+          nextStep.timerSeconds,
+          `${recipe.name}: ${nextStep.instruction.slice(0, 50)}...`
+        );
         setTimerSeconds(nextStep.timerSeconds);
-        setTimerState('running'); // Auto-start for next step
+        setTimerState('running');
       } else {
         setTimerSeconds(0);
         setTimerState('idle');
@@ -259,8 +333,14 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     }
   };
 
-  const startTimer = () => {
+  const startTimer = async () => {
     if (currentStep.timerSeconds) {
+      // Start background timer with notification
+      await startBackgroundTimer(
+        currentTimerId,
+        currentStep.timerSeconds,
+        `${recipe.name}: ${currentStep.instruction.slice(0, 50)}...`
+      );
       setTimerSeconds(currentStep.timerSeconds);
       setTimerState('running');
     }
@@ -271,6 +351,14 @@ export const CookingMode: React.FC<CookingModeProps> = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel any running timers when leaving cooking mode
+      cancelTimer(currentTimerId);
+    };
+  }, [currentTimerId]);
 
   // If complete, show completion screen
   if (isComplete) {
