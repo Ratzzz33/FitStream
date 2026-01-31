@@ -117,4 +117,43 @@ export async function getReadyToCookRecipes(userIngredients: string[], maxMissin
     return matches.filter(r => r.missingIngredients.length <= maxMissing);
 }
 
-export default { getRecipes, getRecipeById, getRandomRecipes, getCategories, getRecipesWithIngredientMatch, getReadyToCookRecipes };
+/**
+ * Match recipes from DB by user's ingredient list
+ * Server-side matching with fuzzy search
+ */
+export async function matchRecipesByIngredients(
+    ingredientNames: string[],
+    options: {
+        mealType?: string;
+        maxMissing?: number;
+        limit?: number;
+    } = {}
+): Promise<RecipeWithMatch[]> {
+    return api.post('/api/recipes/match', {
+        ingredients: ingredientNames,
+        mealType: options.mealType,
+        maxMissing: options.maxMissing || 3,
+        limit: options.limit || 10
+    });
+}
+
+/**
+ * Save AI-generated recipe to database for future users
+ */
+export async function saveGeneratedRecipe(
+    recipe: any,
+    userId?: string
+): Promise<{ id: number; alreadyExists: boolean }> {
+    return api.post('/api/recipes/save-generated', { recipe, userId });
+}
+
+export default {
+    getRecipes,
+    getRecipeById,
+    getRandomRecipes,
+    getCategories,
+    getRecipesWithIngredientMatch,
+    getReadyToCookRecipes,
+    matchRecipesByIngredients,
+    saveGeneratedRecipe
+};
