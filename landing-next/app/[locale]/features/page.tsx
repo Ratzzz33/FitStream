@@ -37,6 +37,7 @@ export default async function FeaturesPage({ params }: FeaturesPageProps) {
               key={feature.slug}
               slug={feature.slug}
               icon={feature.icon}
+              image={feature.image}
               title={t(`${feature.key}.title`)}
               description={t(`${feature.key}.short`)}
               color={feature.color}

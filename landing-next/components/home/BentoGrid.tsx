@@ -6,14 +6,14 @@ import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { FeatureCard } from '@/components/features/FeatureCard';
 
-// Top 6 features for the bento grid
+// Top 6 features for the bento grid (priority order)
 const topFeatures = [
-  { slug: 'ai-pose-tracking', key: 'poseTracking', icon: '🧘', color: 'violet', isNew: true },
-  { slug: 'smart-kitchen', key: 'smartKitchen', icon: '🍳', color: 'amber', isNew: true },
-  { slug: 'ai-food-scanner', key: 'nutritionScanner', icon: '📸', color: 'orange' },
-  { slug: 'guided-cooking', key: 'cookingMode', icon: '👨‍🍳', color: 'rose', isNew: true },
-  { slug: 'smart-scale', key: 'smartScale', icon: '⚖️', color: 'emerald' },
-  { slug: 'health-sync', key: 'healthIntegrations', icon: '❤️', color: 'red' },
+  { slug: 'ai-food-scanner', key: 'nutritionScanner', icon: '📸', image: '/covers/nutritionScanner.png', color: 'orange', isNew: true },
+  { slug: 'menu-analyzer', key: 'menuAnalyzer', icon: '🍽️', image: '/covers/food.png', color: 'rose', isNew: true },
+  { slug: 'smart-kitchen', key: 'smartKitchen', icon: '🧊', image: '/covers/smartKitchen.png', color: 'amber', isNew: true },
+  { slug: 'guided-cooking', key: 'cookingMode', icon: '👨‍🍳', image: '/covers/cookingMode.png', color: 'emerald' },
+  { slug: 'ai-exercise-tracking', key: 'poseTracking', icon: '🏋️', image: '/covers/poseTracking.png', color: 'violet' },
+  { slug: 'health-sync', key: 'healthIntegrations', icon: '❤️', image: '/covers/healthIntegrations.png', color: 'red' },
 ];
 
 export function BentoGrid() {
@@ -48,6 +48,7 @@ export function BentoGrid() {
               <FeatureCard
                 slug={feature.slug}
                 icon={feature.icon}
+                image={feature.image}
                 title={t(`${feature.key}.title`)}
                 description={t(`${feature.key}.short`)}
                 color={feature.color}

@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import Image from 'next/image';
+import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 
 interface FeatureCardProps {
   slug: string;
   icon: string;
+  image?: string;
   title: string;
   description: string;
   color: string;
@@ -53,6 +55,7 @@ const iconBgClasses: Record<string, string> = {
 export function FeatureCard({
   slug,
   icon,
+  image,
   title,
   description,
   color,
@@ -61,6 +64,7 @@ export function FeatureCard({
   size = 'normal',
 }: FeatureCardProps) {
   const locale = useLocale();
+  const t = useTranslations('common');
 
   return (
     <motion.div
@@ -78,24 +82,35 @@ export function FeatureCard({
       >
         {/* Badges */}
         {isNew && (
-          <span className="absolute right-4 top-4 rounded-full bg-violet-500 px-2 py-1 text-xs font-bold text-white">
+          <span className="absolute right-4 top-4 z-10 rounded-full bg-violet-500 px-2 py-1 text-xs font-bold text-white shadow-lg">
             NEW
           </span>
         )}
         {isPremium && (
-          <span className="absolute right-4 top-4 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-2 py-1 text-xs font-bold text-black">
+          <span className="absolute right-4 top-4 z-10 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-2 py-1 text-xs font-bold text-black shadow-lg">
             PRO
           </span>
         )}
 
-        {/* Icon */}
-        <div
-          className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${
-            iconBgClasses[color] || iconBgClasses.blue
-          }`}
-        >
-          {icon}
-        </div>
+        {/* Image or Icon */}
+        {image ? (
+          <div className="relative mb-4 h-40 w-full overflow-hidden rounded-xl">
+            <Image
+              src={image}
+              alt={title}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        ) : (
+          <div
+            className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${
+              iconBgClasses[color] || iconBgClasses.blue
+            }`}
+          >
+            {icon}
+          </div>
+        )}
 
         {/* Title */}
         <h3 className="mb-2 text-xl font-bold">{title}</h3>
@@ -110,8 +125,8 @@ export function FeatureCard({
         </p>
 
         {/* Arrow */}
-        <div className="mt-4 flex items-center gap-1 text-sm font-medium text-blue-600 opacity-0 transition-opacity group-hover:opacity-100">
-          <span>Learn more</span>
+        <div className="mt-4 flex items-center gap-1 text-sm font-medium text-blue-600 transition-all group-hover:gap-2">
+          <span>{t('learnMore')}</span>
           <ArrowRight className="h-4 w-4" />
         </div>
       </Link>
