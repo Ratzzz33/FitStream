@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, Wrench, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check } from 'lucide-react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost } from '../services/geminiService';
 import { NutritionLog } from '../types';
@@ -1640,13 +1640,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 </div>
             )}
 
-            {/* Tools Section */}
+            {/* Kitchen & Recipes Section */}
             <div className="mt-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <Wrench size={20} className="text-gray-500" />
-                    {t('tools') || 'Инструменты'}
-                </h3>
-
                 <div className="grid grid-cols-2 gap-3">
                     {/* Kitchen Card */}
                     <button
