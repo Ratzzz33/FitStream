@@ -213,7 +213,7 @@ const App = () => {
           ]);
 
           if (!user) {
-              alert(t('loginFailed') || 'Login cancelled or failed. Please try again.');
+              alert('Login cancelled or failed. Please try again.');
               return;
           }
 
