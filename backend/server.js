@@ -354,6 +354,31 @@ const initDb = async () => {
             ON CONFLICT (name) DO NOTHING
         `, [phone.name, phone.weight]);
     }
+
+    // Migration: Add admin and premium columns
+    await client.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+    `);
+    await client.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_until TIMESTAMP;
+    `);
+    await client.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS can_train_ai BOOLEAN DEFAULT FALSE;
+    `);
+    await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin) WHERE is_admin = TRUE;
+    `);
+
+    // Grant admin access to 33pokrov33@gmail.com (10-year premium)
+    await client.query(`
+        UPDATE users
+        SET is_pro = TRUE,
+            is_admin = TRUE,
+            can_train_ai = TRUE,
+            pro_until = CURRENT_TIMESTAMP + INTERVAL '10 years'
+        WHERE email = '33pokrov33@gmail.com'
+    `);
+
     console.log("✅ Database initialized successfully.");
   } catch (err) {
     console.error("❌ Error initializing database:", err.message);
@@ -387,12 +412,15 @@ app.post('/api/auth/google', async (req, res) => {
 
             // 2. Check if user with this Google ID already exists
             const existingGoogle = await client.query(
-                'SELECT id, is_pro, settings FROM users WHERE google_id = $1',
+                'SELECT id, is_pro, is_admin, can_train_ai, pro_until, settings FROM users WHERE google_id = $1',
                 [googleId]
             );
 
             let userId;
             let isPro = false;
+            let isAdmin = false;
+            let canTrainAi = false;
+            let proUntil = null;
             let mergedSettings = null;
 
             if (existingGoogle.rows.length > 0) {
@@ -400,6 +428,9 @@ app.post('/api/auth/google', async (req, res) => {
                 const existingUser = existingGoogle.rows[0];
                 userId = existingUser.id;
                 isPro = existingUser.is_pro;
+                isAdmin = existingUser.is_admin || false;
+                canTrainAi = existingUser.can_train_ai || false;
+                proUntil = existingUser.pro_until;
                 mergedSettings = existingUser.settings;
 
                 // If local data exists from anonymous session, merge it
@@ -411,7 +442,7 @@ app.post('/api/auth/google', async (req, res) => {
                 if (localUserId) {
                     // Check if local user exists
                     const localUser = await client.query(
-                        'SELECT id, is_pro, settings FROM users WHERE id = $1',
+                        'SELECT id, is_pro, is_admin, can_train_ai, pro_until, settings FROM users WHERE id = $1',
                         [localUserId]
                     );
 
@@ -419,6 +450,9 @@ app.post('/api/auth/google', async (req, res) => {
                         // Link Google to existing local account
                         userId = localUserId;
                         isPro = localUser.rows[0].is_pro;
+                        isAdmin = localUser.rows[0].is_admin || false;
+                        canTrainAi = localUser.rows[0].can_train_ai || false;
+                        proUntil = localUser.rows[0].pro_until;
                         mergedSettings = localUser.rows[0].settings;
 
                         await client.query(
@@ -449,7 +483,7 @@ app.post('/api/auth/google', async (req, res) => {
 
             // 3. Fetch all user data to return
             const userData = await client.query(
-                'SELECT settings, is_pro FROM users WHERE id = $1',
+                'SELECT settings, is_pro, is_admin, can_train_ai, pro_until FROM users WHERE id = $1',
                 [userId]
             );
             const logsData = await client.query(
@@ -467,6 +501,9 @@ app.post('/api/auth/google', async (req, res) => {
                 name,
                 picture,
                 isPro: userData.rows[0]?.is_pro || false,
+                isAdmin: userData.rows[0]?.is_admin || false,
+                canTrainAi: userData.rows[0]?.can_train_ai || false,
+                proUntil: userData.rows[0]?.pro_until || null,
                 settings: userData.rows[0]?.settings || mergedSettings,
                 exercises: logs.filter(l => l.category === 'EXERCISE').map(l => l.data),
                 weights: logs.filter(l => l.category === 'WEIGHT').map(l => l.data),
@@ -569,15 +606,21 @@ app.get('/api/data/:userId', async (req, res) => {
     try {
         const client = await pool.connect();
         try {
-            const userRes = await client.query('SELECT settings, is_pro FROM users WHERE id = $1', [userId]);
+            const userRes = await client.query(
+                'SELECT settings, is_pro, is_admin, can_train_ai, pro_until FROM users WHERE id = $1',
+                [userId]
+            );
             const logsRes = await client.query('SELECT * FROM user_logs WHERE user_id = $1', [userId]);
-            
-            const user = userRes.rows[0] || { settings: null, is_pro: false };
+
+            const user = userRes.rows[0] || { settings: null, is_pro: false, is_admin: false, can_train_ai: false, pro_until: null };
             const logs = logsRes.rows;
 
             res.json({
                 settings: user.settings,
                 isPro: user.is_pro,
+                isAdmin: user.is_admin || false,
+                canTrainAi: user.can_train_ai || false,
+                proUntil: user.pro_until || null,
                 exercises: logs.filter(l => l.category === 'EXERCISE').map(l => l.data),
                 weights: logs.filter(l => l.category === 'WEIGHT').map(l => l.data),
                 nutrition: logs.filter(l => l.category === 'NUTRITION').map(l => l.data)
@@ -637,12 +680,21 @@ app.post('/api/user/sync', async (req, res) => {
             }
         }
 
-        const resPro = await pool.query('SELECT is_pro FROM users WHERE id = $1', [userId]);
-        return res.json({ isPro: resPro.rows[0]?.is_pro || false });
+        const resPro = await pool.query(
+            'SELECT is_pro, is_admin, can_train_ai, pro_until FROM users WHERE id = $1',
+            [userId]
+        );
+        const row = resPro.rows[0] || {};
+        return res.json({
+            isPro: row.is_pro || false,
+            isAdmin: row.is_admin || false,
+            canTrainAi: row.can_train_ai || false,
+            proUntil: row.pro_until || null
+        });
     } catch (err) {
         console.error("Sync Settings Error:", err.message);
         // Return 200 with error flag so frontend doesn't crash, but knows backend is flaky
-        res.status(200).json({ isPro: false, error: 'DB_UNAVAILABLE' });
+        res.status(200).json({ isPro: false, isAdmin: false, canTrainAi: false, proUntil: null, error: 'DB_UNAVAILABLE' });
     }
 });
 

@@ -115,6 +115,9 @@ export interface UserSettings {
   theme: 'light' | 'dark';
   connectedPlatforms: ConnectedPlatforms;
   isPro: boolean;
+  isAdmin?: boolean; // Admin access - can see admin features
+  canTrainAi?: boolean; // Can submit training data for workout AI
+  proUntil?: string; // ISO date when premium expires
   backendUrl?: string;
   coachVoice: string; // 'Fenrir' | 'Kore' etc.
   currency?: 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH' | 'GEL'; // Currency for displaying prices
