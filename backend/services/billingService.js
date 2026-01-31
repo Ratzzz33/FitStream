@@ -68,43 +68,82 @@ class BillingService {
       throw new Error(`Unknown action type: ${actionType}`);
     }
 
-    const balance = await this.getBalance(userId);
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // Trial mode - log virtual usage
-    if (balance.isTrialActive) {
-      await this.pool.query(
+      // Lock the row for update
+      const result = await client.query(
+        'SELECT * FROM user_balance WHERE user_id = $1 FOR UPDATE',
+        [userId]
+      );
+
+      let row = result.rows[0];
+      if (!row) {
+        // Create new user with trial (inside transaction)
+        const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        const insert = await client.query(
+          `INSERT INTO user_balance (user_id, balance_cents, trial_ends_at, trial_usage_cents)
+           VALUES ($1, 0, $2, 0) RETURNING *`,
+          [userId, trialEnds]
+        );
+        row = insert.rows[0];
+      }
+
+      const balance = this.formatBalance(row);
+
+      // Trial mode - log virtual usage
+      if (balance.isTrialActive) {
+        await client.query(
+          `UPDATE user_balance
+           SET trial_usage_cents = trial_usage_cents + $1, updated_at = NOW()
+           WHERE user_id = $2`,
+          [cost, userId]
+        );
+        await client.query(
+          `INSERT INTO usage_log (user_id, action_type, cost_cents, metadata)
+           VALUES ($1, $2, $3, $4)`,
+          [userId, actionType, cost, JSON.stringify({ trial: true })]
+        );
+        await client.query('COMMIT');
+        return { allowed: true, charged: 0, trial: true };
+      }
+
+      // Check if blocked
+      if (balance.balanceCents < CREDIT_LIMIT_CENTS) {
+        await client.query('ROLLBACK');
+        return { allowed: false, reason: 'insufficient_balance' };
+      }
+
+      // Deduct balance
+      await client.query(
         `UPDATE user_balance
-         SET trial_usage_cents = trial_usage_cents + $1, updated_at = NOW()
+         SET balance_cents = balance_cents - $1, updated_at = NOW()
          WHERE user_id = $2`,
         [cost, userId]
       );
-      await this.logUsage(userId, actionType, cost, { trial: true });
-      return { allowed: true, charged: 0, trial: true };
+
+      // Log transaction
+      await client.query(
+        `INSERT INTO transactions (user_id, type, amount_cents, description)
+         VALUES ($1, 'usage', $2, $3)`,
+        [userId, -cost, actionType]
+      );
+
+      await client.query(
+        `INSERT INTO usage_log (user_id, action_type, cost_cents, metadata)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, actionType, cost, JSON.stringify({})]
+      );
+
+      await client.query('COMMIT');
+      return { allowed: true, charged: cost };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
-
-    // Check if blocked
-    if (balance.balanceCents < CREDIT_LIMIT_CENTS) {
-      return { allowed: false, reason: 'insufficient_balance' };
-    }
-
-    // Deduct balance
-    await this.pool.query(
-      `UPDATE user_balance
-       SET balance_cents = balance_cents - $1, updated_at = NOW()
-       WHERE user_id = $2`,
-      [cost, userId]
-    );
-
-    // Log transaction
-    await this.pool.query(
-      `INSERT INTO transactions (user_id, type, amount_cents, description)
-       VALUES ($1, 'usage', $2, $3)`,
-      [userId, -cost, actionType]
-    );
-
-    await this.logUsage(userId, actionType, cost, {});
-
-    return { allowed: true, charged: cost };
   }
 
   async logUsage(userId, actionType, costCents, metadata) {
@@ -117,30 +156,59 @@ class BillingService {
 
   // Add balance (from PayPal)
   async addBalance(userId, amountCents, paypalOrderId) {
-    // Check if trial just ended - give bonus
-    const balance = await this.getBalance(userId);
-    let bonusApplied = false;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (!balance.isTrialActive && balance.balanceCents === 0) {
-      // First top-up after trial - add bonus
-      amountCents += TRIAL_BONUS_CENTS;
-      bonusApplied = true;
+      // Lock the row for update to prevent double-bonus
+      const result = await client.query(
+        'SELECT * FROM user_balance WHERE user_id = $1 FOR UPDATE',
+        [userId]
+      );
+
+      let row = result.rows[0];
+      if (!row) {
+        // Create new user with trial (inside transaction)
+        const trialEnds = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        const insert = await client.query(
+          `INSERT INTO user_balance (user_id, balance_cents, trial_ends_at, trial_usage_cents)
+           VALUES ($1, 0, $2, 0) RETURNING *`,
+          [userId, trialEnds]
+        );
+        row = insert.rows[0];
+      }
+
+      const balance = this.formatBalance(row);
+      let bonusApplied = false;
+
+      // Check if trial just ended - give bonus
+      if (!balance.isTrialActive && balance.balanceCents === 0) {
+        // First top-up after trial - add bonus
+        amountCents += TRIAL_BONUS_CENTS;
+        bonusApplied = true;
+      }
+
+      await client.query(
+        `UPDATE user_balance
+         SET balance_cents = balance_cents + $1, updated_at = NOW()
+         WHERE user_id = $2`,
+        [amountCents, userId]
+      );
+
+      await client.query(
+        `INSERT INTO transactions (user_id, type, amount_cents, description, paypal_order_id)
+         VALUES ($1, 'topup', $2, $3, $4)`,
+        [userId, amountCents, `PayPal top-up${bonusApplied ? ' + $0.50 bonus' : ''}`, paypalOrderId]
+      );
+
+      await client.query('COMMIT');
+      return { success: true, bonusApplied, totalCents: amountCents };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
-
-    await this.pool.query(
-      `UPDATE user_balance
-       SET balance_cents = balance_cents + $1, updated_at = NOW()
-       WHERE user_id = $2`,
-      [amountCents, userId]
-    );
-
-    await this.pool.query(
-      `INSERT INTO transactions (user_id, type, amount_cents, description, paypal_order_id)
-       VALUES ($1, 'topup', $2, $3, $4)`,
-      [userId, amountCents, `PayPal top-up${bonusApplied ? ' + $0.50 bonus' : ''}`, paypalOrderId]
-    );
-
-    return { success: true, bonusApplied, totalCents: amountCents };
   }
 
   // Get usage statistics
@@ -187,47 +255,62 @@ class BillingService {
 
   // Migrate device user to Google account
   async migrateUser(deviceId, googleId) {
-    // Check if device user has data
-    const deviceBalance = await this.pool.query(
-      'SELECT * FROM user_balance WHERE user_id = $1',
-      [deviceId]
-    );
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (deviceBalance.rows.length === 0) return { migrated: false };
-
-    // Check if Google user already exists
-    const googleBalance = await this.pool.query(
-      'SELECT * FROM user_balance WHERE user_id = $1',
-      [googleId]
-    );
-
-    if (googleBalance.rows.length > 0) {
-      // Merge: add device balance to google balance
-      await this.pool.query(
-        `UPDATE user_balance
-         SET balance_cents = balance_cents + $1,
-             trial_usage_cents = trial_usage_cents + $2
-         WHERE user_id = $3`,
-        [deviceBalance.rows[0].balance_cents, deviceBalance.rows[0].trial_usage_cents, googleId]
+      // Lock both rows for update to ensure atomicity
+      const deviceBalance = await client.query(
+        'SELECT * FROM user_balance WHERE user_id = $1 FOR UPDATE',
+        [deviceId]
       );
-    } else {
-      // Transfer: update device record to google id
-      await this.pool.query(
-        'UPDATE user_balance SET user_id = $1 WHERE user_id = $2',
-        [googleId, deviceId]
+
+      if (deviceBalance.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return { migrated: false };
+      }
+
+      // Check if Google user already exists (and lock it)
+      const googleBalance = await client.query(
+        'SELECT * FROM user_balance WHERE user_id = $1 FOR UPDATE',
+        [googleId]
       );
+
+      if (googleBalance.rows.length > 0) {
+        // Merge: add device balance to google balance
+        await client.query(
+          `UPDATE user_balance
+           SET balance_cents = balance_cents + $1,
+               trial_usage_cents = trial_usage_cents + $2,
+               updated_at = NOW()
+           WHERE user_id = $3`,
+          [deviceBalance.rows[0].balance_cents, deviceBalance.rows[0].trial_usage_cents, googleId]
+        );
+      } else {
+        // Transfer: update device record to google id
+        await client.query(
+          'UPDATE user_balance SET user_id = $1, updated_at = NOW() WHERE user_id = $2',
+          [googleId, deviceId]
+        );
+      }
+
+      // Update transactions and usage_log
+      await client.query('UPDATE transactions SET user_id = $1 WHERE user_id = $2', [googleId, deviceId]);
+      await client.query('UPDATE usage_log SET user_id = $1 WHERE user_id = $2', [googleId, deviceId]);
+
+      // Delete old device record if merged
+      if (googleBalance.rows.length > 0) {
+        await client.query('DELETE FROM user_balance WHERE user_id = $1', [deviceId]);
+      }
+
+      await client.query('COMMIT');
+      return { migrated: true };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
-
-    // Update transactions and usage_log
-    await this.pool.query('UPDATE transactions SET user_id = $1 WHERE user_id = $2', [googleId, deviceId]);
-    await this.pool.query('UPDATE usage_log SET user_id = $1 WHERE user_id = $2', [googleId, deviceId]);
-
-    // Delete old device record if merged
-    if (googleBalance.rows.length > 0) {
-      await this.pool.query('DELETE FROM user_balance WHERE user_id = $1', [deviceId]);
-    }
-
-    return { migrated: true };
   }
 }
 
