@@ -37,7 +37,7 @@ export const FoodFinance: React.FC = () => {
 
     const loadFinanceData = () => {
         // Load real data from storage - expenses logged via food scanning
-        const nutritionLogs = StorageService.getNutritionHistory();
+        const nutritionLogs = StorageService.getNutritionLogs();
         const now = new Date();
         const currentMonthStr = now.toISOString().slice(0, 7);
         const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);

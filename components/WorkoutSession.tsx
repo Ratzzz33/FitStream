@@ -559,24 +559,24 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </button>
         </div>
 
-        {/* Smart recommendations */}
+        {/* Smart recommendations + custom workout button */}
         <div className="flex-1 p-4 overflow-auto">
           <SmartWorkoutPanel
             onStartWorkout={handleStartWorkout}
             onStartExercise={handleStartExercise}
             theme={settings.theme}
           />
-        </div>
 
-        {/* Custom workout button */}
-        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <button
-            onClick={() => setMode('local')}
-            className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
-          >
-            <Cpu className="w-5 h-5" />
-            {t('customWorkout')}
-          </button>
+          {/* Custom workout button - inside scroll area to avoid empty space */}
+          <div className="mt-4">
+            <button
+              onClick={() => setMode('local')}
+              className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
+            >
+              <Cpu className="w-5 h-5" />
+              {t('customWorkout')}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -778,7 +778,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </button>
         </div>
 
-        {/* Exercise selection */}
+        {/* Exercise selection + target + start button */}
         <div className="flex-1 p-4 overflow-auto">
           <div className="grid grid-cols-3 gap-2">
             {LOCAL_EXERCISES.map(exercise => (
@@ -836,17 +836,17 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Start button */}
-        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <button
-            onClick={() => setMode('local_active')}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-          >
-            <Play className="w-6 h-6" fill="white" />
-            {t('start')}
-          </button>
+          {/* Start button - inside scroll area to avoid empty space */}
+          <div className="mt-4">
+            <button
+              onClick={() => setMode('local_active')}
+              className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Play className="w-6 h-6" fill="white" />
+              {t('start')}
+            </button>
+          </div>
         </div>
       </div>
     );
