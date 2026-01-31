@@ -1,6 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { Hero } from '@/components/home/Hero';
-import { SocialProof } from '@/components/home/SocialProof';
+// import { SocialProof } from '@/components/home/SocialProof'; // Hidden until real data
 import { BentoGrid } from '@/components/home/BentoGrid';
 import { Pricing } from '@/components/home/Pricing';
 import { DownloadCTA } from '@/components/home/DownloadCTA';
@@ -16,7 +16,7 @@ export default async function HomePage({ params }: HomePageProps) {
   return (
     <>
       <Hero />
-      <SocialProof />
+      {/* <SocialProof /> - Hidden until real data available */}
       <BentoGrid />
       <Pricing />
       <DownloadCTA />

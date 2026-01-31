@@ -36,7 +36,9 @@ export function Footer() {
             {t('terms')}
           </Link>
           <a
-            href="mailto:support@fitstream.health"
+            href="https://t.me/fitstreambot"
+            target="_blank"
+            rel="noopener noreferrer"
             className="transition hover:text-[var(--foreground)]"
           >
             {t('contact')}

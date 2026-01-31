@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { ArrowLeft, Check, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { features, getFeatureBySlug } from '@/content/features';
 import { Button } from '@/components/ui/Button';
 
@@ -79,8 +80,20 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
             </Link>
           </nav>
 
-          {/* Icon + Title */}
-          <div className="mb-6 text-6xl">{feature.icon}</div>
+          {/* Image or Icon + Title */}
+          {feature.image ? (
+            <div className="relative mb-6 h-64 w-full max-w-2xl overflow-hidden rounded-2xl shadow-2xl">
+              <Image
+                src={feature.image}
+                alt={t(`${feature.key}.title`)}
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="mb-6 text-6xl">{feature.icon}</div>
+          )}
           <h1 className="mb-4 text-4xl font-bold md:text-5xl">
             {t(`${feature.key}.title`)}
           </h1>
@@ -107,7 +120,7 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
       {/* How it works */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-2xl font-bold">How it works</h2>
+          <h2 className="mb-8 text-2xl font-bold">{t('howItWorks')}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((step) => (
               <div
@@ -118,7 +131,7 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
                   {step}
                 </div>
                 <p className="text-sm text-[var(--foreground-muted)]">
-                  Step {step} description placeholder
+                  {t(`${feature.key}.step${step}`)}
                 </p>
               </div>
             ))}
@@ -129,12 +142,12 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
       {/* Key Benefits */}
       <section className="bg-[var(--background-subtle)] px-6 py-16">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-2xl font-bold">Key Benefits</h2>
+          <h2 className="mb-8 text-2xl font-bold">{t('keyBenefits')}</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="flex items-start gap-3">
                 <Check className="mt-1 h-5 w-5 shrink-0 text-emerald-500" />
-                <span>Benefit {i} for {t(`${feature.key}.title`)}</span>
+                <span>{t(`${feature.key}.benefit${i}`)}</span>
               </div>
             ))}
           </div>
@@ -144,12 +157,12 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
       {/* FAQ Section (Important for AI SEO) */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-2xl font-bold">Frequently Asked Questions</h2>
+          <h2 className="mb-8 text-2xl font-bold">{t('faq')}</h2>
           <div className="space-y-4">
             {[
-              { q: `What is ${t(`${feature.key}.title`)}?`, a: t(`${feature.key}.description`) },
-              { q: 'Does it work offline?', a: 'Yes, FitStream works fully offline and syncs when you reconnect.' },
-              { q: 'Is this feature free?', a: feature.isPremium ? 'This is a PRO feature included in the €4.99/month subscription.' : 'Yes, this feature is included in the free version.' },
+              { q: t('faqWhat', { title: t(`${feature.key}.title`) }), a: t(`${feature.key}.description`) },
+              { q: t('faqOffline'), a: t('faqOfflineAnswer') },
+              { q: t('faqFree'), a: feature.isPremium ? t('faqFreePro') : t('faqFreeYes') },
             ].map((faq, i) => (
               <details
                 key={i}
@@ -171,10 +184,10 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="mb-4 text-2xl font-bold">
-            Try {t(`${feature.key}.title`)} Today
+            {t('tryToday', { title: t(`${feature.key}.title`) })}
           </h2>
           <p className="mb-8 text-[var(--foreground-muted)]">
-            Download FitStream and experience the power of AI fitness
+            {t('tryDescription')}
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/#download">
@@ -192,17 +205,28 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
       {/* Related Features */}
       <section className="border-t border-[var(--border)] bg-[var(--background-subtle)] px-6 py-16">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-2xl font-bold">Related Features</h2>
+          <h2 className="mb-8 text-2xl font-bold">{t('relatedFeatures')}</h2>
           <div className="grid gap-4 md:grid-cols-3">
             {relatedFeatures.map((rf) => (
               <Link
                 key={rf.slug}
                 href={`/${locale}/features/${rf.slug}`}
-                className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition hover:border-blue-500/50"
+                className="group overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] transition hover:border-blue-500/50"
               >
-                <span className="text-2xl">{rf.icon}</span>
-                <span className="font-medium">{t(`${rf.key}.title`)}</span>
-                <ArrowRight className="ml-auto h-4 w-4 opacity-0 transition group-hover:opacity-100" />
+                {rf.image && (
+                  <div className="relative h-32 w-full">
+                    <Image
+                      src={rf.image}
+                      alt={t(`${rf.key}.title`)}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 p-4">
+                  <span className="font-medium">{t(`${rf.key}.title`)}</span>
+                  <ArrowRight className="ml-auto h-4 w-4 opacity-0 transition group-hover:opacity-100" />
+                </div>
               </Link>
             ))}
           </div>

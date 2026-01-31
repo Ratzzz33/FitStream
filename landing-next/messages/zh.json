@@ -15,7 +15,11 @@
     "title2": "Fitness Companion",
     "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
     "downloadFree": "Download Free",
-    "tryWebApp": "Try Web App"
+    "tryWebApp": "Try Web App",
+    "dynamic1": "Scan food for calories",
+    "dynamic2": "Analyze restaurant menus",
+    "dynamic3": "Track workouts with AI",
+    "dynamic4": "Manage your kitchen"
   },
   "social": {
     "users": "10,000+ users",
@@ -25,46 +29,138 @@
   "features": {
     "title": "Everything You Need",
     "subtitle": "Powerful features to transform your fitness journey",
-    "seeAll": "See all 16 features",
+    "seeAll": "See all 14 features",
+    "howItWorks": "How it works",
+    "keyBenefits": "Key Benefits",
+    "faq": "Frequently Asked Questions",
+    "faqWhat": "What is {title}?",
+    "faqOffline": "Does it work offline?",
+    "faqOfflineAnswer": "Yes, FitStream works offline and syncs when reconnected.",
+    "faqFree": "Is this feature free?",
+    "faqFreeYes": "Yes, included in the free version.",
+    "faqFreePro": "This is a PRO feature (€4.99/month).",
+    "tryToday": "Try {title} Today",
+    "tryDescription": "Download FitStream and experience AI fitness",
+    "relatedFeatures": "Related Features",
     "poseTracking": {
-      "title": "AI Pose Tracking",
-      "description": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
-      "short": "Real-time form analysis with MediaPipe. 15 exercises with instant feedback."
+      "title": "AI运动追踪",
+      "description": "使用MediaPipe实时分析动作姿势。无需云端处理，即时获得运动技术反馈。",
+      "short": "MediaPipe实时姿势分析。15种运动即时反馈。",
+      "step1": "从15种可用选项中选择一项运动",
+      "step2": "调整手机位置以看到全身",
+      "step3": "AI实时追踪您的动作",
+      "step4": "即时获得次数计数和姿势反馈",
+      "benefit1": "自动计数——无需手动记录",
+      "benefit2": "姿势纠正，预防受伤",
+      "benefit3": "离线可用——无需网络",
+      "benefit4": "训练期间语音反馈",
+      "benefit5": "隐私优先：所有处理在设备上完成",
+      "benefit6": "通过详细统计追踪进度"
     },
     "smartKitchen": {
-      "title": "Smart Kitchen",
-      "description": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
-      "short": "Manage fridge, pantry & freezer. AI recognizes products from photos."
+      "title": "智能厨房",
+      "description": "管理冰箱、储物柜和冷冻室的库存。AI通过照片识别产品。根据现有食材获取食谱建议。",
+      "short": "管理冰箱、储物柜和冷冻室。AI通过照片识别产品。",
+      "step1": "通过照片、条形码或手动添加产品",
+      "step2": "整理到冰箱、储物柜和冷冻室",
+      "step3": "设置保质期并接收通知",
+      "step4": "根据可用食材获取食谱建议",
+      "benefit1": "永远不会忘记冰箱里有什么",
+      "benefit2": "通过保质期追踪减少食物浪费",
+      "benefit3": "AI即时通过照片识别产品",
+      "benefit4": "根据现有食材规划餐食",
+      "benefit5": "与家人共享库存",
+      "benefit6": "自动生成缺失物品的购物清单"
     },
     "cookingMode": {
-      "title": "Guided Cooking",
-      "description": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
-      "short": "Step-by-step recipes with timers, reminders & troubleshooting tips."
+      "title": "引导烹饪",
+      "description": "带有计时器、搅拌/翻面提醒和故障排除提示的分步说明。完成后记录卡路里。",
+      "short": "带计时器、提醒和故障排除提示的分步食谱。",
+      "step1": "从600多个选项中选择食谱",
+      "step2": "跟随带照片的分步说明",
+      "step3": "使用内置计时器和提醒",
+      "step4": "完成后自动记录卡路里",
+      "benefit1": "烹饪时免提语音导航",
+      "benefit2": "跨步骤同步的智能计时器",
+      "benefit3": "出问题时的故障排除提示",
+      "benefit4": "按任意份数缩放食谱",
+      "benefit5": "每份自动营养计算",
+      "benefit6": "保存您对食谱的修改"
     },
     "nutritionScanner": {
-      "title": "AI Food Scanner",
-      "description": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
-      "short": "Snap a photo for instant calorie and macro estimates."
+      "title": "AI食物扫描",
+      "description": "拍摄餐食照片即时获得卡路里估算。使用参照物准确估算份量大小。",
+      "short": "拍照即时获得卡路里和宏量营养素估算。",
+      "step1": "在食物旁边放置参照物（卡片、硬币）",
+      "step2": "拍摄清晰的餐食照片",
+      "step3": "AI分析份量并识别食材",
+      "step4": "即时获得卡路里、蛋白质、碳水化合物和脂肪分解",
+      "benefit1": "无需手动记录——拍照即可",
+      "benefit2": "使用参照物准确估算份量",
+      "benefit3": "适用于任何菜系或自制餐食",
+      "benefit4": "识别一盘中的多种食物",
+      "benefit5": "比搜索食物数据库节省时间",
+      "benefit6": "随时间学会估算份量"
     },
-    "smartScale": {
-      "title": "Smart Scale",
-      "description": "Connect Xiaomi Mi Scale via Bluetooth or point your camera at any scale — AI reads automatically.",
-      "short": "Point your camera at any scale — AI reads automatically."
+    "menuAnalyzer": {
+      "title": "餐厅菜单分析",
+      "description": "拍摄餐厅菜单或菜品照片获取营养分析。AI识别健康选项并建议更好的替代品。",
+      "short": "拍摄菜单或菜品照片即时获得营养分析。",
+      "step1": "拍摄餐厅菜单或菜品",
+      "step2": "AI读取并分析所有菜单项目",
+      "step3": "获取每个选项的营养估算",
+      "step4": "查看基于您目标的健康建议",
+      "benefit1": "外出就餐时做出明智选择",
+      "benefit2": "保持饮食目标不偏离",
+      "benefit3": "发现菜单上更健康的替代品",
+      "benefit4": "适用于任何语言的菜单",
+      "benefit5": "如果没有菜单可通过照片分析菜品",
+      "benefit6": "保存喜爱的餐厅餐食以便快速记录"
     },
     "healthIntegrations": {
-      "title": "Health Sync",
-      "description": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
-      "short": "Seamless sync with Google Fit, Apple Health & Samsung Health."
+      "title": "健康同步",
+      "description": "与Google Fit、Apple Health、Samsung Health同步。通过蓝牙连接小米体重秤或用摄像头扫描任何体重秤——AI自动读取。",
+      "short": "同步健康应用 + AI通过摄像头或蓝牙读取体重秤。",
+      "step1": "连接您的健康平台（Google Fit、Apple Health、Samsung）",
+      "step2": "授予数据同步权限",
+      "step3": "将摄像头对准任何体重秤——AI读取显示",
+      "step4": "数据自动跨所有平台同步",
+      "benefit1": "所有健康数据集中在一处",
+      "benefit2": "适用于任何体重秤——只需对准摄像头",
+      "benefit3": "小米体重秤蓝牙连接",
+      "benefit4": "与主要健康平台自动同步",
+      "benefit5": "从已连接应用导入历史数据",
+      "benefit6": "隐私优先：您控制同步内容"
     },
     "exercises": {
-      "title": "15 Exercises",
-      "description": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
-      "short": "Track 15 different exercises with automatic rep counting."
+      "title": "15种运动",
+      "description": "深蹲、俯卧撑、仰卧起坐、弓步、波比跳、开合跳、高抬腿、登山者、平板支撑、靠墙静蹲、抬腿、臀桥、提踵、侧弓步、三头肌撑体",
+      "short": "追踪15种不同运动，自动计数。",
+      "step1": "从15种自重运动中选择",
+      "step2": "观看正确姿势的演示动画",
+      "step3": "开始训练——AI计算您的次数",
+      "step4": "查看训练统计和进度",
+      "benefit1": "全身训练覆盖",
+      "benefit2": "无需器材——仅用自重",
+      "benefit3": "每种运动都有演示动画",
+      "benefit4": "适合所有健身水平",
+      "benefit5": "创建自定义训练计划",
+      "benefit6": "追踪个人记录和进步"
     },
     "offlineFirst": {
-      "title": "Offline First",
-      "description": "Full functionality without internet. Your data syncs automatically when you're back online.",
-      "short": "Works without internet — syncs when back online."
+      "title": "离线优先",
+      "description": "无需网络即可完全使用。您的数据在重新上线时自动同步。",
+      "short": "无需网络——重新连接时同步。",
+      "step1": "无需网络连接使用所有功能",
+      "step2": "数据安全存储在您的设备上",
+      "step3": "有网络时连接互联网",
+      "step4": "数据在后台自动同步",
+      "benefit1": "永远不会失去对数据的访问",
+      "benefit2": "随处可用——健身房、户外、旅行",
+      "benefit3": "无加载画面或连接错误",
+      "benefit4": "隐私优先：您的数据保留在设备上",
+      "benefit5": "应用即时响应",
+      "benefit6": "在线时自动云备份"
     },
     "multiLanguage": {
       "title": "6 Languages",
@@ -77,35 +173,95 @@
       "short": "Web, iOS, Android, and Telegram. One account everywhere."
     },
     "aiCoach": {
-      "title": "AI Coach",
-      "description": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
-      "short": "Personalized motivation with voice coaching.",
-      "premium": true
+      "title": "AI教练",
+      "description": "由Gemini AI驱动的个性化励志名言和建议。选择男声（Fenrir）或女声（Kore）。",
+      "short": "个性化动力与语音指导。",
+      "premium": true,
+      "step1": "设置您的健身目标和偏好",
+      "step2": "选择教练声音（Fenrir或Kore）",
+      "step3": "根据您的进度获取个性化建议",
+      "step4": "训练期间接收语音激励",
+      "benefit1": "基于您数据的个性化建议",
+      "benefit2": "针对您目标的每日激励",
+      "benefit3": "训练期间语音指导",
+      "benefit4": "适应您的进度和困难",
+      "benefit5": "支持多种语言",
+      "benefit6": "由先进的Gemini AI驱动"
     },
     "smartShopping": {
-      "title": "Shopping Assistant",
-      "description": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need.",
-      "short": "AI plans meals and creates smart shopping lists."
+      "title": "购物助手",
+      "description": "规划餐食、生成购物清单、通过照片验证产品、扫描货架找到所需物品。",
+      "short": "AI规划餐食并创建智能购物清单。",
+      "step1": "规划您一周的餐食",
+      "step2": "AI自动生成购物清单",
+      "step3": "在店内扫描产品验证成分",
+      "step4": "购物时勾选物品",
+      "benefit1": "在商店永远不会忘记物品",
+      "benefit2": "餐食规划节省时间和金钱",
+      "benefit3": "验证产品符合您的饮食需求",
+      "benefit4": "与家人共享清单",
+      "benefit5": "按商店区域组织",
+      "benefit6": "建议更健康的替代品"
     },
     "foodFinance": {
-      "title": "Food Finance",
-      "description": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
-      "short": "Track food spending. Calculate savings from home cooking."
+      "title": "食物财务",
+      "description": "追踪食物支出，了解钱花在哪里，计算在家做饭与外出就餐的节省。",
+      "short": "追踪食物支出。计算在家做饭的节省。",
+      "step1": "从收据或手动记录食物购买",
+      "step2": "分类支出（杂货、餐厅、外卖）",
+      "step3": "查看每周和每月支出报告",
+      "step4": "比较在家做饭与外出就餐的成本",
+      "benefit1": "了解食物预算花在哪里",
+      "benefit2": "查看在家做饭的节省",
+      "benefit3": "设置并追踪食物支出目标",
+      "benefit4": "识别昂贵的饮食习惯",
+      "benefit5": "规划经济实惠的餐食",
+      "benefit6": "为预算应用导出报告"
     },
     "receiptScanning": {
-      "title": "Receipt Scanning",
-      "description": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
-      "short": "Scan receipts to auto-add products with prices & expiry dates."
+      "title": "收据扫描",
+      "description": "扫描购物收据自动将产品添加到厨房库存，包含价格和保质期。",
+      "short": "扫描收据自动添加带价格和保质期的产品。",
+      "step1": "拍摄购物收据照片",
+      "step2": "AI读取并提取所有物品",
+      "step3": "产品添加到您的厨房库存",
+      "step4": "价格记录用于支出追踪",
+      "benefit1": "购物后即时更新库存",
+      "benefit2": "自动价格追踪用于预算",
+      "benefit3": "适用于大多数收据格式",
+      "benefit4": "自动估算保质期",
+      "benefit5": "批量添加多个物品",
+      "benefit6": "减少手动数据输入时间"
     },
     "gamification": {
-      "title": "Achievements",
-      "description": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
-      "short": "Earn achievements. Compete on the leaderboard."
+      "title": "成就",
+      "description": "达成里程碑获得成就。在社交排行榜上与朋友竞争。",
+      "short": "获得成就。在排行榜上竞争。",
+      "step1": "完成训练并记录餐食",
+      "step2": "达成里程碑获得成就",
+      "step3": "建立连续记录以保持习惯",
+      "step4": "在排行榜上与朋友竞争",
+      "benefit1": "通过成就奖励保持动力",
+      "benefit2": "通过连续记录建立健康习惯",
+      "benefit3": "与朋友竞争获得额外动力",
+      "benefit4": "解锁特殊成就徽章",
+      "benefit5": "追踪您的个人记录",
+      "benefit6": "在社交媒体分享成就"
     },
     "charts": {
-      "title": "Analytics",
-      "description": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
-      "short": "Visualize progress with beautiful charts."
+      "title": "数据分析",
+      "description": "用精美图表可视化您的进度。追踪体重、卡路里、训练和身体成分的趋势。",
+      "short": "用精美图表可视化进度。",
+      "step1": "随时间持续记录您的数据",
+      "step2": "查看体重、卡路里、训练图表",
+      "step3": "分析趋势和模式",
+      "step4": "导出报告进行深入分析",
+      "benefit1": "查看您随时间的进度",
+      "benefit2": "识别习惯中的模式",
+      "benefit3": "精美、易读的可视化",
+      "benefit4": "多种图表类型和时间段",
+      "benefit5": "一起比较不同指标",
+      "benefit6": "导出数据为PDF或CSV"
     }
   },
   "ai": {
@@ -177,5 +333,9 @@
     "getStarted": "Get Started",
     "tryFree": "Try Free",
     "premium": "Premium"
+  },
+  "legal": {
+    "terms": { "title": "Terms of Service", "description": "Terms for FitStream AI", "lastUpdated": "Last updated", "acceptance": "Acceptance", "acceptanceText": "By using FitStream AI, you agree to these terms.", "descriptionText": "FitStream AI is a fitness app.", "accounts": "Accounts", "accountsText": "Use without account or sign in with Google.", "subscription": "Pricing", "subscriptionText": "Free and PRO tiers available:", "subscriptionFree": "Free: workouts, AI scanning", "subscriptionPro": "PRO: unlimited AI, voice assistant", "content": "Content", "contentText": "You own your content.", "prohibited": "Prohibited", "prohibitedText": "Do not:", "prohibited1": "Use illegally", "prohibited2": "Hack systems", "prohibited3": "Share credentials", "prohibited4": "Upload harmful content", "disclaimer": "Disclaimer", "disclaimerText": "For info only.", "limitation": "Liability", "limitationText": "Provided as is.", "changes": "Changes", "changesText": "Terms may update.", "contact": "Contact", "contactText": "Via Telegram:" },
+    "privacy": { "title": "Privacy Policy", "description": "Data handling", "lastUpdated": "Last updated", "intro": "Intro", "introText": "We respect privacy.", "dataCollected": "Data Collected", "dataCollectedText": "We collect:", "dataHealth": "Health", "dataHealthText": "Workouts, weight", "dataPhotos": "Photos", "dataPhotosText": "Food photos", "dataAccount": "Account", "dataAccountText": "Email", "dataUsage": "Usage", "dataUsageText": "Stats", "howWeUse": "Use", "howWeUseText": "For:", "use1": "Tracking", "use2": "Sync", "use3": "Recommendations", "use4": "Improvements", "storage": "Storage", "storageText": "Local storage.", "thirdParty": "Third Parties", "thirdPartyText": "Integrations:", "thirdPartyGemini": "AI analysis", "thirdPartyHealth": "Health sync", "security": "Security", "securityText": "Standard security.", "rights": "Rights", "rightsText": "You can:", "rights1": "Access", "rights2": "Delete", "rights3": "Export", "rights4": "Opt out", "children": "Children", "childrenText": "Not for under 13.", "changes": "Changes", "changesText": "Policy may update.", "contact": "Contact", "contactText": "Via Telegram:" }
   }
 }

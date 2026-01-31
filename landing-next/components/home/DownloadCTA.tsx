@@ -2,26 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
-import { Apple, Play, Globe } from 'lucide-react';
+import { Download, Globe, Send } from 'lucide-react';
 
 export function DownloadCTA() {
   const t = useTranslations('download');
 
   const downloadLinks = [
-    {
-      href: '#', // App Store link
-      icon: Apple,
-      label1: t('on'),
-      label2: t('appStore'),
-      className: 'bg-black text-white hover:bg-gray-800',
-    },
-    {
-      href: '#', // Google Play link
-      icon: Play,
-      label1: t('get'),
-      label2: t('googlePlay'),
-      className: 'bg-black text-white hover:bg-gray-800',
-    },
     {
       href: 'https://app.fitstream.health',
       icon: Globe,
@@ -29,6 +15,20 @@ export function DownloadCTA() {
       label2: t('webApp'),
       className:
         'bg-gradient-to-r from-blue-600 to-emerald-600 text-white hover:from-blue-500 hover:to-emerald-500',
+    },
+    {
+      href: '/fitstream.apk',
+      icon: Download,
+      label1: t('get'),
+      label2: 'Android APK',
+      className: 'bg-emerald-600 text-white hover:bg-emerald-500',
+    },
+    {
+      href: 'https://t.me/fitstreambot',
+      icon: Send,
+      label1: t('use'),
+      label2: 'Telegram',
+      className: 'bg-[#0088cc] text-white hover:bg-[#0099dd]',
     },
   ];
 

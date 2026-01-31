@@ -15,7 +15,11 @@
     "title2": "Fitness Companion",
     "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
     "downloadFree": "Download Free",
-    "tryWebApp": "Try Web App"
+    "tryWebApp": "Try Web App",
+    "dynamic1": "Scan food for calories",
+    "dynamic2": "Analyze restaurant menus",
+    "dynamic3": "Track workouts with AI",
+    "dynamic4": "Manage your kitchen"
   },
   "social": {
     "users": "10,000+ users",
@@ -25,46 +29,138 @@
   "features": {
     "title": "Everything You Need",
     "subtitle": "Powerful features to transform your fitness journey",
-    "seeAll": "See all 16 features",
+    "seeAll": "See all 14 features",
+    "howItWorks": "How it works",
+    "keyBenefits": "Key Benefits",
+    "faq": "Frequently Asked Questions",
+    "faqWhat": "What is {title}?",
+    "faqOffline": "Does it work offline?",
+    "faqOfflineAnswer": "Yes, FitStream works offline and syncs when reconnected.",
+    "faqFree": "Is this feature free?",
+    "faqFreeYes": "Yes, included in the free version.",
+    "faqFreePro": "This is a PRO feature (€4.99/month).",
+    "tryToday": "Try {title} Today",
+    "tryDescription": "Download FitStream and experience AI fitness",
+    "relatedFeatures": "Related Features",
     "poseTracking": {
-      "title": "AI Pose Tracking",
-      "description": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
-      "short": "Real-time form analysis with MediaPipe. 15 exercises with instant feedback."
+      "title": "Suivi IA des Exercices",
+      "description": "Analyse de forme en temps réel avec MediaPipe. Feedback instantané sur votre technique d'exercice sans traitement cloud.",
+      "short": "Analyse de forme en temps réel avec MediaPipe. 15 exercices avec feedback instantané.",
+      "step1": "Sélectionnez un exercice parmi 15 options disponibles",
+      "step2": "Positionnez votre téléphone pour voir tout votre corps",
+      "step3": "L'IA suit vos mouvements en temps réel",
+      "step4": "Obtenez le comptage des répétitions et le feedback de forme instantanément",
+      "benefit1": "Comptage automatique des répétitions — pas de saisie manuelle",
+      "benefit2": "Correction de forme pour prévenir les blessures",
+      "benefit3": "Fonctionne hors ligne — pas besoin d'internet",
+      "benefit4": "Feedback vocal pendant l'entraînement",
+      "benefit5": "Vie privée d'abord: tout le traitement sur l'appareil",
+      "benefit6": "Suivez votre progression avec des statistiques détaillées"
     },
     "smartKitchen": {
-      "title": "Smart Kitchen",
-      "description": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
-      "short": "Manage fridge, pantry & freezer. AI recognizes products from photos."
+      "title": "Cuisine Intelligente",
+      "description": "Gérez l'inventaire de votre frigo, garde-manger et congélateur. L'IA reconnaît les produits par photo. Obtenez des suggestions de recettes basées sur ce que vous avez.",
+      "short": "Gérez frigo, garde-manger et congélateur. L'IA reconnaît les produits par photo.",
+      "step1": "Ajoutez des produits par photo, code-barres ou manuellement",
+      "step2": "Organisez dans frigo, garde-manger et congélateur",
+      "step3": "Définissez les dates d'expiration et recevez des notifications",
+      "step4": "Obtenez des idées de recettes basées sur les ingrédients disponibles",
+      "benefit1": "N'oubliez jamais ce qu'il y a dans votre frigo",
+      "benefit2": "Réduisez le gaspillage alimentaire avec le suivi d'expiration",
+      "benefit3": "L'IA reconnaît les produits par photo instantanément",
+      "benefit4": "Planifiez des repas basés sur ce que vous avez déjà",
+      "benefit5": "Partagez l'inventaire avec les membres de la famille",
+      "benefit6": "Générez automatiquement des listes de courses pour les articles manquants"
     },
     "cookingMode": {
-      "title": "Guided Cooking",
-      "description": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
-      "short": "Step-by-step recipes with timers, reminders & troubleshooting tips."
+      "title": "Cuisine Guidée",
+      "description": "Instructions étape par étape avec minuteurs intégrés, rappels pour remuer/retourner et conseils de dépannage. Enregistrez les calories une fois terminé.",
+      "short": "Recettes étape par étape avec minuteurs, rappels et conseils.",
+      "step1": "Choisissez une recette parmi plus de 600 options",
+      "step2": "Suivez les instructions étape par étape avec photos",
+      "step3": "Utilisez les minuteurs et rappels intégrés",
+      "step4": "Enregistrez les calories automatiquement une fois terminé",
+      "benefit1": "Navigation vocale mains libres pendant la cuisine",
+      "benefit2": "Minuteurs intelligents qui se synchronisent entre les étapes",
+      "benefit3": "Conseils de dépannage si quelque chose ne va pas",
+      "benefit4": "Adaptez les recettes pour n'importe quel nombre de portions",
+      "benefit5": "Calcul nutritionnel automatique par portion",
+      "benefit6": "Enregistrez vos modifications aux recettes"
     },
     "nutritionScanner": {
-      "title": "AI Food Scanner",
-      "description": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
-      "short": "Snap a photo for instant calorie and macro estimates."
+      "title": "Scanner Alimentaire IA",
+      "description": "Prenez une photo de votre repas et obtenez une estimation instantanée des calories. Utilise un objet de référence pour des tailles de portions précises.",
+      "short": "Prenez une photo pour une estimation instantanée des calories et macros.",
+      "step1": "Placez un objet de référence (carte, pièce) à côté de votre nourriture",
+      "step2": "Prenez une photo claire de votre repas",
+      "step3": "L'IA analyse les portions et identifie les ingrédients",
+      "step4": "Obtenez instantanément calories, protéines, glucides et lipides",
+      "benefit1": "Pas de saisie manuelle - juste photographiez et c'est parti",
+      "benefit2": "Estimation précise des portions avec des objets de référence",
+      "benefit3": "Fonctionne avec n'importe quelle cuisine ou plats maison",
+      "benefit4": "Reconnaît plusieurs articles sur une assiette",
+      "benefit5": "Gagnez du temps par rapport à la recherche dans les bases de données",
+      "benefit6": "Apprenez à estimer les portions avec le temps"
     },
-    "smartScale": {
-      "title": "Smart Scale",
-      "description": "Connect Xiaomi Mi Scale via Bluetooth or point your camera at any scale — AI reads automatically.",
-      "short": "Point your camera at any scale — AI reads automatically."
+    "menuAnalyzer": {
+      "title": "Analyseur de Menu Restaurant",
+      "description": "Photographiez un menu de restaurant ou un plat pour obtenir une analyse nutritionnelle. L'IA identifie les options saines et suggère de meilleures alternatives.",
+      "short": "Photo du menu ou plat pour analyse nutritionnelle instantanée.",
+      "step1": "Photographiez le menu du restaurant ou un plat",
+      "step2": "L'IA lit et analyse tous les éléments du menu",
+      "step3": "Obtenez des estimations nutritionnelles pour chaque option",
+      "step4": "Voyez des recommandations saines basées sur vos objectifs",
+      "benefit1": "Faites des choix éclairés au restaurant",
+      "benefit2": "Restez sur la bonne voie avec vos objectifs de régime",
+      "benefit3": "Découvrez des alternatives plus saines au menu",
+      "benefit4": "Fonctionne avec des menus dans n'importe quelle langue",
+      "benefit5": "Analysez les plats par photo si le menu n'est pas disponible",
+      "benefit6": "Enregistrez vos plats de restaurant favoris pour un enregistrement rapide"
     },
     "healthIntegrations": {
-      "title": "Health Sync",
-      "description": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
-      "short": "Seamless sync with Google Fit, Apple Health & Samsung Health."
+      "title": "Synchronisation Santé",
+      "description": "Synchronisez avec Google Fit, Apple Health, Samsung Health. Connectez Xiaomi Mi Scale par Bluetooth ou scannez n'importe quelle balance avec la caméra — l'IA lit automatiquement.",
+      "short": "Synchronisez les apps de santé + lecture de balance par IA via caméra ou Bluetooth.",
+      "step1": "Connectez votre plateforme de santé (Google Fit, Apple Health, Samsung)",
+      "step2": "Accordez les permissions pour la synchronisation des données",
+      "step3": "Pointez la caméra vers n'importe quelle balance — l'IA lit l'affichage",
+      "step4": "Les données se synchronisent automatiquement sur toutes les plateformes",
+      "benefit1": "Toutes vos données de santé en un seul endroit",
+      "benefit2": "Fonctionne avec n'importe quelle balance — pointez juste votre caméra",
+      "benefit3": "Connexion Bluetooth pour Xiaomi Mi Scale",
+      "benefit4": "Synchronisation automatique avec les principales plateformes de santé",
+      "benefit5": "Importation de données historiques depuis les apps connectées",
+      "benefit6": "Vie privée d'abord: vous contrôlez ce qui se synchronise"
     },
     "exercises": {
-      "title": "15 Exercises",
-      "description": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
-      "short": "Track 15 different exercises with automatic rep counting."
+      "title": "15 Exercices",
+      "description": "Squats, Pompes, Abdos, Fentes, Burpees, Jumping Jacks, Genoux Hauts, Montée de Genoux, Planche, Chaise, Levées de Jambes, Ponts Fessiers, Élévation Mollets, Fentes Latérales, Dips Triceps",
+      "short": "Suivez 15 exercices différents avec comptage automatique des répétitions.",
+      "step1": "Choisissez parmi 15 exercices au poids du corps",
+      "step2": "Regardez l'animation démo pour la bonne forme",
+      "step3": "Commencez l'entraînement — l'IA compte vos répétitions",
+      "step4": "Examinez vos statistiques de session et votre progression",
+      "benefit1": "Couverture d'entraînement corps complet",
+      "benefit2": "Pas d'équipement nécessaire — poids du corps uniquement",
+      "benefit3": "Animations démo pour chaque exercice",
+      "benefit4": "Adapté à tous les niveaux de fitness",
+      "benefit5": "Créez des routines d'entraînement personnalisées",
+      "benefit6": "Suivez vos records personnels et améliorations"
     },
     "offlineFirst": {
-      "title": "Offline First",
-      "description": "Full functionality without internet. Your data syncs automatically when you're back online.",
-      "short": "Works without internet — syncs when back online."
+      "title": "Hors Ligne d'Abord",
+      "description": "Fonctionnalité complète sans internet. Vos données se synchronisent automatiquement quand vous êtes de nouveau en ligne.",
+      "short": "Fonctionne sans internet — synchronise à la reconnexion.",
+      "step1": "Utilisez toutes les fonctionnalités sans connexion internet",
+      "step2": "Les données sont stockées en sécurité sur votre appareil",
+      "step3": "Connectez-vous à internet quand disponible",
+      "step4": "Les données se synchronisent automatiquement en arrière-plan",
+      "benefit1": "Ne perdez jamais l'accès à vos données",
+      "benefit2": "Fonctionne partout — salle de sport, extérieur, en voyage",
+      "benefit3": "Pas d'écrans de chargement ni d'erreurs de connexion",
+      "benefit4": "Vie privée d'abord: vos données restent sur l'appareil",
+      "benefit5": "Performance instantanée de l'app",
+      "benefit6": "Sauvegarde cloud automatique quand en ligne"
     },
     "multiLanguage": {
       "title": "6 Languages",
@@ -77,35 +173,95 @@
       "short": "Web, iOS, Android, and Telegram. One account everywhere."
     },
     "aiCoach": {
-      "title": "AI Coach",
-      "description": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
-      "short": "Personalized motivation with voice coaching.",
-      "premium": true
+      "title": "Coach IA",
+      "description": "Citations motivationnelles et conseils personnalisés propulsés par Gemini AI. Choisissez une voix masculine (Fenrir) ou féminine (Kore).",
+      "short": "Motivation personnalisée avec coaching vocal.",
+      "premium": true,
+      "step1": "Définissez vos objectifs fitness et préférences",
+      "step2": "Choisissez la voix de votre coach (Fenrir ou Kore)",
+      "step3": "Recevez des conseils personnalisés basés sur votre progression",
+      "step4": "Recevez de la motivation vocale pendant les entraînements",
+      "benefit1": "Conseils personnalisés basés sur vos données",
+      "benefit2": "Motivation quotidienne adaptée à vos objectifs",
+      "benefit3": "Coaching vocal pendant les entraînements",
+      "benefit4": "S'adapte à votre progression et difficultés",
+      "benefit5": "Disponible en plusieurs langues",
+      "benefit6": "Propulsé par l'IA avancée Gemini"
     },
     "smartShopping": {
-      "title": "Shopping Assistant",
-      "description": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need.",
-      "short": "AI plans meals and creates smart shopping lists."
+      "title": "Assistant Courses",
+      "description": "Planifiez des repas, générez des listes de courses, vérifiez les produits par photo, scannez les rayons pour trouver ce dont vous avez besoin.",
+      "short": "L'IA planifie les repas et crée des listes de courses intelligentes.",
+      "step1": "Planifiez vos repas pour la semaine",
+      "step2": "L'IA génère une liste de courses automatiquement",
+      "step3": "Scannez les produits en magasin pour vérifier les ingrédients",
+      "step4": "Cochez les articles pendant vos courses",
+      "benefit1": "N'oubliez jamais d'articles au magasin",
+      "benefit2": "La planification des repas économise temps et argent",
+      "benefit3": "Vérifiez que les produits correspondent à vos besoins diététiques",
+      "benefit4": "Partagez les listes avec les membres de la famille",
+      "benefit5": "Organisez par rayons de magasin",
+      "benefit6": "Suggérez des alternatives plus saines"
     },
     "foodFinance": {
-      "title": "Food Finance",
-      "description": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
-      "short": "Track food spending. Calculate savings from home cooking."
+      "title": "Finances Alimentaires",
+      "description": "Suivez vos dépenses alimentaires, voyez où va votre argent et calculez les économies de cuisiner à la maison vs manger dehors.",
+      "short": "Suivez les dépenses alimentaires. Calculez les économies de cuisiner à la maison.",
+      "step1": "Enregistrez les achats alimentaires depuis les tickets ou manuellement",
+      "step2": "Catégorisez les dépenses (courses, restaurants, livraison)",
+      "step3": "Consultez les rapports de dépenses hebdomadaires et mensuels",
+      "step4": "Comparez les coûts de cuisiner à la maison vs manger dehors",
+      "benefit1": "Comprenez où va votre budget alimentaire",
+      "benefit2": "Voyez les économies de cuisiner à la maison",
+      "benefit3": "Définissez et suivez vos objectifs de dépenses alimentaires",
+      "benefit4": "Identifiez les habitudes alimentaires coûteuses",
+      "benefit5": "Planifiez des repas économiques",
+      "benefit6": "Exportez les rapports pour les apps de budget"
     },
     "receiptScanning": {
-      "title": "Receipt Scanning",
-      "description": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
-      "short": "Scan receipts to auto-add products with prices & expiry dates."
+      "title": "Scan de Tickets",
+      "description": "Scannez les tickets de caisse pour ajouter automatiquement des produits à votre inventaire de cuisine avec prix et dates d'expiration.",
+      "short": "Scannez les tickets pour ajouter automatiquement des produits avec prix et dates d'expiration.",
+      "step1": "Prenez une photo de votre ticket de caisse",
+      "step2": "L'IA lit et extrait tous les articles",
+      "step3": "Les produits sont ajoutés à votre inventaire de cuisine",
+      "step4": "Les prix sont enregistrés pour le suivi des dépenses",
+      "benefit1": "Mise à jour instantanée de l'inventaire après les courses",
+      "benefit2": "Suivi automatique des prix pour le budget",
+      "benefit3": "Fonctionne avec la plupart des formats de tickets",
+      "benefit4": "Estime automatiquement les dates d'expiration",
+      "benefit5": "Ajoutez plusieurs articles à la fois",
+      "benefit6": "Réduit le temps de saisie manuelle des données"
     },
     "gamification": {
-      "title": "Achievements",
-      "description": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
-      "short": "Earn achievements. Compete on the leaderboard."
+      "title": "Succès",
+      "description": "Gagnez des succès en atteignant des jalons. Rivalisez avec vos amis sur le classement social.",
+      "short": "Gagnez des succès. Rivalisez sur le classement.",
+      "step1": "Complétez des entraînements et enregistrez des repas",
+      "step2": "Gagnez des succès pour les jalons",
+      "step3": "Construisez des séries pour des habitudes constantes",
+      "step4": "Rivalisez avec vos amis sur les classements",
+      "benefit1": "Restez motivé avec les récompenses de succès",
+      "benefit2": "Construisez des habitudes saines avec les séries",
+      "benefit3": "Rivalisez avec vos amis pour plus de motivation",
+      "benefit4": "Débloquez des badges pour des accomplissements spéciaux",
+      "benefit5": "Suivez vos records personnels",
+      "benefit6": "Partagez vos succès sur les réseaux sociaux"
     },
     "charts": {
-      "title": "Analytics",
-      "description": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
-      "short": "Visualize progress with beautiful charts."
+      "title": "Analytiques",
+      "description": "Visualisez votre progression avec de beaux graphiques. Suivez les tendances de poids, calories, entraînements et composition corporelle.",
+      "short": "Visualisez la progression avec de beaux graphiques.",
+      "step1": "Enregistrez vos données régulièrement dans le temps",
+      "step2": "Consultez les graphiques de poids, calories, entraînements",
+      "step3": "Analysez les tendances et motifs",
+      "step4": "Exportez les rapports pour une analyse approfondie",
+      "benefit1": "Voyez votre progression dans le temps",
+      "benefit2": "Identifiez les motifs dans vos habitudes",
+      "benefit3": "Visualisations belles et faciles à lire",
+      "benefit4": "Plusieurs types de graphiques et périodes",
+      "benefit5": "Comparez différentes métriques ensemble",
+      "benefit6": "Exportez les données en PDF ou CSV"
     }
   },
   "ai": {
@@ -177,5 +333,9 @@
     "getStarted": "Get Started",
     "tryFree": "Try Free",
     "premium": "Premium"
+  },
+  "legal": {
+    "terms": { "title": "Terms of Service", "description": "Terms for FitStream AI", "lastUpdated": "Last updated", "acceptance": "Acceptance", "acceptanceText": "By using FitStream AI, you agree to these terms.", "descriptionText": "FitStream AI is a fitness app.", "accounts": "Accounts", "accountsText": "Use without account or sign in with Google.", "subscription": "Pricing", "subscriptionText": "Free and PRO tiers available:", "subscriptionFree": "Free: workouts, AI scanning", "subscriptionPro": "PRO: unlimited AI, voice assistant", "content": "Content", "contentText": "You own your content.", "prohibited": "Prohibited", "prohibitedText": "Do not:", "prohibited1": "Use illegally", "prohibited2": "Hack systems", "prohibited3": "Share credentials", "prohibited4": "Upload harmful content", "disclaimer": "Disclaimer", "disclaimerText": "For info only.", "limitation": "Liability", "limitationText": "Provided as is.", "changes": "Changes", "changesText": "Terms may update.", "contact": "Contact", "contactText": "Via Telegram:" },
+    "privacy": { "title": "Privacy Policy", "description": "Data handling", "lastUpdated": "Last updated", "intro": "Intro", "introText": "We respect privacy.", "dataCollected": "Data Collected", "dataCollectedText": "We collect:", "dataHealth": "Health", "dataHealthText": "Workouts, weight", "dataPhotos": "Photos", "dataPhotosText": "Food photos", "dataAccount": "Account", "dataAccountText": "Email", "dataUsage": "Usage", "dataUsageText": "Stats", "howWeUse": "Use", "howWeUseText": "For:", "use1": "Tracking", "use2": "Sync", "use3": "Recommendations", "use4": "Improvements", "storage": "Storage", "storageText": "Local storage.", "thirdParty": "Third Parties", "thirdPartyText": "Integrations:", "thirdPartyGemini": "AI analysis", "thirdPartyHealth": "Health sync", "security": "Security", "securityText": "Standard security.", "rights": "Rights", "rightsText": "You can:", "rights1": "Access", "rights2": "Delete", "rights3": "Export", "rights4": "Opt out", "children": "Children", "childrenText": "Not for under 13.", "changes": "Changes", "changesText": "Policy may update.", "contact": "Contact", "contactText": "Via Telegram:" }
   }
 }
