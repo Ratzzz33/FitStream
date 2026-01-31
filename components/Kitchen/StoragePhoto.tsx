@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, ChevronLeft, ChevronRight, Plus, Trash2, Tag, Replace } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, Plus, Trash2, Tag, Replace, AlertTriangle, RotateCcw } from 'lucide-react';
 import { InventoryItem, StoragePhoto as StoragePhotoType } from '../../types';
 import { ProductMarker } from './ProductMarker';
 
@@ -15,6 +15,8 @@ interface StoragePhotoProps {
   onRemovePhoto?: (photoId: string) => void;
   onLabelPhoto?: (photoId: string) => void;
   onReplacePhoto?: (photoId: string) => void; // Заменить фото (тот же ракурс)
+  onRetryParse?: (photoId: string) => void; // Повторить парсинг для этого фото
+  isRetrying?: string | null; // photoId который сейчас парсится
 }
 
 export const StoragePhoto: React.FC<StoragePhotoProps> = ({
@@ -26,7 +28,9 @@ export const StoragePhoto: React.FC<StoragePhotoProps> = ({
   onAddPhoto,
   onRemovePhoto,
   onLabelPhoto,
-  onReplacePhoto
+  onReplacePhoto,
+  onRetryParse,
+  isRetrying
 }) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
@@ -54,6 +58,11 @@ export const StoragePhoto: React.FC<StoragePhotoProps> = ({
 
   // Count depleted items for this photo
   const depletedCount = itemsForCurrentPhoto.filter(item => item.depleted || item.quantity <= 0).length;
+
+  // Check if this photo has no products (empty parse result)
+  const hasNoProducts = itemsForCurrentPhoto.filter(i => !i.depleted && i.quantity > 0).length === 0;
+  const isParseEmpty = currentPhoto.parseStatus === 'empty' || hasNoProducts;
+  const isCurrentRetrying = isRetrying === currentPhoto.id;
 
   const goToPrev = () => {
     setCurrentPhotoIndex(prev => (prev > 0 ? prev - 1 : totalPhotos - 1));
@@ -124,7 +133,38 @@ export const StoragePhoto: React.FC<StoragePhotoProps> = ({
             <span>{depletedCount} закончились</span>
           </div>
         )}
+        {/* Empty parse warning badge */}
+        {isParseEmpty && !isCurrentRetrying && (
+          <div className="px-3 py-1 bg-amber-500/80 text-white text-sm rounded-full flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+          </div>
+        )}
       </div>
+
+      {/* Empty state with retry button */}
+      {isParseEmpty && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+          {isCurrentRetrying ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-white text-sm">Распознаём...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-white font-medium">Нет продуктов</p>
+              {onRetryParse && (
+                <button
+                  onClick={() => onRetryParse(currentPhoto.id)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Повторить</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Dots indicator for multiple photos */}
       {totalPhotos > 1 && (

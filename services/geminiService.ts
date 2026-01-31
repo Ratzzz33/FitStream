@@ -502,6 +502,55 @@ export interface ScannedProduct {
     price?: number; // Estimated price from Georgia prices DB
 }
 
+// 7a. Detect storage type from photo
+export const detectStorageType = async (base64Image: string): Promise<StorageType> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+        const mimeType = getMimeType(base64Image);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType, data: cleanBase64(base64Image) } },
+                        {
+                            text: `Определи тип хранения на фото. Выбери ОДИН из вариантов:
+                            - fridge: холодильник (видны полки с охлаждёнными продуктами, молоко, овощи, напитки)
+                            - freezer: морозилка (лёд, замороженные продукты, мясо в упаковке, мороженое)
+                            - cabinet: кухонный шкаф (сухие продукты, крупы, консервы, специи, макароны)
+                            - appliances: кухонные приборы и утварь (сковородки, кастрюли, ножи, доски, миксер, блендер, мультиварка)
+
+                            Верни JSON с одним полем "type" содержащим выбранный тип.`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['fridge', 'freezer', 'cabinet', 'appliances'] }
+                    },
+                    required: ["type"]
+                }
+            }
+        });
+
+        if (response.text) {
+            const result = JSON.parse(response.text);
+            return result.type as StorageType;
+        }
+        return 'fridge'; // Default fallback
+    } catch (error) {
+        console.error("Error detecting storage type:", error);
+        return 'fridge'; // Default fallback
+    }
+};
+
 export const scanStoragePhoto = async (
     base64Image: string,
     storageType: StorageType
@@ -514,7 +563,8 @@ export const scanStoragePhoto = async (
     const storageNames: Record<StorageType, string> = {
         fridge: 'холодильника',
         cabinet: 'кухонного шкафа',
-        freezer: 'морозилки'
+        freezer: 'морозилки',
+        appliances: 'кухонной утвари'
     };
 
     try {

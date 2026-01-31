@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle, Database, Sparkles, X } from 'lucide-react';
+import { RefreshCw, Flame, ChefHat, AlertTriangle, Database, Sparkles, X, Camera, PenLine, Store } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
@@ -7,6 +7,24 @@ import { matchRecipesByIngredients, saveGeneratedRecipe, getRecipeStats, RecipeW
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
+
+// Custom Fridge Icon
+const FridgeIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="9" x2="19" y2="9" />
+    <line x1="15" y1="5" x2="15" y2="7" />
+    <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
 
 // Toast component for new recipes notification
 const NewRecipesToast: React.FC<{ count: number; onClose: () => void }> = ({ count, onClose }) => (
@@ -27,11 +45,13 @@ const NewRecipesToast: React.FC<{ count: number; onClose: () => void }> = ({ cou
 );
 
 const LAST_RECIPE_CHECK_KEY = 'fitstream_last_recipe_check';
-
 interface CookingProps {
   caloriesRemaining: number;
   servingsNeeded?: number;
   onCaloriesLogged?: (calories: number) => void;
+  onOpenKitchenCamera?: () => void;
+  onOpenManualAdd?: () => void;
+  onOpenShopping?: () => void;
 }
 
 type ViewState = 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
@@ -39,7 +59,10 @@ type ViewState = 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
 export const Cooking: React.FC<CookingProps> = ({
   caloriesRemaining,
   servingsNeeded = 2,
-  onCaloriesLogged
+  onCaloriesLogged,
+  onOpenKitchenCamera,
+  onOpenManualAdd,
+  onOpenShopping
 }) => {
   const [state, setState] = useState<ViewState>('loading');
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
@@ -368,8 +391,68 @@ export const Cooking: React.FC<CookingProps> = ({
         </div>
       )}
 
-      {/* Error state */}
-      {state === 'error' && (
+      {/* Error state - empty kitchen */}
+      {state === 'error' && error.includes('Добавьте продукты') && (
+        <div className="flex-1 flex flex-col p-6">
+          {/* Friendly empty state */}
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+              <FridgeIcon className="w-10 h-10 text-orange-300 dark:text-orange-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2 dark:text-white">
+              Кухня пуста
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Добавьте продукты, чтобы получить персональные рецепты
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="space-y-3 max-w-sm mx-auto w-full">
+            {onOpenKitchenCamera && (
+              <button
+                onClick={onOpenKitchenCamera}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+              >
+                <Camera className="w-6 h-6" />
+                <div className="text-left">
+                  <div className="font-semibold">Сфотографировать кухню</div>
+                  <div className="text-xs text-blue-200">AI распознает продукты автоматически</div>
+                </div>
+              </button>
+            )}
+
+            {onOpenManualAdd && (
+              <button
+                onClick={onOpenManualAdd}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <PenLine className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                <div className="text-left">
+                  <div className="font-semibold dark:text-white">Добавить вручную</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Если знаете что есть дома</div>
+                </div>
+              </button>
+            )}
+
+            {onOpenShopping && (
+              <button
+                onClick={onOpenShopping}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Store className="w-6 h-6 text-green-500" />
+                <div className="text-left">
+                  <div className="font-semibold dark:text-white">В магазин</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Составить список покупок</div>
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Error state - other errors */}
+      {state === 'error' && !error.includes('Добавьте продукты') && (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
           <p className="text-gray-600 dark:text-gray-400 text-center mb-4">{error}</p>

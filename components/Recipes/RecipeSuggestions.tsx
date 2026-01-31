@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, ShoppingCart, ArrowRight } from 'lucide-react';
+import { ChefHat, ShoppingCart, ArrowRight, Camera, PenLine, Store } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { RecipeModal } from './RecipeModal';
 import { getRecipesWithIngredientMatch, RecipeWithMatch } from '../../services/recipeService';
 import type { UserSettings } from '../../types';
+
+// Custom Fridge Icon
+const FridgeIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="9" x2="19" y2="9" />
+    <line x1="15" y1="5" x2="15" y2="7" />
+    <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
 
 interface RecipeSuggestionsProps {
     settings: UserSettings;
@@ -11,6 +29,9 @@ interface RecipeSuggestionsProps {
     remainingCalories?: number;
     maxMissingIngredients?: number;
     onViewAllRecipes?: () => void;
+    onOpenKitchenCamera?: () => void;
+    onOpenManualAdd?: () => void;
+    onOpenShopping?: () => void;
 }
 
 export const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({
@@ -18,7 +39,10 @@ export const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({
     userIngredients,
     remainingCalories,
     maxMissingIngredients = 5,
-    onViewAllRecipes
+    onViewAllRecipes,
+    onOpenKitchenCamera,
+    onOpenManualAdd,
+    onOpenShopping
 }) => {
     const [recipes, setRecipes] = useState<RecipeWithMatch[]>([]);
     const [loading, setLoading] = useState(true);
@@ -72,16 +96,108 @@ export const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({
 
     if (userIngredients.length === 0) {
         return (
-            <div className={`rounded-2xl p-6 text-center ${
+            <div className={`rounded-2xl p-6 ${
                 settings.theme === 'dark' ? 'bg-gray-800' : 'bg-white shadow-sm'
             }`}>
-                <ShoppingCart size={48} className="mx-auto mb-3 text-gray-400" />
-                <p className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                    {isRussian
-                        ? 'Добавьте продукты в холодильник, чтобы получить рекомендации рецептов'
-                        : 'Add ingredients to your inventory to get recipe suggestions'
-                    }
-                </p>
+                {/* Friendly empty state */}
+                <div className="text-center mb-6">
+                    <div className={`mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
+                        settings.theme === 'dark' ? 'bg-gray-700' : 'bg-orange-50'
+                    }`}>
+                        <FridgeIcon className={`w-8 h-8 ${
+                            settings.theme === 'dark' ? 'text-gray-500' : 'text-orange-300'
+                        }`} />
+                    </div>
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                        settings.theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>
+                        {isRussian ? 'Кухня пуста' : 'Kitchen is empty'}
+                    </h3>
+                    <p className={`text-sm ${
+                        settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                        {isRussian
+                            ? 'Добавьте продукты, чтобы увидеть подходящие рецепты'
+                            : 'Add ingredients to see matching recipes'
+                        }
+                    </p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="space-y-2">
+                    {onOpenKitchenCamera && (
+                        <button
+                            onClick={onOpenKitchenCamera}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                settings.theme === 'dark'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            }`}
+                        >
+                            <Camera className="w-5 h-5" />
+                            <div className="text-left">
+                                <div className="font-medium">
+                                    {isRussian ? 'Сфотографировать кухню' : 'Scan your kitchen'}
+                                </div>
+                                <div className={`text-xs ${
+                                    settings.theme === 'dark' ? 'text-blue-200' : 'text-blue-100'
+                                }`}>
+                                    {isRussian ? 'AI распознает продукты' : 'AI will detect products'}
+                                </div>
+                            </div>
+                        </button>
+                    )}
+
+                    {onOpenManualAdd && (
+                        <button
+                            onClick={onOpenManualAdd}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                settings.theme === 'dark'
+                                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                            }`}
+                        >
+                            <PenLine className={`w-5 h-5 ${
+                                settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`} />
+                            <div className="text-left">
+                                <div className="font-medium">
+                                    {isRussian ? 'Добавить вручную' : 'Add manually'}
+                                </div>
+                                <div className={`text-xs ${
+                                    settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
+                                    {isRussian ? 'Если знаете что есть' : 'If you know what you have'}
+                                </div>
+                            </div>
+                        </button>
+                    )}
+
+                    {onOpenShopping && (
+                        <button
+                            onClick={onOpenShopping}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                                settings.theme === 'dark'
+                                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                            }`}
+                        >
+                            <Store className={`w-5 h-5 ${
+                                settings.theme === 'dark' ? 'text-green-400' : 'text-green-500'
+                            }`} />
+                            <div className="text-left">
+                                <div className="font-medium">
+                                    {isRussian ? 'В магазин' : 'Go shopping'}
+                                </div>
+                                <div className={`text-xs ${
+                                    settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
+                                    {isRussian ? 'Составить список покупок' : 'Create shopping list'}
+                                </div>
+                            </div>
+                        </button>
+                    )}
+                </div>
             </div>
         );
     }

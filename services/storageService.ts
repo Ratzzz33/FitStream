@@ -780,6 +780,19 @@ export const StorageService = {
     }
   },
 
+  // Update parse status for a photo (for retry functionality)
+  updateStoragePhotoParseStatus: (storageId: string, photoId: string, status: 'success' | 'empty' | 'error'): void => {
+    const storages = StorageService.getStorages();
+    const storage = storages.find(s => s.id === storageId);
+    if (!storage?.photos) return;
+
+    const photo = storage.photos.find(p => p.id === photoId);
+    if (photo) {
+      photo.parseStatus = status;
+      localStorage.setItem(KEYS.KITCHEN_STORAGES, JSON.stringify(storages));
+    }
+  },
+
   // Заменить фото (тот же ракурс, новое фото)
   replaceStoragePhoto: (storageId: string, oldPhotoId: string, newPhotoBase64: string): string => {
     const storages = StorageService.getStorages();

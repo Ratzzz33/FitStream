@@ -65,6 +65,9 @@ const App = () => {
   // Food Photo from Dashboard
   const [openFoodCameraOnMount, setOpenFoodCameraOnMount] = useState(false);
 
+  // Initial tool sheet for NutritionTracker (kitchen, recipes, finance)
+  const [initialToolSheet, setInitialToolSheet] = useState<'kitchen' | 'recipes' | 'finance' | null>(null);
+
   // Water tracking
   const [todayWater, setTodayWater] = useState(0);
 
@@ -101,6 +104,13 @@ const App = () => {
   
   // Derived state for goals
   const enabledGoals = settings.goals.filter(g => g.isEnabled);
+
+  // Reset initialToolSheet when leaving NUTRITION tab
+  useEffect(() => {
+      if (activeTab !== AppTab.NUTRITION) {
+          setInitialToolSheet(null);
+      }
+  }, [activeTab]);
 
   // Fetch Custom Icons on Load
   useEffect(() => {
@@ -546,16 +556,16 @@ const App = () => {
       if (isTelegramApp) {
           hapticFeedback('impact', 'medium');
       }
+      setInitialToolSheet('kitchen');
       setActiveTab(AppTab.NUTRITION);
-      // Kitchen tab will be opened via NutritionTracker's default state
   };
 
   const handleCookingClick = () => {
       if (isTelegramApp) {
           hapticFeedback('impact', 'medium');
       }
+      setInitialToolSheet('recipes');
       setActiveTab(AppTab.NUTRITION);
-      // Recipes/Cooking tab will be opened via NutritionTracker
   };
 
   const handleMockUpgrade = () => {
@@ -963,6 +973,7 @@ const App = () => {
                 onRequestPro={() => setShowProModal(true)}
                 openCameraOnMount={openFoodCameraOnMount}
                 onCameraOpened={() => setOpenFoodCameraOnMount(false)}
+                initialToolSheet={initialToolSheet}
             />
         )}
 

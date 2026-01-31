@@ -17,15 +17,16 @@ interface NutritionTrackerProps {
   onRequestPro: () => void;
   openCameraOnMount?: boolean;
   onCameraOpened?: () => void;
+  initialToolSheet?: 'kitchen' | 'recipes' | 'finance' | null;
 }
 
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
 type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
-export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened }) => {
+export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened, initialToolSheet }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
-    const [activeToolSheet, setActiveToolSheet] = useState<ToolSheet>(null);
+    const [activeToolSheet, setActiveToolSheet] = useState<ToolSheet>(initialToolSheet ?? null);
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
@@ -120,6 +121,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const settings = StorageService.getSettings();
     const dailyNeeds = StorageService.calculateDailyNeeds();
     const todayStats = StorageService.getTodayNutrition();
+
+    // Open tool sheet when navigating from dashboard
+    useEffect(() => {
+        if (initialToolSheet) {
+            setActiveToolSheet(initialToolSheet);
+        }
+    }, [initialToolSheet]);
 
     // Track online status
     useEffect(() => {
@@ -1726,6 +1734,9 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             <Cooking
                                 caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
                                 onCaloriesLogged={handleCaloriesLogged}
+                                onOpenKitchenCamera={() => setActiveToolSheet('kitchen')}
+                                onOpenManualAdd={() => setActiveToolSheet('kitchen')}
+                                onOpenShopping={() => setActiveToolSheet('finance')}
                             />
                         )}
                         {activeToolSheet === 'finance' && <FoodFinance />}
