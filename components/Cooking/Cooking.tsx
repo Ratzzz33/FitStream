@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store, WifiOff, SlidersHorizontal } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
-import { generateDishImage } from '../../services/nanaBananaService';
+import { generateDishImage, clearImageCache } from '../../services/nanaBananaService';
 import { findMatchingRecipes, convertToGeneratedRecipe } from '../../data/offlineRecipes';
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
@@ -276,6 +276,11 @@ export const Cooking: React.FC<CookingProps> = ({
     setGeneratingSlots([]);
     setIsGeneratingMore(false);
 
+    // Clear image cache on force refresh to get new images
+    if (forceRefresh) {
+      clearImageCache();
+    }
+
     // Check inventory
     const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
     if (inventory.length === 0) {
@@ -322,6 +327,11 @@ export const Cooking: React.FC<CookingProps> = ({
       setRecipes(offlineRecipes);
       setRecipeImages({});
       setState('menu');
+
+      // Generate images for offline recipes in background
+      offlineRecipes.forEach((recipe, index) => {
+        generateImageForRecipe(recipe, index);
+      });
 
       // If we have less than MAX_RECIPES, show generating slots
       if (offlineRecipes.length < MAX_RECIPES) {
