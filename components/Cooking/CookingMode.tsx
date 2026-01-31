@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Check, HelpCircle, Flame } from 'lucide-react';
+import { ChevronLeft, Check, HelpCircle, Flame, Pause, Play, Clock, ArrowRight } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
 import { CookingStep, TimerState } from './CookingStep';
 import { CookingComplete } from './CookingComplete';
@@ -50,6 +50,13 @@ export const CookingMode: React.FC<CookingModeProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const reminderTimersRef = useRef<NodeJS.Timeout[]>([]);
 
+  // Overall cooking timeline
+  const [cookingStartedAt] = useState<number>(Date.now());
+  const [isPaused, setIsPaused] = useState(false);
+  const [totalPausedMs, setTotalPausedMs] = useState(0);
+  const [pausedAt, setPausedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
   const currentStep = recipe.steps[currentStepIndex];
   const totalSteps = recipe.steps.length;
   const progress = ((currentStepIndex + 1) / totalSteps) * 100;
@@ -66,6 +73,39 @@ export const CookingMode: React.FC<CookingModeProps> = ({
       });
     });
   }, [recipe]);
+
+  // Overall cooking timeline tracker
+  useEffect(() => {
+    const timelineInterval = setInterval(() => {
+      if (!isPaused) {
+        const now = Date.now();
+        const elapsed = Math.floor((now - cookingStartedAt - totalPausedMs) / 1000);
+        setElapsedSeconds(elapsed);
+      }
+    }, 1000);
+
+    return () => clearInterval(timelineInterval);
+  }, [cookingStartedAt, isPaused, totalPausedMs]);
+
+  // Handle pause/resume
+  const togglePause = () => {
+    if (isPaused && pausedAt) {
+      // Resuming
+      const pauseDuration = Date.now() - pausedAt;
+      setTotalPausedMs(prev => prev + pauseDuration);
+      setPausedAt(null);
+    } else {
+      // Pausing
+      setPausedAt(Date.now());
+    }
+    setIsPaused(!isPaused);
+  };
+
+  const formatElapsedTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Handle timer
   useEffect(() => {
@@ -259,7 +299,26 @@ export const CookingMode: React.FC<CookingModeProps> = ({
             {tf('stepOf', { current: currentStepIndex + 1, total: totalSteps })}
           </div>
         </div>
-        <div className="w-10" /> {/* Spacer for alignment */}
+        {/* Timeline & Pause button */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+            <Clock className="w-4 h-4" />
+            <span className={isPaused ? 'text-amber-500' : ''}>
+              {formatElapsedTime(elapsedSeconds)}
+            </span>
+          </div>
+          <button
+            onClick={togglePause}
+            className={`p-2 rounded-full transition-colors ${
+              isPaused
+                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500'
+            }`}
+            title={isPaused ? 'Продолжить' : 'Пауза'}
+          >
+            {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -311,13 +370,23 @@ export const CookingMode: React.FC<CookingModeProps> = ({
 
       {/* Bottom action with safe area padding */}
       <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <button
-          onClick={handleStepComplete}
-          className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-        >
-          <Check className="w-6 h-6" />
-          <span>{t('done')}</span>
-        </button>
+        {currentStepIndex < totalSteps - 1 ? (
+          <button
+            onClick={handleStepComplete}
+            className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:from-orange-600 hover:to-amber-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            <span>Следующий этап</span>
+            <ArrowRight className="w-6 h-6" />
+          </button>
+        ) : (
+          <button
+            onClick={handleStepComplete}
+            className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            <Check className="w-6 h-6" />
+            <span>Завершить готовку</span>
+          </button>
+        )}
       </div>
 
       {/* Reminder popup */}

@@ -302,8 +302,8 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
             onClick={onStartCooking}
             className="w-full py-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:from-orange-600 hover:to-amber-600 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
           >
-            <span className="text-xl">🍳</span>
-            <span>ГОТОВИТЬ</span>
+            <span className="text-xl">👨‍🍳</span>
+            <span>Приступаем!</span>
           </button>
           <button
             onClick={onChooseAnother}

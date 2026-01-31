@@ -72,8 +72,8 @@ export const RecipeCardMini: React.FC<RecipeCardMiniProps> = ({
 
       {/* Content */}
       <div className="p-3">
-        {/* Title */}
-        <h3 className="font-bold dark:text-white text-sm mb-1 line-clamp-1">{recipe.name}</h3>
+        {/* Title - show full name with 2 lines */}
+        <h3 className="font-bold dark:text-white text-sm mb-1 line-clamp-2 min-h-[2.5rem]">{recipe.name}</h3>
 
         {/* Nutrition note */}
         {recipe.nutritionNote && (

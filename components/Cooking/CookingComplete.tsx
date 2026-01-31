@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, ChevronLeft, ChevronRight, Check, ImagePlus } from 'lucide-react';
 import { GeneratedRecipe } from '../../services/geminiService';
 import { StorageService } from '../../services/storageService';
 import { CookedMeal, Leftover, InventoryItem } from '../../types';
@@ -29,10 +29,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
   const settings = StorageService.getSettings();
   const currency = (settings.currency || 'RUB') as CurrencyCode;
 
-  // Auto-open camera on mount
-  useEffect(() => {
-    handleTakePhoto();
-  }, []);
+  // No auto-open camera - photo is now optional
 
   const handleTakePhoto = () => {
     const input = document.createElement('input');
@@ -138,30 +135,32 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
       {/* Header */}
       <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-center">
         <span className="text-3xl mb-2 block">🎉</span>
-        <h2 className="text-xl font-bold dark:text-white">{t('done')}</h2>
+        <h2 className="text-xl font-bold dark:text-white">Блюдо готово!</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Осталось записать что съели</p>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {/* Photo */}
-        <div
-          onClick={handleTakePhoto}
-          className="relative mb-6 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-700 h-48 flex items-center justify-center cursor-pointer"
-        >
-          {photo ? (
+        {/* Optional Photo */}
+        {photo ? (
+          <div
+            onClick={handleTakePhoto}
+            className="relative mb-6 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-700 h-48 flex items-center justify-center cursor-pointer"
+          >
             <img src={photo} alt="Готовое блюдо" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center">
-              <Camera className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <span className="text-gray-500 dark:text-gray-400">Сфотографируй результат</span>
-            </div>
-          )}
-          {photo && (
             <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/60 text-white text-sm rounded-lg">
               Нажми чтобы переснять
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            onClick={handleTakePhoto}
+            className="w-full mb-6 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
+          >
+            <ImagePlus className="w-6 h-6" />
+            <span>Добавить фото (необязательно)</span>
+          </button>
+        )}
 
         {/* Dish name */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4">
