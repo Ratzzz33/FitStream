@@ -769,12 +769,12 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
       <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('exerciseSelection')}</h1>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
+          </button>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('exerciseSelection')}</h1>
+          <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
+            <ArrowLeft size={24} />
           </button>
         </div>
 
