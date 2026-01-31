@@ -1,0 +1,409 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "generated": "2026-01-31",
+    "description": "Marketing copy for landing page features. Optimized for 'reels attention' audience."
+  },
+  "features": {
+    "poseTracking": {
+      "hook": {
+        "ru": "ИИ видит твою технику",
+        "en": "AI Sees Your Form"
+      },
+      "oneliner": {
+        "ru": "Камера телефона анализирует каждое движение и считает повторы автоматически",
+        "en": "Your phone camera analyzes every move and counts reps automatically"
+      },
+      "benefits": {
+        "ru": [
+          "Мгновенная обратная связь по технике",
+          "Автоматический подсчёт повторений",
+          "15 упражнений с распознаванием",
+          "Работает без интернета"
+        ],
+        "en": [
+          "Instant feedback on your technique",
+          "Automatic rep counting",
+          "15 exercises with recognition",
+          "Works offline"
+        ]
+      },
+      "tiles": ["realtime", "exercises", "feedback", "counting"]
+    },
+    "exercises": {
+      "hook": {
+        "ru": "15 упражнений. Ноль оборудования",
+        "en": "15 Exercises. Zero Equipment"
+      },
+      "oneliner": {
+        "ru": "Приседания, отжимания, планка и ещё 12 упражнений — всё что нужно для тренировки дома",
+        "en": "Squats, push-ups, plank and 12 more — everything you need to train at home"
+      },
+      "benefits": {
+        "ru": [
+          "Упражнения на все группы мышц",
+          "От новичка до продвинутого",
+          "Кастомные цели на каждый день",
+          "Отслеживание прогресса"
+        ],
+        "en": [
+          "Exercises for all muscle groups",
+          "From beginner to advanced",
+          "Custom daily goals",
+          "Progress tracking"
+        ]
+      },
+      "tiles": ["fullbody", "levels", "goals", "progress"]
+    },
+    "smartKitchen": {
+      "hook": {
+        "ru": "Холодильник под контролем ИИ",
+        "en": "AI-Powered Fridge Control"
+      },
+      "oneliner": {
+        "ru": "Сфоткай полку — ИИ запомнит все продукты и подскажет, что готовить",
+        "en": "Snap your shelf — AI remembers everything and suggests recipes"
+      },
+      "benefits": {
+        "ru": [
+          "Распознавание продуктов по фото",
+          "Напоминания о сроках годности",
+          "603 рецепта из того, что есть",
+          "Автоматический список покупок"
+        ],
+        "en": [
+          "Product recognition from photos",
+          "Expiry date reminders",
+          "603 recipes from what you have",
+          "Auto-generated shopping lists"
+        ]
+      },
+      "tiles": ["scan", "expiry", "recipes", "shopping"]
+    },
+    "cookingMode": {
+      "hook": {
+        "ru": "Готовь как шеф. Пошагово",
+        "en": "Cook Like a Chef. Step by Step"
+      },
+      "oneliner": {
+        "ru": "Таймеры, напоминания помешать, советы если что-то пошло не так — ИИ рядом",
+        "en": "Timers, stir reminders, troubleshooting tips — AI guides every step"
+      },
+      "benefits": {
+        "ru": [
+          "Пошаговые инструкции с фото",
+          "Встроенные таймеры",
+          "Напоминания: помешать, перевернуть",
+          "Калории логируются автоматически"
+        ],
+        "en": [
+          "Step-by-step instructions with photos",
+          "Built-in timers",
+          "Reminders: stir, flip, check",
+          "Calories logged automatically"
+        ]
+      },
+      "tiles": ["steps", "timers", "reminders", "calories"]
+    },
+    "nutritionScanner": {
+      "hook": {
+        "ru": "Сфоткал еду — узнал калории",
+        "en": "Snap Food — Get Calories"
+      },
+      "oneliner": {
+        "ru": "Положи рядом карту или монету — ИИ точно определит размер порции и КБЖУ",
+        "en": "Place a card or coin nearby — AI precisely estimates portion size and macros"
+      },
+      "benefits": {
+        "ru": [
+          "Мгновенный анализ по фото",
+          "Точный размер порции по эталону",
+          "Белки, жиры, углеводы",
+          "История питания"
+        ],
+        "en": [
+          "Instant photo analysis",
+          "Precise portion via reference object",
+          "Proteins, fats, carbs breakdown",
+          "Nutrition history"
+        ]
+      },
+      "tiles": ["photo", "reference", "macros", "history"]
+    },
+    "smartScale": {
+      "hook": {
+        "ru": "Весы + ИИ = полная картина тела",
+        "en": "Scale + AI = Full Body Picture"
+      },
+      "oneliner": {
+        "ru": "Xiaomi весы по Bluetooth — вес, жир, мышцы, вода и ещё 10 метрик",
+        "en": "Xiaomi scale via Bluetooth — weight, fat, muscle, water and 10+ metrics"
+      },
+      "benefits": {
+        "ru": [
+          "Подключение Xiaomi Mi Scale",
+          "13 метрик состава тела",
+          "Графики прогресса",
+          "Синхронизация автоматически"
+        ],
+        "en": [
+          "Xiaomi Mi Scale connection",
+          "13 body composition metrics",
+          "Progress charts",
+          "Auto-sync"
+        ]
+      },
+      "tiles": ["bluetooth", "metrics", "charts", "sync"]
+    },
+    "healthIntegrations": {
+      "hook": {
+        "ru": "Все данные в одном месте",
+        "en": "All Health Data in One Place"
+      },
+      "oneliner": {
+        "ru": "Google Fit, Apple Health, Samsung Health — синхронизация в обе стороны",
+        "en": "Google Fit, Apple Health, Samsung Health — two-way sync"
+      },
+      "benefits": {
+        "ru": [
+          "Google Fit интеграция",
+          "Apple Health поддержка",
+          "Samsung Health синхронизация",
+          "Шаги, сон, пульс — всё учитывается"
+        ],
+        "en": [
+          "Google Fit integration",
+          "Apple Health support",
+          "Samsung Health sync",
+          "Steps, sleep, heart rate — all tracked"
+        ]
+      },
+      "tiles": ["googlefit", "applehealth", "samsung", "metrics"]
+    },
+    "offlineFirst": {
+      "hook": {
+        "ru": "Работает без интернета",
+        "en": "Works Without Internet"
+      },
+      "oneliner": {
+        "ru": "Тренируйся в подвале, в самолёте, в горах — данные синхронизируются когда появится сеть",
+        "en": "Train in a basement, on a plane, in the mountains — data syncs when you're back online"
+      },
+      "benefits": {
+        "ru": [
+          "Полный функционал офлайн",
+          "Локальное хранение данных",
+          "Автосинхронизация при подключении",
+          "Никаких потерь данных"
+        ],
+        "en": [
+          "Full functionality offline",
+          "Local data storage",
+          "Auto-sync when connected",
+          "No data loss ever"
+        ]
+      },
+      "tiles": ["offline", "storage", "sync", "reliable"]
+    },
+    "multiLanguage": {
+      "hook": {
+        "ru": "6 языков. Твой — в списке",
+        "en": "6 Languages. Yours Included"
+      },
+      "oneliner": {
+        "ru": "Английский, русский, испанский, французский, немецкий, китайский — выбирай",
+        "en": "English, Russian, Spanish, French, German, Chinese — take your pick"
+      },
+      "benefits": {
+        "ru": [
+          "Автоопределение языка браузера",
+          "Переключение в один клик",
+          "Весь интерфейс переведён",
+          "Рецепты на твоём языке"
+        ],
+        "en": [
+          "Auto-detects browser language",
+          "One-click switching",
+          "Fully translated interface",
+          "Recipes in your language"
+        ]
+      },
+      "tiles": ["auto", "switch", "interface", "content"]
+    },
+    "multiPlatform": {
+      "hook": {
+        "ru": "Один аккаунт. Все устройства",
+        "en": "One Account. Every Device"
+      },
+      "oneliner": {
+        "ru": "Web, iOS, Android, Telegram Mini App — начни на телефоне, продолжи на компе",
+        "en": "Web, iOS, Android, Telegram Mini App — start on phone, continue on desktop"
+      },
+      "benefits": {
+        "ru": [
+          "Нативные приложения iOS/Android",
+          "Веб-версия без установки",
+          "Telegram Mini App",
+          "Синхронизация между устройствами"
+        ],
+        "en": [
+          "Native iOS/Android apps",
+          "Web version, no install",
+          "Telegram Mini App",
+          "Cross-device sync"
+        ]
+      },
+      "tiles": ["ios", "android", "web", "telegram"]
+    },
+    "aiCoach": {
+      "hook": {
+        "ru": "Персональный ИИ-тренер",
+        "en": "Your Personal AI Coach"
+      },
+      "oneliner": {
+        "ru": "Мотивационные фразы, советы, голосовое сопровождение — выбери мужской или женский голос",
+        "en": "Motivational quotes, tips, voice guidance — choose male or female voice"
+      },
+      "benefits": {
+        "ru": [
+          "Персонализированная мотивация",
+          "Голосовые подсказки во время тренировки",
+          "Два голоса: Fenrir и Kore",
+          "Адаптируется к твоему прогрессу"
+        ],
+        "en": [
+          "Personalized motivation",
+          "Voice cues during workout",
+          "Two voices: Fenrir and Kore",
+          "Adapts to your progress"
+        ]
+      },
+      "tiles": ["motivation", "voice", "personas", "adaptive"]
+    },
+    "smartShopping": {
+      "hook": {
+        "ru": "Умный список покупок",
+        "en": "Smart Shopping Lists"
+      },
+      "oneliner": {
+        "ru": "Спланируй меню на неделю — ИИ составит список и проверит продукты в магазине по фото",
+        "en": "Plan your weekly menu — AI creates the list and verifies products in-store via photo"
+      },
+      "benefits": {
+        "ru": [
+          "Планирование меню на неделю",
+          "Автогенерация списка покупок",
+          "Проверка продуктов по фото",
+          "Сканирование полок магазина"
+        ],
+        "en": [
+          "Weekly meal planning",
+          "Auto-generated shopping lists",
+          "Product verification by photo",
+          "Store shelf scanning"
+        ]
+      },
+      "tiles": ["planning", "lists", "verify", "scan"]
+    },
+    "foodFinance": {
+      "hook": {
+        "ru": "Куда уходят деньги на еду?",
+        "en": "Where Does Food Money Go?"
+      },
+      "oneliner": {
+        "ru": "Трекер расходов покажет сколько тратишь и сколько экономишь готовя дома",
+        "en": "Expense tracker shows spending and savings from cooking at home"
+      },
+      "benefits": {
+        "ru": [
+          "Отслеживание расходов на еду",
+          "Сравнение: дома vs рестораны",
+          "Месячные отчёты",
+          "Цели экономии"
+        ],
+        "en": [
+          "Track food expenses",
+          "Compare: home vs eating out",
+          "Monthly reports",
+          "Savings goals"
+        ]
+      },
+      "tiles": ["expenses", "compare", "reports", "savings"]
+    },
+    "receiptScanning": {
+      "hook": {
+        "ru": "Сфоткал чек — продукты в системе",
+        "en": "Snap Receipt — Products Logged"
+      },
+      "oneliner": {
+        "ru": "ИИ распознаёт чек из магазина и добавляет продукты с ценами и сроками годности",
+        "en": "AI reads store receipts and adds products with prices and expiry dates"
+      },
+      "benefits": {
+        "ru": [
+          "Распознавание чеков по фото",
+          "Автодобавление продуктов",
+          "Цены и сроки годности",
+          "История покупок"
+        ],
+        "en": [
+          "Receipt recognition from photo",
+          "Auto-add products",
+          "Prices and expiry dates",
+          "Purchase history"
+        ]
+      },
+      "tiles": ["scan", "extract", "prices", "history"]
+    },
+    "gamification": {
+      "hook": {
+        "ru": "Соревнуйся. Побеждай",
+        "en": "Compete. Conquer"
+      },
+      "oneliner": {
+        "ru": "Ачивки за достижения, стрики за регулярность, лидерборд среди друзей",
+        "en": "Achievements for milestones, streaks for consistency, leaderboard with friends"
+      },
+      "benefits": {
+        "ru": [
+          "Система достижений",
+          "Стрики и награды",
+          "Лидерборд с друзьями",
+          "Еженедельные челленджи"
+        ],
+        "en": [
+          "Achievement system",
+          "Streaks and rewards",
+          "Friends leaderboard",
+          "Weekly challenges"
+        ]
+      },
+      "tiles": ["achievements", "streaks", "leaderboard", "challenges"]
+    },
+    "charts": {
+      "hook": {
+        "ru": "Прогресс в графиках",
+        "en": "Progress in Charts"
+      },
+      "oneliner": {
+        "ru": "Вес, калории, тренировки, состав тела — красивые графики покажут тренды",
+        "en": "Weight, calories, workouts, body composition — beautiful charts reveal trends"
+      },
+      "benefits": {
+        "ru": [
+          "Графики веса и калорий",
+          "Статистика тренировок",
+          "Анализ состава тела",
+          "Экспорт данных"
+        ],
+        "en": [
+          "Weight and calorie charts",
+          "Workout statistics",
+          "Body composition analysis",
+          "Data export"
+        ]
+      },
+      "tiles": ["weight", "calories", "workouts", "export"]
+    }
+  }
+}
