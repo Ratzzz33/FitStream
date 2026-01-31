@@ -379,6 +379,44 @@ const initDb = async () => {
         WHERE email = '33pokrov33@gmail.com'
     `);
 
+    // Migration: Reset goals to default (STEPS, CALORIES, WATER enabled) - ONE TIME
+    const migrationKey = 'migration_goals_reset_v1';
+    const migrationCheck = await client.query(
+      'SELECT 1 FROM global_assets WHERE key = $1', [migrationKey]
+    );
+
+    if (migrationCheck.rows.length === 0) {
+      const defaultGoals = [
+        { type: 'STEPS', target: 10000, current: 0, isEnabled: true, unit: 'steps', color: '#10b981' },
+        { type: 'CALORIES', target: 2000, current: 0, isEnabled: true, unit: 'kcal', color: '#f97316' },
+        { type: 'WATER', target: 2000, current: 0, isEnabled: true, unit: 'ml', color: '#0ea5e9' },
+        { type: 'PUSHUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: '#3b82f6' },
+        { type: 'SQUATS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: '#8b5cf6' },
+        { type: 'SITUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: '#ec4899' },
+        { type: 'JUMPING_JACKS', target: 100, current: 0, isEnabled: false, unit: 'reps', color: '#14b8a6' },
+        { type: 'LUNGES', target: 40, current: 0, isEnabled: false, unit: 'reps', color: '#f59e0b' },
+        { type: 'BURPEES', target: 20, current: 0, isEnabled: false, unit: 'reps', color: '#ef4444' },
+        { type: 'DIPS', target: 30, current: 0, isEnabled: false, unit: 'reps', color: '#6366f1' },
+        { type: 'PULLUPS', target: 20, current: 0, isEnabled: false, unit: 'reps', color: '#a855f7' }
+      ];
+
+      const result = await client.query(`
+          UPDATE users
+          SET settings = jsonb_set(
+              COALESCE(settings, '{}'::jsonb),
+              '{goals}',
+              $1::jsonb
+          )
+      `, [JSON.stringify(defaultGoals)]);
+
+      await client.query(
+        'INSERT INTO global_assets (key, value) VALUES ($1, $2)',
+        [migrationKey, new Date().toISOString()]
+      );
+
+      console.log(`✅ Goals migration applied to ${result.rowCount} users.`);
+    }
+
     console.log("✅ Database initialized successfully.");
   } catch (err) {
     console.error("❌ Error initializing database:", err.message);
