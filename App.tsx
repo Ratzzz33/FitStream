@@ -1092,21 +1092,17 @@ const App = () => {
                                 <h4 className="text-gray-900 dark:text-white font-bold text-sm">{t('account')}</h4>
                                 <p className="text-gray-500 dark:text-gray-400 text-xs">{t('syncProgress')}</p>
                             </div>
-                            {googleAuthService.isNative() ? (
-                                <button
-                                    onClick={handleNativeGoogleSignIn}
-                                    disabled={isLoggingIn}
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all disabled:opacity-50"
-                                >
-                                    {isLoggingIn ? (
-                                        <Loader2 size={16} className="animate-spin" />
-                                    ) : (
-                                        t('signIn')
-                                    )}
-                                </button>
-                            ) : (
-                                <div id="googleSignInBtn"></div>
-                            )}
+                            <button
+                                onClick={googleAuthService.isNative() ? handleNativeGoogleSignIn : () => (window as any).google?.accounts?.id?.prompt()}
+                                disabled={isLoggingIn}
+                                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all disabled:opacity-50"
+                            >
+                                {isLoggingIn ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    t('signIn')
+                                )}
+                            </button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-4">
