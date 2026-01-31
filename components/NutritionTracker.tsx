@@ -714,6 +714,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         total={dailyNeeds.calories}
                         color="#f59e0b" // Amber for Cals
                         label={t('calories')}
+                        compact
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.calories} / {dailyNeeds.calories}</span>
                 </div>
@@ -726,6 +727,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         total={dailyNeeds.water}
                         color="#3b82f6" // Blue for Water
                         label={t('water')}
+                        compact
                     />
                     <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
                 </div>

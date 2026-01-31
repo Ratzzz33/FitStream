@@ -2,76 +2,75 @@
 
 **Цель:** Перенести лендинг на главный домен `fitstream.health` для SEO, приложение на `app.fitstream.health`
 
-**Ветка:** `feat/landing-seo`
+**Статус:** ✅ ЗАВЕРШЕНО
 **Дата:** 2026-01-31
 
-## Текущая структура
-- `fitstream.health` → React SPA (приложение)
-- `app.fitstream.health` → ссылается на приложение (в коде)
-- Лендинг → не задеплоен
-
-## Целевая структура
-- `fitstream.health` → Next.js лендинг (SSR/SSG для SEO)
-- `app.fitstream.health` → React SPA (приложение)
+## Итоговая структура
+- `fitstream.health` → Next.js лендинг (Hetzner VPS + Docker)
+- `app.fitstream.health` → React SPA (AWS S3 + CloudFront)
+- `api.fitstream.health` → Backend API (Elastic Beanstalk)
 
 ---
 
 ## Этапы
 
-### Этап 1: Подготовка лендинга к деплою
+### Этап 1: Подготовка лендинга к деплою ✅
 - [x] Создать worktree и план
 - [x] Добавить `vercel.json` для лендинга
-- [x] Проверить все внутренние ссылки в лендинге (уже корректные)
+- [x] Добавить `Dockerfile` для Docker деплоя
+- [x] Добавить `docker-compose.yml`
+- [x] Обновить `next.config.ts`: export → standalone для SSR
 - [x] Добавить `robots.txt` для SEO
 - [x] Добавить `sitemap.ts` для автогенерации sitemap
 - [x] Скопировать favicon/иконки в лендинг
 
-### Этап 2: Подготовка приложения
-- [x] API URL уже на отдельном субдомене (`api.fitstream.health`) — не трогаем
+### Этап 2: Подготовка приложения ✅
+- [x] API URL уже на отдельном субдомене (`api.fitstream.health`)
 - [x] Добавить `robots.txt` с Disallow для app subdomain
-- [ ] Добавить редирект с `app.fitstream.health` в CloudFront/DNS (MANUAL)
-- [ ] Обновить OAuth redirect URLs (Google Sign-In) (MANUAL)
-- [ ] Обновить capacitor.config.ts если нужно
+- [x] Обновить CloudFront aliases для `app.fitstream.health`
+- [ ] Обновить OAuth redirect URLs (Google Sign-In) — MANUAL
 
-### Этап 3: Обновление CI/CD
-- [x] Создать workflow для деплоя лендинга на Vercel
+### Этап 3: Обновление CI/CD ✅
+- [x] Создать workflow для деплоя лендинга на Hetzner VPS
 - [x] Обновить существующий deploy.yml для `app.fitstream.health`
 
-### Этап 4: DNS и домены
-- [ ] Настроить `app.fitstream.health` → CloudFront (приложение)
-- [ ] Настроить `fitstream.health` → Vercel (лендинг)
-- [ ] Проверить SSL сертификаты
+### Этап 4: DNS и инфраструктура ✅
+- [x] `app.fitstream.health` → CloudFront (alias добавлен)
+- [x] `fitstream.health` → Hetzner VPS (`46.224.4.72`)
+- [x] `www.fitstream.health` → Hetzner VPS (`46.224.4.72`)
+- [x] SSL сертификат через Let's Encrypt
+- [x] nginx reverse proxy с HTTPS
 
-### Этап 5: Тестирование
-- [ ] Проверить лендинг на `fitstream.health`
-- [ ] Проверить приложение на `app.fitstream.health`
-- [ ] Проверить OAuth flow
-- [ ] Проверить deep links в мобильном приложении
-
----
-
-## Файлы для изменения
-
-### Лендинг (`landing-next/`)
-- `vercel.json` — создать
-- `components/home/Hero.tsx` — проверить ссылки
-- `components/home/DownloadCTA.tsx` — проверить ссылки
-- `components/shared/Header.tsx` — проверить ссылки
-- `components/shared/Footer.tsx` — проверить ссылки
-
-### Приложение (корень)
-- `.github/workflows/deploy.yml` — обновить на `app.fitstream.health`
-- `services/api.ts` — проверить API URL
-- `capacitor.config.ts` — проверить настройки
-- `App.tsx` — проверить OAuth client ID redirect
-
-### Инфраструктура
-- DNS записи для `app.fitstream.health`
-- Vercel project linking
+### Этап 5: Тестирование ✅
+- [x] Лендинг `https://fitstream.health` — 200 OK
+- [x] Приложение `https://app.fitstream.health` — 200 OK
+- [x] Sitemap `https://fitstream.health/sitemap.xml` — работает
+- [x] robots.txt на обоих доменах — работает
+- [ ] OAuth flow — нужно обновить Google Console
 
 ---
 
-## Риски
-1. **OAuth redirect mismatch** — нужно добавить `app.fitstream.health` в Google Console
-2. **Кэш CloudFront** — инвалидировать после изменений
-3. **Deep links в мобильном** — проверить assetlinks.json / apple-app-site-association
+## Инфраструктура
+
+### Лендинг (Hetzner VPS)
+- **IP:** 46.224.4.72
+- **Контейнер:** fitstream-landing
+- **Порт:** 3004 → nginx → 443
+- **SSL:** Let's Encrypt (автообновление через certbot)
+- **Путь:** /opt/fitstream-landing
+
+### Приложение (AWS)
+- **S3 Bucket:** fitstream-frontend-467968377874
+- **CloudFront:** E3AIUCH1L3CNKI
+- **Домены:** fitstream.health (было), app.fitstream.health (текущий)
+
+---
+
+## Оставшиеся задачи
+
+1. **Google OAuth** — добавить `https://app.fitstream.health` в Authorized redirect URIs:
+   - https://console.cloud.google.com/apis/credentials
+   - Найти OAuth 2.0 Client ID
+   - Добавить redirect URI
+
+2. **Deep links** — проверить assetlinks.json для Android

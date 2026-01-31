@@ -1,5 +1,5 @@
-# FitStream Landing Deploy to Vercel
-# Deploys Next.js landing to Vercel on fitstream.health
+# FitStream Landing Deploy to Hetzner VPS
+# Deploys Next.js landing via Docker on fitstream.health
 
 name: Deploy Landing
 
@@ -10,46 +10,56 @@ on:
       - 'landing-next/**'
   workflow_dispatch:
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
   deploy:
-    name: 🚀 Deploy Landing to Vercel
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: landing-next
+    name: 🚀 Deploy Landing to Hetzner
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to Vercel
-        id: deploy
+      - name: Deploy to VPS
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+          SSH_USER: root
         run: |
-          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> $GITHUB_OUTPUT
+          echo "🚀 Deploying FitStream Landing..."
+
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'DEPLOY_SCRIPT'
+            set -e
+            cd /opt/fitstream-landing
+
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+
+            echo "🔨 Building Docker image..."
+            cd landing-next
+            docker build -t fitstream-landing:latest .
+
+            echo "🔄 Restarting container..."
+            docker stop fitstream-landing 2>/dev/null || true
+            docker rm fitstream-landing 2>/dev/null || true
+            docker run -d --name fitstream-landing --restart unless-stopped -p 3004:3000 fitstream-landing:latest
+
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+
+            echo "✅ Deployment complete!"
+          DEPLOY_SCRIPT
+
+      - name: Health check
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://fitstream.health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $STATUS)"
+          else
+            echo "❌ Health check failed (HTTP $STATUS)"
+            exit 1
+          fi
 
       - name: Deployment summary
         run: |
           echo "### 🚀 Landing Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Landing URL:** https://fitstream.health" >> $GITHUB_STEP_SUMMARY
-          echo "**Vercel URL:** ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** https://app.fitstream.health" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
