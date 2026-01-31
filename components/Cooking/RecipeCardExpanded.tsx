@@ -4,6 +4,38 @@ import { GeneratedRecipe, RecipeDifficulty } from '../../services/geminiService'
 import { StorageService } from '../../services/storageService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 import { RecipePreview } from './RecipePreview';
+import { RecipeRating } from './RecipeRating';
+
+// Emoji placeholders for recipes without images
+const RECIPE_EMOJIS: Record<string, string> = {
+  breakfast: '🍳',
+  lunch: '🍲',
+  dinner: '🍽️',
+  snack: '🥪',
+  salad: '🥗',
+  soup: '🍜',
+  pasta: '🍝',
+  meat: '🥩',
+  fish: '🐟',
+  chicken: '🍗',
+  dessert: '🍰',
+  drink: '🥤',
+  default: '👨‍🍳'
+};
+
+const getRecipeEmoji = (name: string): string => {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('салат') || nameLower.includes('salad')) return RECIPE_EMOJIS.salad;
+  if (nameLower.includes('суп') || nameLower.includes('soup')) return RECIPE_EMOJIS.soup;
+  if (nameLower.includes('паста') || nameLower.includes('макарон') || nameLower.includes('спагетти')) return RECIPE_EMOJIS.pasta;
+  if (nameLower.includes('курица') || nameLower.includes('куриц') || nameLower.includes('chicken')) return RECIPE_EMOJIS.chicken;
+  if (nameLower.includes('мясо') || nameLower.includes('говядин') || nameLower.includes('свинин') || nameLower.includes('котлет')) return RECIPE_EMOJIS.meat;
+  if (nameLower.includes('рыба') || nameLower.includes('тунец') || nameLower.includes('лосось') || nameLower.includes('fish')) return RECIPE_EMOJIS.fish;
+  if (nameLower.includes('яйц') || nameLower.includes('омлет') || nameLower.includes('яичниц')) return RECIPE_EMOJIS.breakfast;
+  if (nameLower.includes('торт') || nameLower.includes('пирог') || nameLower.includes('десерт') || nameLower.includes('печень')) return RECIPE_EMOJIS.dessert;
+  if (nameLower.includes('смузи') || nameLower.includes('коктейль') || nameLower.includes('напиток')) return RECIPE_EMOJIS.drink;
+  return RECIPE_EMOJIS.default;
+};
 
 interface RecipeCardExpandedProps {
   recipe: GeneratedRecipe;
@@ -66,14 +98,18 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-slide-up">
-        {/* Header with image */}
+        {/* Header with image or emoji placeholder */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-amber-50 dark:from-gray-700 dark:to-gray-800 shrink-0">
-          {imageUrl && (
+          {imageUrl ? (
             <img
               src={imageUrl}
               alt={recipe.name}
               className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-8xl opacity-50">{getRecipeEmoji(recipe.name)}</span>
+            </div>
           )}
 
           {/* Close button */}
@@ -303,6 +339,15 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
               </div>
             </div>
           )}
+
+          {/* Rating & Comments */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+            <h3 className="font-semibold dark:text-white mb-3">⭐ Оценки и отзывы</h3>
+            <RecipeRating
+              recipeId={(recipe as any)._dbId}
+              recipeName={recipe.name}
+            />
+          </div>
         </div>
 
         {/* Bottom CTA with safe area */}
