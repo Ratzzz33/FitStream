@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
   plugins: {
     GoogleAuth: {
       scopes: ['profile', 'email'],
-      serverClientId: '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com',
+      serverClientId: '904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com',
       forceCodeForRefreshToken: true
     },
     SplashScreen: {
@@ -41,7 +41,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: false
+    webContentsDebuggingEnabled: true  // Enable for debugging
   },
   ios: {
     contentInset: 'automatic',

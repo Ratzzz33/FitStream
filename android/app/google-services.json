@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "904738538720",
+    "project_id": "fitstream-fdbb7",
+    "storage_bucket": "fitstream-fdbb7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904738538720:android:ba1c71f958d5cfc1097c85",
+        "android_client_info": {
+          "package_name": "com.fitstream.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgfIN76JYr9rkdAWmL6u7Hg3Mcl2nGiFY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
