@@ -12,13 +12,14 @@ import {
   Scale, Watch, Activity, Bluetooth, BluetoothSearching,
   Check, X, RefreshCw, Settings, AlertCircle, Heart,
   Footprints, Flame, Moon, ChevronRight, Smartphone,
-  Link2, Unlink, Loader2
+  Link2, Unlink, Loader2, ExternalLink, Shield
 } from 'lucide-react';
 import { UserSettings, SmartScaleDevice } from '../types';
 import { StorageService } from '../services/storageService';
 import { scaleService } from '../services/scaleService';
 import { healthService, HealthConnectionStatus } from '../services/healthService';
 import { platformService } from '../services/platformService';
+import { permissionService, PermissionInfo } from '../services/permissionService';
 import { t } from '../services/i18n';
 
 interface DeviceSettingsProps {
@@ -42,6 +43,11 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
   const [scaleError, setScaleError] = useState<string | null>(null);
   const [bleAvailable, setBleAvailable] = useState(false);
 
+  // Permission states
+  const [bluetoothPermission, setBluetoothPermission] = useState<PermissionInfo | null>(null);
+  const [healthPermission, setHealthPermission] = useState<PermissionInfo | null>(null);
+  const [isRequestingBluetooth, setIsRequestingBluetooth] = useState(false);
+
   // Health Connect state
   const [healthStatus, setHealthStatus] = useState<HealthConnectionStatus | null>(null);
   const [isConnectingHealth, setIsConnectingHealth] = useState(false);
@@ -64,21 +70,27 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
     }
   }, [settings]);
 
-  // Check BLE availability
+  // Check permissions and BLE availability
   useEffect(() => {
-    const checkBle = async () => {
+    const checkPermissions = async () => {
       if (isNative) {
-        const available = await scaleService.isAvailable();
-        setBleAvailable(available);
+        // Check Bluetooth permission
+        const btPerm = await permissionService.checkPermission('bluetooth');
+        setBluetoothPermission(btPerm);
+        setBleAvailable(btPerm.status === 'granted');
+
+        // Check Health Connect permission
+        const healthPerm = await permissionService.checkPermission('health_connect');
+        setHealthPermission(healthPerm);
       }
     };
-    checkBle();
+    checkPermissions();
   }, [isNative]);
 
-  // Check Health Connect status
+  // Check Health Connect status when permission is granted
   useEffect(() => {
     const checkHealth = async () => {
-      if (isNative) {
+      if (isNative && healthPermission?.status === 'granted') {
         try {
           const status = await healthService.getConnectionStatus();
           setHealthStatus(status);
@@ -99,10 +111,61 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
       }
     };
     checkHealth();
-  }, [isNative]);
+  }, [isNative, healthPermission]);
+
+  // Request Bluetooth permission
+  const handleRequestBluetoothPermission = useCallback(async () => {
+    setIsRequestingBluetooth(true);
+    setScaleError(null);
+
+    try {
+      const result = await permissionService.requestPermission('bluetooth');
+      setBluetoothPermission(result);
+      setBleAvailable(result.status === 'granted');
+
+      if (result.status !== 'granted') {
+        if (result.status === 'denied' && result.type === 'bluetooth') {
+          setScaleError('Включите Bluetooth в настройках телефона');
+        } else if (result.requiresSettings) {
+          setScaleError('Разрешение отклонено. Включите в настройках приложения.');
+        }
+      }
+    } catch (error: any) {
+      setScaleError(error.message || 'Ошибка запроса разрешения');
+    } finally {
+      setIsRequestingBluetooth(false);
+    }
+  }, []);
+
+  // Enable Bluetooth
+  const handleEnableBluetooth = useCallback(async () => {
+    setIsRequestingBluetooth(true);
+    setScaleError(null);
+
+    try {
+      const enabled = await permissionService.enableBluetooth();
+      if (enabled) {
+        const result = await permissionService.checkPermission('bluetooth');
+        setBluetoothPermission(result);
+        setBleAvailable(result.status === 'granted');
+      } else {
+        setScaleError('Не удалось включить Bluetooth');
+      }
+    } catch (error: any) {
+      setScaleError(error.message || 'Ошибка включения Bluetooth');
+    } finally {
+      setIsRequestingBluetooth(false);
+    }
+  }, []);
 
   // Scan for scales
   const handleScanScales = useCallback(async () => {
+    // Check permission first
+    if (!bleAvailable) {
+      await handleRequestBluetoothPermission();
+      return;
+    }
+
     setIsScanning(true);
     setScaleError(null);
     setFoundScales([]);
@@ -117,11 +180,11 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
         });
       }, 15000);
     } catch (error: any) {
-      setScaleError(error.message || 'Scan failed');
+      setScaleError(error.message || 'Ошибка сканирования');
     } finally {
       setIsScanning(false);
     }
-  }, []);
+  }, [bleAvailable, handleRequestBluetoothPermission]);
 
   // Connect to scale
   const handleConnectScale = useCallback(async (device: SmartScaleDevice) => {
@@ -296,12 +359,83 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
           </div>
         </div>
 
-        {!bleAvailable ? (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg flex items-center gap-2">
-            <AlertCircle size={16} className="text-yellow-600" />
-            <span className="text-xs text-yellow-700 dark:text-yellow-400">
-              {t('bluetoothDisabled') || 'Bluetooth is disabled. Enable it to connect scales.'}
-            </span>
+        {/* Bluetooth Permission Request */}
+        {bluetoothPermission && bluetoothPermission.status !== 'granted' ? (
+          <div className={`p-4 rounded-xl border mb-3 ${
+            bluetoothPermission.status === 'denied' || bluetoothPermission.status === 'denied_forever'
+              ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+          }`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                bluetoothPermission.status === 'denied' ? 'bg-yellow-100 dark:bg-yellow-800' : 'bg-blue-100 dark:bg-blue-800'
+              }`}>
+                <Bluetooth size={20} className={bluetoothPermission.status === 'denied' ? 'text-yellow-600' : 'text-blue-600'} />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Доступ к Bluetooth</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {bluetoothPermission.status === 'denied'
+                    ? 'Bluetooth отключен'
+                    : bluetoothPermission.status === 'denied_forever'
+                      ? 'Разрешение отклонено'
+                      : 'Требуется для поиска весов'}
+                </p>
+              </div>
+            </div>
+
+            {/* Benefits */}
+            <ul className="space-y-1 mb-4 text-xs text-gray-600 dark:text-gray-400">
+              <li className="flex items-center gap-2">
+                <Check size={12} className="text-green-500" />
+                Автоматическое получение веса
+              </li>
+              <li className="flex items-center gap-2">
+                <Check size={12} className="text-green-500" />
+                Данные о составе тела
+              </li>
+            </ul>
+
+            {/* Action button */}
+            {bluetoothPermission.status === 'denied' ? (
+              <button
+                onClick={handleEnableBluetooth}
+                disabled={isRequestingBluetooth}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isRequestingBluetooth ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    <Bluetooth size={18} />
+                    Включить Bluetooth
+                  </>
+                )}
+              </button>
+            ) : bluetoothPermission.requiresSettings ? (
+              <button
+                onClick={() => permissionService.openSettings()}
+                className="w-full py-3 px-4 rounded-xl bg-yellow-600 text-white font-medium hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2"
+              >
+                <Settings size={18} />
+                Открыть настройки
+              </button>
+            ) : (
+              <button
+                onClick={handleRequestBluetoothPermission}
+                disabled={isRequestingBluetooth}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isRequestingBluetooth ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    <Shield size={18} />
+                    Разрешить доступ
+                  </>
+                )}
+              </button>
+            )}
           </div>
         ) : connectedScale ? (
           <div className="space-y-3">
@@ -401,6 +535,28 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
             </div>
           </div>
 
+          {/* Health Connect not installed */}
+          {healthPermission?.status === 'unavailable' && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 mb-3">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                  <Heart size={20} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Health Connect не установлен</p>
+                  <p className="text-xs text-gray-500">Установите из Play Store</p>
+                </div>
+              </div>
+              <button
+                onClick={() => permissionService.openHealthConnect()}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors flex items-center justify-center gap-2"
+              >
+                <ExternalLink size={18} />
+                Установить Health Connect
+              </button>
+            </div>
+          )}
+
           {healthError && (
             <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-3 flex items-start gap-2">
               <AlertCircle size={16} className="text-red-500 mt-0.5" />
@@ -410,13 +566,13 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
                   onClick={handleOpenHealthSettings}
                   className="block text-xs text-red-600 underline mt-1"
                 >
-                  Open Health Connect Settings
+                  Открыть настройки Health Connect
                 </button>
               </div>
             </div>
           )}
 
-          {healthStatus?.isConnected ? (
+          {healthPermission?.status !== 'unavailable' && healthStatus?.isConnected ? (
             <div className="space-y-3">
               {/* Connection status */}
               <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -493,41 +649,53 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({ settings, onUpda
                 {t('managePermissions') || 'Manage Permissions'}
               </button>
             </div>
-          ) : (
+          ) : healthPermission?.status !== 'unavailable' ? (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('healthConnectDescription') || 'Connect to sync steps, calories, heart rate, sleep, and workout data from your health apps.'}
-              </p>
+              {/* Permission rationale */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                    <Heart size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Синхронизация данных</p>
+                    <p className="text-xs text-gray-500">Подключите Health Connect</p>
+                  </div>
+                </div>
 
-              <button
-                onClick={handleConnectHealth}
-                disabled={isConnectingHealth}
-                className="w-full flex items-center justify-center gap-2 p-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition disabled:opacity-50"
-              >
-                {isConnectingHealth ? (
-                  <>
+                {/* Benefits */}
+                <ul className="space-y-1 mb-4 text-xs text-gray-600 dark:text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <Check size={12} className="text-green-500" />
+                    Шаги из Samsung Health, Google Fit
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={12} className="text-green-500" />
+                    Пульс с часов и фитнес-браслетов
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={12} className="text-green-500" />
+                    Данные о сне и тренировках
+                  </li>
+                </ul>
+
+                <button
+                  onClick={handleConnectHealth}
+                  disabled={isConnectingHealth}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isConnectingHealth ? (
                     <Loader2 size={18} className="animate-spin" />
-                    {t('connecting') || 'Connecting...'}
-                  </>
-                ) : (
-                  <>
-                    <Link2 size={18} />
-                    {t('connectHealthConnect') || 'Connect Health Connect'}
-                  </>
-                )}
-              </button>
-
-              {!healthStatus?.isAvailable && (
-                <p className="text-xs text-center text-gray-400">
-                  Health Connect not installed.
-                  <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata"
-                     className="text-blue-500 underline ml-1">
-                    Install from Play Store
-                  </a>
-                </p>
-              )}
+                  ) : (
+                    <>
+                      <Shield size={18} />
+                      Подключить Health Connect
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
