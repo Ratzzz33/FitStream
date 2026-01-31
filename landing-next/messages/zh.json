@@ -277,39 +277,48 @@
     "motivationDesc": "AI adapts encouragement to your progress"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
-    "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
-      "price": "€0",
-      "period": "forever",
+    "title": "按使用付费",
+    "subtitle": "无订阅。无承诺。只有结果。",
+    "trial": {
+      "name": "免费试用",
+      "subtitle": "免费试用所有功能3天",
+      "days": "3",
+      "period": "天免费",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "所有AI功能解锁",
+        "无限训练",
+        "食物和菜单扫描",
+        "体重秤读取",
+        "无需信用卡"
       ],
-      "cta": "Get Started Free"
+      "cta": "免费开始"
     },
-    "pro": {
-      "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
-      "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+    "payPerUse": {
+      "name": "按扫描付费",
+      "badge": "最佳价值",
+      "subtitle": "仅在使用AI时付费",
+      "priceLabel": "AI操作价格：",
+      "prices": [
+        { "action": "食物扫描", "price": "$0.02" },
+        { "action": "菜单分析", "price": "$0.04" },
+        { "action": "体重秤读取", "price": "$0.02" },
+        { "action": "AI教练建议", "price": "$0.06" }
       ],
-      "cta": "Upgrade to PRO"
-    }
+      "noSubscription": "无月费。按需付费。",
+      "cta": "开始使用"
+    },
+    "topUp": {
+      "name": "充值套餐",
+      "subtitle": "大套餐更省钱",
+      "packages": [
+        { "amount": "$5", "bonus": "", "price": "$5.00" },
+        { "amount": "$10", "bonus": "+10% 奖励", "price": "$10.00" },
+        { "amount": "$25", "bonus": "+20% 奖励", "price": "$25.00" }
+      ],
+      "paypal": "通过PayPal安全支付",
+      "cta": "充值余额"
+    },
+    "creditLimit": "余额可降至-$0.50，确保扫描不中断"
   },
   "download": {
     "title1": "Ready to Transform",

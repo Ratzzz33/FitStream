@@ -277,39 +277,48 @@
     "motivationDesc": "AI adapts encouragement to your progress"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
-    "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
-      "price": "€0",
-      "period": "forever",
+    "title": "Zahle nur, was du nutzt",
+    "subtitle": "Kein Abo. Keine Verpflichtungen. Nur Ergebnisse.",
+    "trial": {
+      "name": "Kostenlose Testversion",
+      "subtitle": "Teste alles 3 Tage kostenlos",
+      "days": "3",
+      "period": "Tage kostenlos",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "Alle KI-Funktionen freigeschaltet",
+        "Unbegrenzte Workouts",
+        "Essen- & Menü-Scanning",
+        "Waage ablesen",
+        "Keine Kreditkarte erforderlich"
       ],
-      "cta": "Get Started Free"
+      "cta": "Kostenlos starten"
     },
-    "pro": {
-      "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
-      "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+    "payPerUse": {
+      "name": "Pro Scan bezahlen",
+      "badge": "BESTER WERT",
+      "subtitle": "Bezahle nur bei KI-Nutzung",
+      "priceLabel": "KI-Aktionspreise:",
+      "prices": [
+        { "action": "Essen-Scan", "price": "$0.02" },
+        { "action": "Menü-Analyse", "price": "$0.04" },
+        { "action": "Waage ablesen", "price": "$0.02" },
+        { "action": "KI-Coach Tipp", "price": "$0.06" }
       ],
-      "cta": "Upgrade to PRO"
-    }
+      "noSubscription": "Keine monatlichen Gebühren. Pay as you go.",
+      "cta": "Jetzt starten"
+    },
+    "topUp": {
+      "name": "Aufladen",
+      "subtitle": "Spare mehr mit größeren Paketen",
+      "packages": [
+        { "amount": "$5", "bonus": "", "price": "$5.00" },
+        { "amount": "$10", "bonus": "+10% Bonus", "price": "$10.00" },
+        { "amount": "$25", "bonus": "+20% Bonus", "price": "$25.00" }
+      ],
+      "paypal": "Sichere Zahlung über PayPal",
+      "cta": "Guthaben aufladen"
+    },
+    "creditLimit": "Guthaben kann bis -$0.50 gehen, damit du nie mitten im Scan steckst"
   },
   "download": {
     "title1": "Ready to Transform",

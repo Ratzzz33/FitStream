@@ -277,39 +277,48 @@
     "motivationDesc": "AI adapts encouragement to your progress"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
-    "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
-      "price": "€0",
-      "period": "forever",
+    "title": "Paga solo lo que uses",
+    "subtitle": "Sin suscripciones. Sin compromisos. Solo resultados.",
+    "trial": {
+      "name": "Prueba Gratis",
+      "subtitle": "Prueba todo gratis por 3 días",
+      "days": "3",
+      "period": "días gratis",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "Todas las funciones IA desbloqueadas",
+        "Entrenamientos ilimitados",
+        "Escaneo de comida y menú",
+        "Lectura de báscula",
+        "Sin tarjeta de crédito"
       ],
-      "cta": "Get Started Free"
+      "cta": "Empezar Gratis"
     },
-    "pro": {
-      "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
-      "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+    "payPerUse": {
+      "name": "Pago por Escaneo",
+      "badge": "MEJOR VALOR",
+      "subtitle": "Paga solo cuando uses IA",
+      "priceLabel": "Precios de acciones IA:",
+      "prices": [
+        { "action": "Escaneo comida", "price": "$0.02" },
+        { "action": "Análisis menú", "price": "$0.04" },
+        { "action": "Lectura báscula", "price": "$0.02" },
+        { "action": "Consejo IA Coach", "price": "$0.06" }
       ],
-      "cta": "Upgrade to PRO"
-    }
+      "noSubscription": "Sin cuotas mensuales. Paga según uses.",
+      "cta": "Comenzar"
+    },
+    "topUp": {
+      "name": "Paquetes de Recarga",
+      "subtitle": "Ahorra más con paquetes grandes",
+      "packages": [
+        { "amount": "$5", "bonus": "", "price": "$5.00" },
+        { "amount": "$10", "bonus": "+10% bonus", "price": "$10.00" },
+        { "amount": "$25", "bonus": "+20% bonus", "price": "$25.00" }
+      ],
+      "paypal": "Pago seguro vía PayPal",
+      "cta": "Recargar Saldo"
+    },
+    "creditLimit": "El saldo puede llegar a -$0.50 para que nunca te quedes a mitad de escaneo"
   },
   "download": {
     "title1": "Ready to Transform",
