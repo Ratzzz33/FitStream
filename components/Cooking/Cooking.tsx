@@ -27,7 +27,7 @@ const FridgeIcon = ({ className }: { className?: string }) => (
 );
 
 // Skeleton card with shimmer effect (AI generation style)
-const RecipeSkeletonCard = ({ delay = 0 }: { delay?: number }) => (
+const RecipeSkeletonCard: React.FC<{ delay?: number }> = ({ delay = 0 }) => (
   <div
     className="relative overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 p-4"
     style={{ animationDelay: `${delay}ms` }}
@@ -296,7 +296,7 @@ export const Cooking: React.FC<CookingProps> = ({
         maxCookingTime: 45,
         excludeRecipeIds: [
           ...StorageService.getRecentRecipeIds(3),
-          ...offlineRecipes.map(r => r.id || r.name) // Exclude already shown
+          ...offlineRecipes.map(r => r.name) // Exclude already shown
         ],
         todayMeals: meals.length > 0 ? meals : undefined,
         todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
