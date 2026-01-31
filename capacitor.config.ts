@@ -14,6 +14,8 @@ const config: CapacitorConfig = {
     GoogleAuth: {
       scopes: ['profile', 'email'],
       serverClientId: '904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com',
+      // iOS client ID - create in Google Cloud Console for iOS
+      iosClientId: process.env.GOOGLE_IOS_CLIENT_ID || '',
       forceCodeForRefreshToken: true
     },
     SplashScreen: {
