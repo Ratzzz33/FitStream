@@ -385,7 +385,7 @@ const initDb = async () => {
         { exercise_type: 'SQUATS', language: 'ru', youtube_id: 'DuMNpX3A_RI', title: 'Приседания - правильная техника', channel: 'Денис Семенихин', duration: '8:45' },
         { exercise_type: 'SQUATS', language: 'ru', youtube_id: 'PqR6F7pKqso', title: 'Как правильно приседать', channel: 'Михаил Прыгунов', duration: '9:30' },
 
-        // SITUPS / CRUNCHES
+        // SITUPS
         { exercise_type: 'SITUPS', language: 'en', youtube_id: '1fbU_MkV7NE', title: 'How to Do Sit Ups Properly', channel: 'Athlean-X', duration: '7:15' },
         { exercise_type: 'SITUPS', language: 'en', youtube_id: 'Xyd_fa5zoEU', title: 'Sit Up Tutorial', channel: 'ScottHermanFitness', duration: '4:22' },
         { exercise_type: 'SITUPS', language: 'ru', youtube_id: '9DnJPq6wWjk', title: 'Скручивания на пресс', channel: 'Archo Morris', duration: '6:10' },
