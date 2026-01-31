@@ -1,0 +1,181 @@
+{
+  "meta": {
+    "title": "FitStream AI - AI-Powered Fitness & Nutrition Companion",
+    "description": "Track workouts with AI pose detection, scan food for calories, manage your kitchen inventory, and get personalized coaching. Available on iOS, Android, and Web."
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "download": "Download",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "Powered by Google Gemini AI",
+    "title1": "Your AI-Powered",
+    "title2": "Fitness Companion",
+    "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
+    "downloadFree": "Download Free",
+    "tryWebApp": "Try Web App"
+  },
+  "social": {
+    "users": "10,000+ users",
+    "rating": "4.8★ rating",
+    "exercises": "15 exercises tracked"
+  },
+  "features": {
+    "title": "Everything You Need",
+    "subtitle": "Powerful features to transform your fitness journey",
+    "seeAll": "See all 16 features",
+    "poseTracking": {
+      "title": "AI Pose Tracking",
+      "description": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
+      "short": "Real-time form analysis with MediaPipe. 15 exercises with instant feedback."
+    },
+    "smartKitchen": {
+      "title": "Smart Kitchen",
+      "description": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
+      "short": "Manage fridge, pantry & freezer. AI recognizes products from photos."
+    },
+    "cookingMode": {
+      "title": "Guided Cooking",
+      "description": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
+      "short": "Step-by-step recipes with timers, reminders & troubleshooting tips."
+    },
+    "nutritionScanner": {
+      "title": "AI Food Scanner",
+      "description": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
+      "short": "Snap a photo for instant calorie and macro estimates."
+    },
+    "smartScale": {
+      "title": "Smart Scale",
+      "description": "Connect Xiaomi Mi Scale via Bluetooth or point your camera at any scale — AI reads automatically.",
+      "short": "Point your camera at any scale — AI reads automatically."
+    },
+    "healthIntegrations": {
+      "title": "Health Sync",
+      "description": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
+      "short": "Seamless sync with Google Fit, Apple Health & Samsung Health."
+    },
+    "exercises": {
+      "title": "15 Exercises",
+      "description": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
+      "short": "Track 15 different exercises with automatic rep counting."
+    },
+    "offlineFirst": {
+      "title": "Offline First",
+      "description": "Full functionality without internet. Your data syncs automatically when you're back online.",
+      "short": "Works without internet — syncs when back online."
+    },
+    "multiLanguage": {
+      "title": "6 Languages",
+      "description": "English, Русский, Español, Français, Deutsch, 中文. Auto-detects your browser language.",
+      "short": "Available in 6 languages with auto-detection."
+    },
+    "multiPlatform": {
+      "title": "Multi-Platform",
+      "description": "Web, iOS, Android, and Telegram Mini App. One account, all your devices.",
+      "short": "Web, iOS, Android, and Telegram. One account everywhere."
+    },
+    "aiCoach": {
+      "title": "AI Coach",
+      "description": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
+      "short": "Personalized motivation with voice coaching.",
+      "premium": true
+    },
+    "smartShopping": {
+      "title": "Shopping Assistant",
+      "description": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need.",
+      "short": "AI plans meals and creates smart shopping lists."
+    },
+    "foodFinance": {
+      "title": "Food Finance",
+      "description": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
+      "short": "Track food spending. Calculate savings from home cooking."
+    },
+    "receiptScanning": {
+      "title": "Receipt Scanning",
+      "description": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
+      "short": "Scan receipts to auto-add products with prices & expiry dates."
+    },
+    "gamification": {
+      "title": "Achievements",
+      "description": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
+      "short": "Earn achievements. Compete on the leaderboard."
+    },
+    "charts": {
+      "title": "Analytics",
+      "description": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
+      "short": "Visualize progress with beautiful charts."
+    }
+  },
+  "ai": {
+    "badge": "Powered by Gemini 2.5",
+    "title1": "AI That Actually",
+    "title2": "Understands Fitness",
+    "description": "Our AI doesn't just count — it sees, understands, and adapts to your unique fitness journey.",
+    "vision": "Vision AI",
+    "visionDesc": "Reads scales, identifies food, analyzes menus",
+    "portion": "Smart Portion Estimation",
+    "portionDesc": "Uses reference objects for accurate portions",
+    "motivation": "Personalized Motivation",
+    "motivationDesc": "AI adapts encouragement to your progress"
+  },
+  "pricing": {
+    "title": "Simple Pricing",
+    "subtitle": "Start free, upgrade when you're ready",
+    "free": {
+      "name": "Free",
+      "subtitle": "Perfect for getting started",
+      "price": "€0",
+      "period": "forever",
+      "features": [
+        "Unlimited workouts",
+        "AI Scale Scanner",
+        "AI Food Scanner",
+        "Daily Goals & Streaks",
+        "Progress Charts"
+      ],
+      "cta": "Get Started Free"
+    },
+    "pro": {
+      "name": "FitStream PRO",
+      "badge": "MOST POPULAR",
+      "subtitle": "For serious fitness enthusiasts",
+      "price": "€4.99",
+      "period": "month",
+      "features": [
+        "Everything in Free",
+        "Unlimited AI requests",
+        "Body Composition Analysis",
+        "Restaurant Menu Analyzer",
+        "Voice Assistant",
+        "PDF Export",
+        "Priority Support"
+      ],
+      "cta": "Upgrade to PRO"
+    }
+  },
+  "download": {
+    "title1": "Ready to Transform",
+    "title2": "Your Fitness?",
+    "description": "Download FitStream now and start your AI-powered fitness journey",
+    "appStore": "App Store",
+    "googlePlay": "Google Play",
+    "webApp": "Web App",
+    "on": "Download on the",
+    "get": "Get it on",
+    "use": "Use in"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact",
+    "rights": "All rights reserved."
+  },
+  "common": {
+    "learnMore": "Learn more",
+    "getStarted": "Get Started",
+    "tryFree": "Try Free",
+    "premium": "Premium"
+  }
+}

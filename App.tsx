@@ -24,6 +24,8 @@ import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, 
 import TelegramLinkButton from './components/TelegramLinkButton';
 import { googleAuthService } from './services/googleAuthService';
 import { getCurrencyList, CurrencyCode } from './services/currencyService';
+import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
+import { BUILD_CONFIG } from './buildConfig';
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -417,7 +419,8 @@ const App = () => {
   useEffect(() => {
     refreshData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, showGoalSettings, isWorkoutActive, sessionSteps]);
+  }, [activeTab, showGoalSettings, isWorkoutActive]);
+  // Note: sessionSteps removed - was causing input reset during typing
 
   useEffect(() => {
      fetchMotivation();
@@ -1363,6 +1366,12 @@ const App = () => {
 
                 {/* Device Connections (Scales, Health Connect, Watches) */}
                 <DeviceSettings settings={settings} onUpdate={refreshData} />
+
+                {/* App Version */}
+                <div className="text-center py-4 text-gray-400 dark:text-gray-600 text-xs">
+                    <p>FitStream v{APP_VERSION} {BUILD_CONFIG.isAdminBuild && <span className="text-yellow-500">(Admin)</span>}</p>
+                    <p className="text-[10px] mt-1">build {BUILD_CODE} • {BUILD_DATE}</p>
+                </div>
             </div>
         )}
       </main>
