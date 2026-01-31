@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "904738538720-qehq5kp8nfot303q74e1nrldg66ngaa0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fitstream.app",
+            "certificate_hash": "398beb886e37268d102088d460ec49e62cd73229"
+          }
+        },
+        {
           "client_id": "904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com",
           "client_type": 3
         }
