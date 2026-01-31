@@ -790,6 +790,7 @@ export interface PoseTrackerOptions {
   cameraPlacement?: CameraPlacement;
   useCalibration?: boolean;
   smoothingFactor?: number; // 0-1, higher = more smoothing
+  facingMode?: 'user' | 'environment'; // Camera facing mode (user=front, environment=back)
 }
 
 export class PoseTracker {
@@ -1105,7 +1106,9 @@ export class PoseTracker {
 
     this.pose.onResults((results) => this.processResults(results));
 
-    // Initialize camera
+    // Initialize camera with facingMode support
+    const facingMode = this.options.facingMode || 'user';
+
     this.camera = new Camera(videoElement, {
       onFrame: async () => {
         if (this.pose && this.isRunning) {
@@ -1113,7 +1116,8 @@ export class PoseTracker {
         }
       },
       width: 640,
-      height: 480
+      height: 480,
+      facingMode: facingMode
     });
   }
 

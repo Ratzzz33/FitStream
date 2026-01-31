@@ -216,6 +216,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
   // Camera availability for Telegram/browser fallback
   const [cameraCapability, setCameraCapability] = useState<CameraCapability | null>(null);
   const [checkingCamera, setCheckingCamera] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({
     reps: [],
     totalTime: 0,
@@ -412,16 +413,32 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
       {
         cameraPlacement: cameraPlacement,
         useCalibration: cameraPlacement === 'auto',
-        smoothingFactor: 0.3
+        smoothingFactor: 0.3,
+        facingMode: cameraFacing
       }
     );
 
     trackerRef.current = tracker;
 
+    // Reset error state on new initialization attempt
+    setInitError(null);
+
     tracker.initialize(videoRef.current).then(() => {
       setIsInitialized(true);
+      setInitError(null);
     }).catch((err) => {
       console.error('Failed to initialize pose tracker:', err);
+      // Show user-friendly error message
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+        setInitError('Нет доступа к камере. Разрешите доступ в настройках.');
+      } else if (errorMessage.includes('NotFound') || errorMessage.includes('not found')) {
+        setInitError('Камера не найдена на устройстве.');
+      } else if (errorMessage.includes('NotReadable') || errorMessage.includes('not readable')) {
+        setInitError('Камера занята другим приложением.');
+      } else {
+        setInitError('Не удалось запустить камеру. Попробуйте ещё раз.');
+      }
     });
 
     return () => {
@@ -722,23 +739,49 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
 
         {/* Start button */}
         <div className="p-6 bg-gradient-to-t from-black to-transparent">
-          <button
-            onClick={handleStartFromPreview}
-            disabled={!isInitialized}
-            className="w-full py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors"
-          >
-            {isInitialized ? (
-              <>
-                <Play className="w-6 h-6" fill="white" />
-                Начать тренировку
-              </>
-            ) : (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Загрузка камеры...
-              </>
-            )}
-          </button>
+          {initError ? (
+            <div className="space-y-3">
+              <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 text-center">
+                <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                <p className="text-red-300 text-sm">{initError}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setInitError(null);
+                  if (trackerRef.current && videoRef.current) {
+                    trackerRef.current.initialize(videoRef.current).then(() => {
+                      setIsInitialized(true);
+                      setInitError(null);
+                    }).catch((err) => {
+                      console.error('Retry failed:', err);
+                      setInitError('Не удалось запустить камеру. Проверьте разрешения.');
+                    });
+                  }
+                }}
+                className="w-full py-4 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                Попробовать снова
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleStartFromPreview}
+              disabled={!isInitialized}
+              className="w-full py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              {isInitialized ? (
+                <>
+                  <Play className="w-6 h-6" fill="white" />
+                  Начать тренировку
+                </>
+              ) : (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Загрузка камеры...
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -993,11 +1036,58 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
         )}
 
         {/* Loading state */}
-        {!isInitialized && (
+        {!isInitialized && !initError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
               <div className="text-white/80">Загрузка камеры...</div>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {initError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/90">
+            <div className="text-center px-6 max-w-sm">
+              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+              <h3 className="text-white text-xl font-bold mb-2">Ошибка камеры</h3>
+              <p className="text-white/80 mb-6">{initError}</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setInitError(null);
+                    setIsInitialized(false);
+                    // Re-trigger initialization by updating cameraFacing (forces useEffect)
+                    setCameraFacing(prev => prev);
+                    // Give it a moment then try to reinitialize
+                    if (trackerRef.current && videoRef.current) {
+                      trackerRef.current.initialize(videoRef.current).then(() => {
+                        setIsInitialized(true);
+                        setInitError(null);
+                      }).catch((err) => {
+                        console.error('Retry failed:', err);
+                        setInitError('Не удалось запустить камеру. Проверьте разрешения.');
+                      });
+                    }
+                  }}
+                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl text-white font-medium transition-colors"
+                >
+                  Попробовать снова
+                </button>
+                <button
+                  onClick={toggleCamera}
+                  className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-5 h-5" />
+                  Переключить камеру
+                </button>
+                <button
+                  onClick={onCancel}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/60 font-medium transition-colors"
+                >
+                  Отмена
+                </button>
+              </div>
             </div>
           </div>
         )}
