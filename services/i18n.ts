@@ -514,6 +514,11 @@ const translations = {
     support: "Support",
     supportDesc: "Get help with the app",
     contactUs: "Contact Us",
+    // Account
+    account: "Account",
+    syncProgress: "Sync your progress across devices",
+    signIn: "Sign In",
+    signOut: "Sign Out",
     // Nutrition Tools
     tools: "Tools",
     kitchen: "Kitchen",
@@ -1039,6 +1044,11 @@ const translations = {
     support: "Поддержка",
     supportDesc: "Помощь с приложением",
     contactUs: "Связаться",
+    // Account
+    account: "Аккаунт",
+    syncProgress: "Синхронизация на всех устройствах",
+    signIn: "Войти",
+    signOut: "Выйти",
     // Nutrition Tools
     tools: "Инструменты",
     kitchen: "Кухня",
