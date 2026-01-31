@@ -36,26 +36,21 @@ export const FoodFinance: React.FC = () => {
     }, [selectedMonth]);
 
     const loadFinanceData = () => {
-        // TODO: Load real data from storage
-        // For now, use mock data matching PRD example
+        // Finance tracking requires cost fields in NutritionLog (not yet implemented)
+        // Show empty data until the feature is fully implemented
+        const emptyStats: MonthlyStats = {
+            groceries: 0,
+            restaurants: 0,
+            delivery: 0,
+            total: 0,
+            savedFromCooking: 0,
+            mealsCooked: 0
+        };
+
         setData({
-            currentMonth: {
-                groceries: 12200,
-                restaurants: 4800,
-                delivery: 1450,
-                total: 18450,
-                savedFromCooking: 8900,
-                mealsCooked: 23
-            },
-            previousMonth: {
-                groceries: 14500,
-                restaurants: 5200,
-                delivery: 1050,
-                total: 20750,
-                savedFromCooking: 6200,
-                mealsCooked: 18
-            },
-            allTimeSaved: 45600
+            currentMonth: emptyStats,
+            previousMonth: emptyStats,
+            allTimeSaved: 0
         });
     };
 
