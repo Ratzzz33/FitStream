@@ -16,6 +16,15 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/hetzner_key
+          chmod 600 ~/.ssh/hetzner_key
+          ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Deploy to VPS
         env:
           SSH_HOST: ${{ secrets.HETZNER_HOST }}
@@ -23,7 +32,7 @@ jobs:
         run: |
           echo "🚀 Deploying FitStream Landing..."
 
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'DEPLOY_SCRIPT'
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'DEPLOY_SCRIPT'
             set -e
             cd /opt/fitstream-landing
 
@@ -44,6 +53,10 @@ jobs:
 
             echo "✅ Deployment complete!"
           DEPLOY_SCRIPT
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/hetzner_key
 
       - name: Health check
         run: |
