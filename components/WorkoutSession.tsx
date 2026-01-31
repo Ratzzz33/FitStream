@@ -551,11 +551,11 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         {/* Header */}
         <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
-            <X size={24} />
+            <ArrowLeft size={24} />
           </button>
           <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
-          <button onClick={() => setMode('local')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
-            <ChevronRight size={24} />
+          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
+            <X size={24} />
           </button>
         </div>
 
@@ -592,7 +592,9 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
             <ArrowLeft size={24} />
           </button>
           <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('warmup')}</h1>
-          <div className="w-10" />
+          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
+            <X size={24} />
+          </button>
         </div>
 
         {/* Warmup reminder */}
@@ -667,11 +669,13 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
       <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <X size={24} />
           </button>
-          <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
-          <div className="w-10" />
         </div>
 
         {/* Mode selection */}
@@ -877,13 +881,13 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none">
             {/* Top Bar */}
             <div className="flex justify-between items-start pointer-events-auto">
-                <button onClick={stopSession} className="bg-gray-800/50 p-2 rounded-full backdrop-blur text-white">
-                    <X size={24} />
-                </button>
                 <div className="bg-purple-500/80 px-3 py-1 rounded-full text-xs font-bold animate-pulse text-white uppercase flex items-center gap-1">
                     <Sparkles size={12} />
                     {t('liveAiVision')}
                 </div>
+                <button onClick={stopSession} className="bg-gray-800/50 p-2 rounded-full backdrop-blur text-white">
+                    <X size={24} />
+                </button>
             </div>
 
             {/* Center Info */}
