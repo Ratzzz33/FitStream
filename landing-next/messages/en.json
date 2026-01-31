@@ -38,7 +38,7 @@
     "faqOfflineAnswer": "Yes, FitStream works fully offline and syncs when you reconnect.",
     "faqFree": "Is this feature free?",
     "faqFreeYes": "Yes, this feature is included in the free version.",
-    "faqFreePro": "This is a PRO feature included in the €4.99/month subscription.",
+    "faqFreePro": "This is a premium AI feature. Pay only when you use it ($0.02-$0.06 per scan).",
     "tryToday": "Try {title} Today",
     "tryDescription": "Download FitStream and experience the power of AI fitness",
     "relatedFeatures": "Related Features",
@@ -277,39 +277,48 @@
     "motivationDesc": "AI adapts encouragement to your progress"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
-    "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
-      "price": "€0",
-      "period": "forever",
+    "title": "Pay Only for What You Use",
+    "subtitle": "No subscriptions. No commitments. Just results.",
+    "trial": {
+      "name": "Free Trial",
+      "subtitle": "Try everything free for 3 days",
+      "days": "3",
+      "period": "days free",
       "features": [
+        "All AI features unlocked",
         "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "Food & menu scanning",
+        "Scale reading",
+        "No credit card required"
       ],
-      "cta": "Get Started Free"
+      "cta": "Start Free Trial"
     },
-    "pro": {
-      "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
-      "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+    "payPerUse": {
+      "name": "Pay Per Scan",
+      "badge": "BEST VALUE",
+      "subtitle": "Pay only when you use AI",
+      "priceLabel": "AI action prices:",
+      "prices": [
+        { "action": "Food scan", "price": "$0.02" },
+        { "action": "Menu analysis", "price": "$0.04" },
+        { "action": "Scale reading", "price": "$0.02" },
+        { "action": "AI Coach tip", "price": "$0.06" }
       ],
-      "cta": "Upgrade to PRO"
-    }
+      "noSubscription": "No monthly fees. Pay as you go.",
+      "cta": "Get Started"
+    },
+    "topUp": {
+      "name": "Top Up Packages",
+      "subtitle": "Save more with bigger packages",
+      "packages": [
+        { "amount": "$5", "bonus": "", "price": "$5.00" },
+        { "amount": "$10", "bonus": "+10% bonus", "price": "$10.00" },
+        { "amount": "$25", "bonus": "+20% bonus", "price": "$25.00" }
+      ],
+      "paypal": "Secure payment via PayPal",
+      "cta": "Top Up Balance"
+    },
+    "creditLimit": "Balance can go to -$0.50 so you're never stuck mid-scan"
   },
   "download": {
     "title1": "Ready to Transform",
@@ -344,10 +353,10 @@
       "descriptionText": "FitStream AI is a fitness and nutrition tracking application that uses artificial intelligence to help you track workouts, scan food for nutritional information, manage kitchen inventory, and achieve your health goals.",
       "accounts": "User Accounts",
       "accountsText": "You may use FitStream without creating an account. Optional Google Sign-In enables cloud sync across devices. You are responsible for maintaining the security of your account.",
-      "subscription": "Subscription & Pricing",
-      "subscriptionText": "FitStream offers both free and premium tiers:",
-      "subscriptionFree": "Free tier: Unlimited workouts, AI food scanning, scale reading, daily goals",
-      "subscriptionPro": "PRO tier (€4.99/month): Unlimited AI requests, body composition, restaurant menu analyzer, voice assistant, PDF export",
+      "subscription": "Pricing Model",
+      "subscriptionText": "FitStream uses a pay-per-use model:",
+      "subscriptionFree": "3-day free trial: Full access to all AI features with no credit card required",
+      "subscriptionPro": "Pay-per-scan: $0.02-$0.06 per AI action. Top-up packages: $5, $10 (+10% bonus), $25 (+20% bonus)",
       "content": "User Content",
       "contentText": "You retain ownership of any content you upload (photos, data). By using our AI features, you grant us permission to process this content to provide the service. We do not sell your data.",
       "prohibited": "Prohibited Uses",

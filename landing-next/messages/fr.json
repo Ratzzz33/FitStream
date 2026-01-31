@@ -277,39 +277,48 @@
     "motivationDesc": "AI adapts encouragement to your progress"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
-    "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
-      "price": "€0",
-      "period": "forever",
+    "title": "Payez uniquement ce que vous utilisez",
+    "subtitle": "Pas d'abonnement. Pas d'engagement. Juste des résultats.",
+    "trial": {
+      "name": "Essai Gratuit",
+      "subtitle": "Essayez tout gratuitement pendant 3 jours",
+      "days": "3",
+      "period": "jours gratuits",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "Toutes les fonctions IA débloquées",
+        "Entraînements illimités",
+        "Scan nourriture et menu",
+        "Lecture de balance",
+        "Pas de carte bancaire requise"
       ],
-      "cta": "Get Started Free"
+      "cta": "Commencer Gratuit"
     },
-    "pro": {
-      "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
-      "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+    "payPerUse": {
+      "name": "Paiement par Scan",
+      "badge": "MEILLEURE VALEUR",
+      "subtitle": "Payez uniquement quand vous utilisez l'IA",
+      "priceLabel": "Prix des actions IA:",
+      "prices": [
+        { "action": "Scan nourriture", "price": "$0.02" },
+        { "action": "Analyse menu", "price": "$0.04" },
+        { "action": "Lecture balance", "price": "$0.02" },
+        { "action": "Conseil Coach IA", "price": "$0.06" }
       ],
-      "cta": "Upgrade to PRO"
-    }
+      "noSubscription": "Pas de frais mensuels. Payez à l'usage.",
+      "cta": "Commencer"
+    },
+    "topUp": {
+      "name": "Forfaits Recharge",
+      "subtitle": "Économisez plus avec les gros forfaits",
+      "packages": [
+        { "amount": "$5", "bonus": "", "price": "$5.00" },
+        { "amount": "$10", "bonus": "+10% bonus", "price": "$10.00" },
+        { "amount": "$25", "bonus": "+20% bonus", "price": "$25.00" }
+      ],
+      "paypal": "Paiement sécurisé via PayPal",
+      "cta": "Recharger le Solde"
+    },
+    "creditLimit": "Le solde peut aller jusqu'à -$0.50 pour ne jamais être bloqué en plein scan"
   },
   "download": {
     "title1": "Ready to Transform",
