@@ -24,6 +24,7 @@ import { t, getLanguageList, getSavedLanguage, setLanguage } from './services/i1
 import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback, openTelegramLink } from './services/telegramService';
 import TelegramLinkButton from './components/TelegramLinkButton';
 import { googleAuthService } from './services/googleAuthService';
+import { permissionsService } from './services/permissionsService';
 import { getCurrencyList, CurrencyCode } from './services/currencyService';
 import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
 import { BUILD_CONFIG } from './buildConfig';
@@ -164,6 +165,19 @@ const App = () => {
               StorageService.saveSettings(newSettings);
           }
       }
+  }, []);
+
+  // Request runtime permissions on app start (Android)
+  useEffect(() => {
+      const requestPermissions = async () => {
+          try {
+              const status = await permissionsService.requestAllPermissions();
+              console.log('[App] Permissions status:', status);
+          } catch (error) {
+              console.error('[App] Failed to request permissions:', error);
+          }
+      };
+      requestPermissions();
   }, []);
 
   // Initialize Google Auth when in Settings tab
