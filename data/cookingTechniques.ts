@@ -109,8 +109,8 @@ export const COOKING_TECHNIQUES: CookingTechnique[] = [
     keywords: ['измельчите чеснок', 'чеснок мелко', 'нарезанный чеснок', 'раздавить чеснок'],
     video: {
       ru: {
-        id: '',
-        title: 'Как правильно измельчить чеснок'
+        id: 'OqOL2bYhhVw', // Илья Лазерсон - Как почистить и нарезать чеснок
+        title: 'Как почистить и нарезать чеснок - Илья Лазерсон'
       },
       en: {
         id: '1y5h1pDHhzs', // Gordon Ramsay
@@ -127,8 +127,9 @@ export const COOKING_TECHNIQUES: CookingTechnique[] = [
     keywords: ['нарежьте овощи', 'овощи кубиками', 'нарежьте морковь', 'нарежьте картофель'],
     video: {
       ru: {
-        id: '',
-        title: 'Как нарезать овощи кубиками'
+        id: 'AjpwZS2zMBY', // Бабушка Эмма - Морковь по-корейски (нарезка моркови)
+        timestamp: 60,
+        title: 'Как нарезать морковь соломкой - Бабушка Эмма'
       },
       en: {
         id: 'JMA2SqaDgG8',
