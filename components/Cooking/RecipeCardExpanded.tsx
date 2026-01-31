@@ -142,7 +142,7 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
     >
       <div
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-slide-up"
+        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col animate-slide-up"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
