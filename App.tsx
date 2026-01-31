@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk, Flame } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal, NutritionLog } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
-import { getMotivation, getPhoneSpecs, scanScaleDisplay } from './services/geminiService';
+import { getPhoneSpecs, scanScaleDisplay } from './services/geminiService';
 import { AchievementRing } from './components/AchievementRings';
 import { WorkoutSession } from './components/WorkoutSession';
 import { WeightTracker } from './components/WeightTracker';
@@ -45,7 +45,6 @@ const App = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [settings, setSettings] = useState<UserSettings>(StorageService.getSettings());
-  const [motivation, setMotivation] = useState("");
   const [showGoalSettings, setShowGoalSettings] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -364,7 +363,6 @@ const App = () => {
                   // If backend had new data, refresh the UI
                   if (hasUpdates) {
                       refreshData();
-                      fetchMotivation();
                   }
               }
           } catch(e) {
@@ -398,22 +396,6 @@ const App = () => {
     }
   }, [settings.theme]);
 
-  const fetchMotivation = useCallback(async () => {
-    try {
-        const s = StorageService.getSettings();
-        const exercises = StorageService.getExercises();
-        const today = new Date().toISOString().split('T')[0];
-        const repsToday = exercises
-            .filter(e => e.date === today)
-            .reduce((sum, e) => sum + e.reps, 0);
-        
-        const quote = await getMotivation(s.streak, repsToday);
-        setMotivation(quote);
-    } catch (e) {
-        setMotivation(t('defaultMotivation'));
-    }
-  }, []);
-
   const refreshData = () => {
     const s = StorageService.getSettings();
     setSettings(s);
@@ -431,10 +413,6 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, showGoalSettings, isWorkoutActive]);
   // Note: sessionSteps removed - was causing input reset during typing
-
-  useEffect(() => {
-     fetchMotivation();
-  }, [fetchMotivation]);
 
   // Debounce Settings Save
   useEffect(() => {
@@ -601,6 +579,8 @@ const App = () => {
       // Default Fallback
       switch(type) {
           case 'STEPS': return <Footprints size={size} className="text-emerald-500"/>;
+          case 'CALORIES': return <Flame size={size} className="text-orange-500"/>;
+          case 'WATER': return <Droplets size={size} className="text-sky-500"/>;
           case 'SQUATS': return <ArrowDown size={size} className="text-purple-500"/>;
           case 'PUSHUPS': return <Activity size={size} className="text-blue-500"/>;
           case 'SITUPS': return <Move size={size} className="text-orange-500"/>;
@@ -622,6 +602,8 @@ const App = () => {
   const getLabelForType = (type: GoalType): string => {
     switch(type) {
         case 'STEPS': return t('steps');
+        case 'CALORIES': return t('calories');
+        case 'WATER': return t('water');
         case 'PUSHUPS': return t('pushups');
         case 'SQUATS': return t('squats');
         case 'SITUPS': return t('situps');
@@ -769,13 +751,6 @@ const App = () => {
                 </div>
             </div>
         </div>
-        
-        {/* Motivation Banner */}
-        {activeTab === AppTab.DASHBOARD && (
-            <div className="bg-gradient-to-r from-indigo-100 to-white dark:from-indigo-900/50 dark:to-slate-900 p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/20 shadow-md dark:shadow-lg mb-4">
-                <p className="text-sm italic text-indigo-800 dark:text-indigo-200">"{motivation}"</p>
-            </div>
-        )}
       </header>
 
       {/* Main Content Area */}
@@ -1418,7 +1393,6 @@ const App = () => {
         <WorkoutSession onFinish={() => {
             setIsWorkoutActive(false);
             refreshData();
-            fetchMotivation();
         }} />
       )}
 

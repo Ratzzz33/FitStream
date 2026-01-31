@@ -91,6 +91,8 @@ export const PREDEFINED_AVATARS = AVATAR_ANIMALS.slice(0, 8).map((a, i) => ({
 
 const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
     STEPS: { color: '#10b981' },
+    CALORIES: { color: '#f97316' },
+    WATER: { color: '#0ea5e9' },
     PUSHUPS: { color: '#3b82f6' },
     SQUATS: { color: '#c084fc' },
     SITUPS: { color: '#fb923c' },
@@ -108,9 +110,11 @@ const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
 };
 
 const DEFAULT_GOALS: DailyGoal[] = [
-  { type: 'STEPS', target: 5000, current: 0, isEnabled: true, unit: 'steps', color: GOAL_DEFAULTS.STEPS.color },
-  { type: 'PUSHUPS', target: 50, current: 0, isEnabled: true, unit: 'reps', color: GOAL_DEFAULTS.PUSHUPS.color },
-  { type: 'SQUATS', target: 50, current: 0, isEnabled: true, unit: 'reps', color: GOAL_DEFAULTS.SQUATS.color },
+  { type: 'STEPS', target: 10000, current: 0, isEnabled: true, unit: 'steps', color: GOAL_DEFAULTS.STEPS.color },
+  { type: 'CALORIES', target: 2000, current: 0, isEnabled: true, unit: 'kcal', color: GOAL_DEFAULTS.CALORIES.color },
+  { type: 'WATER', target: 2000, current: 0, isEnabled: true, unit: 'ml', color: GOAL_DEFAULTS.WATER.color },
+  { type: 'PUSHUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.PUSHUPS.color },
+  { type: 'SQUATS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SQUATS.color },
   { type: 'SITUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SITUPS.color },
   { type: 'JUMPING_JACKS', target: 100, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.JUMPING_JACKS.color },
   { type: 'LUNGES', target: 40, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.LUNGES.color },
