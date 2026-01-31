@@ -202,7 +202,21 @@ const App = () => {
   const handleNativeGoogleSignIn = async () => {
       setIsLoggingIn(true);
       try {
-          const user = await googleAuthService.signIn();
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise<null>((_, reject) =>
+              setTimeout(() => reject(new Error('Sign-in timeout')), 60000)
+          );
+
+          const user = await Promise.race([
+              googleAuthService.signIn(),
+              timeoutPromise
+          ]);
+
+          if (!user) {
+              alert(t('loginFailed') || 'Login cancelled or failed. Please try again.');
+              return;
+          }
+
           if (user) {
               const localUserId = StorageService.getUserId();
 

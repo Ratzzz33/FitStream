@@ -52,7 +52,7 @@ class GoogleAuthService {
         this.googleAuth = await getGoogleAuthPlugin();
         if (this.googleAuth) {
           await this.googleAuth.initialize({
-            clientId: '1025917117754-lm4epakgpqvotb36cm3ppcgpvrktnesj.apps.googleusercontent.com',
+            clientId: '904738538720-e3gc8a51asb27c06arloppue3h9e4vip.apps.googleusercontent.com',
             scopes: ['profile', 'email'],
             grantOfflineAccess: true
           });
@@ -82,16 +82,29 @@ class GoogleAuthService {
     }
 
     try {
+      console.log('[GoogleAuth] Starting native sign-in...');
+
       if (!this.googleAuth) {
+        console.log('[GoogleAuth] Loading plugin...');
         this.googleAuth = await getGoogleAuthPlugin();
       }
 
       if (!this.googleAuth) {
+        console.error('[GoogleAuth] Plugin not available!');
         throw new Error('Google Auth plugin not available');
       }
 
+      console.log('[GoogleAuth] Initializing...');
       await this.initialize();
+
+      console.log('[GoogleAuth] Calling signIn()...');
       const user = await this.googleAuth.signIn();
+      console.log('[GoogleAuth] Sign-in returned:', user ? 'user object' : 'null');
+
+      if (!user) {
+        console.warn('[GoogleAuth] Sign-in returned null (cancelled or failed)');
+        return null;
+      }
 
       return {
         id: user.id,
@@ -102,9 +115,17 @@ class GoogleAuthService {
         imageUrl: user.imageUrl,
         idToken: user.authentication?.idToken
       };
-    } catch (error) {
+    } catch (error: any) {
+      // Check for common error codes
+      if (error?.message?.includes('12501') || error?.code === 12501) {
+        console.log('[GoogleAuth] User cancelled sign-in');
+        return null;
+      }
+      if (error?.message?.includes('10') || error?.code === 10) {
+        console.error('[GoogleAuth] DEVELOPER_ERROR - Check SHA-1 fingerprint and client ID configuration');
+      }
       console.error('[GoogleAuth] Sign in failed:', error);
-      return null;
+      throw error; // Re-throw to show error to user
     }
   }
 
