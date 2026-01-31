@@ -310,43 +310,89 @@ function populateLangDropdown() {
 
     <!-- Pricing Section -->
     <section id="pricing" class="py-24 px-6">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-5xl mx-auto">
             <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold mb-4" data-t="pricing.title">Simple Pricing</h2>
-                <p class="text-xl text-slate-400" data-t="pricing.subtitle">Start free, upgrade when you're ready</p>
+                <h2 class="text-4xl md:text-5xl font-bold mb-4" data-t="pricing.title">Pay As You Go</h2>
+                <p class="text-xl text-slate-400" data-t="pricing.subtitle">Free app, pay only for AI features you use</p>
             </div>
+
+            <!-- How it works -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-center" data-t="pricing.howItWorks">How It Works</h3>
+                <div class="grid md:grid-cols-3 gap-6 text-center">
+                    <div>
+                        <div class="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">🎁</div>
+                        <h4 class="font-bold mb-2" data-t="pricing.step1Title">3-Day Free Trial</h4>
+                        <p class="text-slate-400 text-sm" data-t="pricing.step1Desc">Try all AI features for free. See how much you'd spend.</p>
+                    </div>
+                    <div>
+                        <div class="w-16 h-16 bg-emerald-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">💳</div>
+                        <h4 class="font-bold mb-2" data-t="pricing.step2Title">Top Up Balance</h4>
+                        <p class="text-slate-400 text-sm" data-t="pricing.step2Desc">Add funds via PayPal. Start from just $5.</p>
+                    </div>
+                    <div>
+                        <div class="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">✨</div>
+                        <h4 class="font-bold mb-2" data-t="pricing.step3Title">Use AI Features</h4>
+                        <p class="text-slate-400 text-sm" data-t="pricing.step3Desc">Each scan costs $0.05. Average user: ~$5/month.</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid md:grid-cols-2 gap-8">
-                <!-- Free -->
+                <!-- Free Features -->
                 <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-8">
-                    <h3 class="text-2xl font-bold mb-2" data-t="pricing.free">Free</h3>
-                    <p class="text-slate-400 mb-6" data-t="pricing.freeSub">Perfect for getting started</p>
-                    <div class="mb-8"><span class="text-5xl font-bold">€0</span><span class="text-slate-400">/<span data-t="pricing.forever">forever</span></span></div>
+                    <h3 class="text-2xl font-bold mb-2" data-t="pricing.free">Always Free</h3>
+                    <p class="text-slate-400 mb-6" data-t="pricing.freeSub">Core features without AI</p>
+                    <div class="mb-8"><span class="text-5xl font-bold">$0</span><span class="text-slate-400">/<span data-t="pricing.forever">forever</span></span></div>
                     <ul class="space-y-3 mb-8 text-sm">
-                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f1">Unlimited workouts</span></li>
-                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f2">AI Scale Scanner</span></li>
-                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f3">AI Food Scanner</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f1">Unlimited workouts & tracking</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f2">850+ offline recipes</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f3">Manual food logging</span></li>
                         <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f4">Daily Goals & Streaks</span></li>
                         <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f5">Progress Charts</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-500">✓</span><span data-t="pricing.f6">Offline mode</span></li>
                     </ul>
                     <a href="#download" class="block w-full text-center bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-xl font-semibold transition" data-t="pricing.startFree">Get Started Free</a>
                 </div>
-                <!-- Pro -->
-                <div class="relative bg-gradient-to-b from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-2xl p-8">
-                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-1 rounded-full text-sm font-bold text-black" data-t="pricing.popular">MOST POPULAR</div>
+                <!-- AI Features (Pay per use) -->
+                <div class="relative bg-gradient-to-b from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-2xl p-8">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-blue-500 px-4 py-1 rounded-full text-sm font-bold text-black" data-t="pricing.payPerUse">PAY PER USE</div>
                     <div class="flex items-center gap-2 mb-2">
-                        <h3 class="text-2xl font-bold" data-t="pricing.pro">FitStream PRO</h3>
-                        <span class="text-yellow-400 text-xl">⭐</span>
+                        <h3 class="text-2xl font-bold" data-t="pricing.aiFeatures">AI Features</h3>
+                        <span class="text-emerald-400 text-xl">🤖</span>
                     </div>
-                    <p class="text-slate-400 mb-6" data-t="pricing.proSub">For serious fitness enthusiasts</p>
-                    <div class="mb-8"><span class="text-5xl font-bold">€4.99</span><span class="text-slate-400">/<span data-t="pricing.month">month</span></span></div>
+                    <p class="text-slate-400 mb-6" data-t="pricing.aiSub">Pay only for what you use</p>
+                    <div class="mb-8"><span class="text-3xl font-bold" data-t="pricing.fromPrice">from $0.05</span><span class="text-slate-400">/<span data-t="pricing.perScan">scan</span></span></div>
                     <ul class="space-y-3 mb-8 text-sm">
-                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p1">Everything in Free</span></li>
-                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span class="font-semibold" data-t="pricing.p2">Body Composition Analysis</span></li>
-                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p3">Restaurant Menu Analyzer</span></li>
-                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p4">Custom Goal Icons</span></li>
-                        <li class="flex items-center gap-3"><span class="text-yellow-400">✓</span><span data-t="pricing.p5">Priority Support</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">🍔</span><span data-t="pricing.p1">Food Scanner — $0.05/scan</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">⚖️</span><span data-t="pricing.p2">Scale Reader — $0.02/scan</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">🧾</span><span data-t="pricing.p3">Receipt Scanner — $0.06/scan</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">📷</span><span data-t="pricing.p4">Fridge Scanner — $0.06/scan</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">📋</span><span data-t="pricing.p5">Menu Analyzer — $0.05/scan</span></li>
+                        <li class="flex items-center gap-3"><span class="text-emerald-400">🍳</span><span data-t="pricing.p6">AI Recipes — $0.01/recipe</span></li>
                     </ul>
-                    <a href="#download" class="block w-full text-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 py-3 rounded-xl font-semibold text-black transition" data-t="pricing.upgrade">Upgrade to PRO</a>
+                    <a href="#download" class="block w-full text-center bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-400 hover:to-blue-400 py-3 rounded-xl font-semibold text-black transition" data-t="pricing.tryFree">Try Free for 3 Days</a>
+                </div>
+            </div>
+
+            <!-- Top-up packages -->
+            <div class="mt-12 text-center">
+                <h3 class="text-xl font-bold mb-6" data-t="pricing.packages">Top-Up Packages</h3>
+                <div class="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                        <p class="text-2xl font-bold">$5</p>
+                        <p class="text-xs text-slate-400" data-t="pricing.pkg1">~100 scans</p>
+                    </div>
+                    <div class="bg-slate-900/50 border border-emerald-500/50 rounded-xl p-4 relative">
+                        <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">-10%</div>
+                        <p class="text-2xl font-bold">$10</p>
+                        <p class="text-xs text-slate-400" data-t="pricing.pkg2">~220 scans</p>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 relative">
+                        <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">-20%</div>
+                        <p class="text-2xl font-bold">$25</p>
+                        <p class="text-xs text-slate-400" data-t="pricing.pkg3">~600 scans</p>
+                    </div>
                 </div>
             </div>
         </div>

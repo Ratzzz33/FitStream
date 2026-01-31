@@ -381,3 +381,45 @@ export interface ProductVerification {
     fiber?: number;
   };
 }
+
+// === BILLING TYPES ===
+
+export interface UserBalance {
+  balanceCents: number;
+  balanceDollars: string;
+  isTrialActive: boolean;
+  trialDaysLeft: number;
+  trialUsageCents: number;
+  trialUsageDollars: string;
+  isLowBalance: boolean;
+  isBlocked: boolean;
+}
+
+export interface UsageStats {
+  today: { cents: number; dollars: string };
+  week: { cents: number; dollars: string };
+  month: { cents: number; dollars: string };
+  byType: Array<{ type: string; cents: number; dollars: string }>;
+}
+
+export interface ChargeResult {
+  allowed: boolean;
+  charged?: number;
+  trial?: boolean;
+  reason?: string;
+}
+
+export type BillingActionType =
+  | 'food_scan'
+  | 'food_scan_cost'
+  | 'receipt_scan'
+  | 'storage_scan'
+  | 'menu_scan'
+  | 'recipe_ai'
+  | 'scale_scan';
+
+export interface EconomySettings {
+  recipeImages: 'ai' | 'database' | 'none';
+  recipeSource: 'ai' | 'database' | 'hybrid';
+  foodAnalysis: 'full' | 'basic';
+}

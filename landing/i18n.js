@@ -36,13 +36,18 @@ const i18n = {
             motivation: "Personalized Motivation", motivationDesc: "AI adapts encouragement to your progress"
         },
         pricing: {
-            title: "Simple Pricing", subtitle: "Start free, upgrade when you're ready",
-            free: "Free", freeSub: "Perfect for getting started", forever: "forever",
-            pro: "FitStream PRO", proSub: "For serious fitness enthusiasts", month: "month",
-            popular: "MOST POPULAR",
-            f1: "Unlimited workouts", f2: "AI Scale Scanner", f3: "AI Food Scanner", f4: "Daily Goals & Streaks", f5: "Progress Charts",
-            p1: "Everything in Free", p2: "Body Composition Analysis", p3: "Restaurant Menu Analyzer", p4: "Custom Goal Icons", p5: "Priority Support",
-            startFree: "Get Started Free", upgrade: "Upgrade to PRO"
+            title: "Pay As You Go", subtitle: "Free app, pay only for AI features you use",
+            howItWorks: "How It Works",
+            step1Title: "3-Day Free Trial", step1Desc: "Try all AI features for free. See how much you'd spend.",
+            step2Title: "Top Up Balance", step2Desc: "Add funds via PayPal. Start from just $5.",
+            step3Title: "Use AI Features", step3Desc: "Each scan costs $0.05. Average user: ~$5/month.",
+            free: "Always Free", freeSub: "Core features without AI", forever: "forever",
+            aiFeatures: "AI Features", aiSub: "Pay only for what you use", payPerUse: "PAY PER USE",
+            fromPrice: "from $0.05", perScan: "scan",
+            f1: "Unlimited workouts & tracking", f2: "850+ offline recipes", f3: "Manual food logging", f4: "Daily Goals & Streaks", f5: "Progress Charts", f6: "Offline mode",
+            p1: "Food Scanner — $0.05/scan", p2: "Scale Reader — $0.02/scan", p3: "Receipt Scanner — $0.06/scan", p4: "Fridge Scanner — $0.06/scan", p5: "Menu Analyzer — $0.05/scan", p6: "AI Recipes — $0.01/recipe",
+            startFree: "Get Started Free", tryFree: "Try Free for 3 Days",
+            packages: "Top-Up Packages", pkg1: "~100 scans", pkg2: "~220 scans", pkg3: "~600 scans"
         },
         download: {
             title1: "Ready to Transform", title2: "Your Fitness?",
@@ -112,13 +117,18 @@ const i18n = {
             motivation: "Персональная мотивация", motivationDesc: "ИИ адаптирует поддержку под ваш прогресс"
         },
         pricing: {
-            title: "Простые цены", subtitle: "Начните бесплатно, улучшите когда готовы",
-            free: "Бесплатно", freeSub: "Идеально для начала", forever: "навсегда",
-            pro: "FitStream PRO", proSub: "Для серьёзных спортсменов", month: "месяц",
-            popular: "ПОПУЛЯРНЫЙ",
-            f1: "Безлимитные тренировки", f2: "ИИ-сканер весов", f3: "ИИ-сканер еды", f4: "Цели и серии", f5: "Графики прогресса",
-            p1: "Всё из бесплатной версии", p2: "Анализ состава тела", p3: "Анализатор меню", p4: "Свои иконки целей", p5: "Приоритетная поддержка",
-            startFree: "Начать бесплатно", upgrade: "Перейти на PRO"
+            title: "Плати за использование", subtitle: "Приложение бесплатно, платите только за ИИ-функции",
+            howItWorks: "Как это работает",
+            step1Title: "3 дня бесплатно", step1Desc: "Попробуйте все ИИ-функции. Увидите сколько бы потратили.",
+            step2Title: "Пополните баланс", step2Desc: "Добавьте средства через PayPal. От $5.",
+            step3Title: "Используйте ИИ", step3Desc: "Каждый скан ~$0.05. В среднем ~$5/мес.",
+            free: "Всегда бесплатно", freeSub: "Базовые функции без ИИ", forever: "навсегда",
+            aiFeatures: "ИИ-функции", aiSub: "Платите только за то, что используете", payPerUse: "ПО ИСПОЛЬЗОВАНИЮ",
+            fromPrice: "от $0.05", perScan: "скан",
+            f1: "Безлимитные тренировки", f2: "850+ офлайн рецептов", f3: "Ручной ввод еды", f4: "Цели и серии", f5: "Графики прогресса", f6: "Офлайн режим",
+            p1: "Сканер еды — $0.05/скан", p2: "Чтение весов — $0.02/скан", p3: "Сканер чеков — $0.06/скан", p4: "Сканер холодильника — $0.06/скан", p5: "Анализатор меню — $0.05/скан", p6: "ИИ рецепты — $0.01/рецепт",
+            startFree: "Начать бесплатно", tryFree: "Попробовать 3 дня бесплатно",
+            packages: "Пакеты пополнения", pkg1: "~100 сканов", pkg2: "~220 сканов", pkg3: "~600 сканов"
         },
         download: {
             title1: "Готовы изменить", title2: "свой фитнес?",
@@ -187,12 +197,18 @@ const i18n = {
             motivation: "Personalisierte Motivation", motivationDesc: "KI passt Ermutigung an deinen Fortschritt an"
         },
         pricing: {
-            title: "Einfache Preise", subtitle: "Starte kostenlos, upgrade wenn du bereit bist",
-            free: "Kostenlos", freeSub: "Perfekt zum Starten", forever: "für immer",
-            pro: "FitStream PRO", proSub: "Für ernsthafte Fitness-Enthusiasten", month: "Monat",
-            popular: "BELIEBTESTE",
-            f1: "Unbegrenzte Workouts", f2: "KI-Waagen-Scanner", f3: "KI-Essens-Scanner", f4: "Tägliche Ziele & Streaks", f5: "Fortschritts-Diagramme",
-            p1: "Alles aus Kostenlos", p2: "Körperanalyse", p3: "Restaurant-Menü-Analyzer", p4: "Eigene Ziel-Icons", p5: "Prioritäts-Support",
+            title: "Pay As You Go", subtitle: "Kostenlose App, zahle nur für KI-Funktionen",
+            howItWorks: "So funktioniert's",
+            step1Title: "3 Tage kostenlos", step1Desc: "Teste alle KI-Funktionen gratis. Sieh, was du ausgeben würdest.",
+            step2Title: "Guthaben aufladen", step2Desc: "Füge Guthaben per PayPal hinzu. Ab nur $5.",
+            step3Title: "KI-Funktionen nutzen", step3Desc: "Jeder Scan kostet $0.05. Durchschnitt: ~$5/Monat.",
+            free: "Immer kostenlos", freeSub: "Basisfunktionen ohne KI", forever: "für immer",
+            aiFeatures: "KI-Funktionen", aiSub: "Zahle nur was du nutzt", payPerUse: "PRO NUTZUNG",
+            fromPrice: "ab $0.05", perScan: "Scan",
+            f1: "Unbegrenzte Workouts & Tracking", f2: "850+ Offline-Rezepte", f3: "Manuelle Essensprotokolle", f4: "Tägliche Ziele & Streaks", f5: "Fortschritts-Diagramme", f6: "Offline-Modus",
+            p1: "Essens-Scanner — $0.05/Scan", p2: "Waagen-Leser — $0.02/Scan", p3: "Kassenbon-Scanner — $0.06/Scan", p4: "Kühlschrank-Scanner — $0.06/Scan", p5: "Menü-Analyzer — $0.05/Scan", p6: "KI-Rezepte — $0.01/Rezept",
+            startFree: "Kostenlos starten", tryFree: "3 Tage kostenlos testen",
+            packages: "Aufladen-Pakete", pkg1: "~100 Scans", pkg2: "~220 Scans", pkg3: "~600 Scans",
             startFree: "Kostenlos starten", upgrade: "Auf PRO upgraden"
         },
         download: {
@@ -255,12 +271,18 @@ const i18n = {
             motivation: "Motivation personnalisée", motivationDesc: "L'IA adapte les encouragements à votre progression"
         },
         pricing: {
-            title: "Tarifs simples", subtitle: "Commencez gratuitement, passez à la version supérieure quand vous êtes prêt",
-            free: "Gratuit", freeSub: "Parfait pour commencer", forever: "pour toujours",
-            pro: "FitStream PRO", proSub: "Pour les passionnés de fitness", month: "mois",
-            popular: "LE PLUS POPULAIRE",
-            f1: "Entraînements illimités", f2: "Scanner de balance IA", f3: "Scanner alimentaire IA", f4: "Objectifs & Séries", f5: "Graphiques de progrès",
-            p1: "Tout de Gratuit", p2: "Analyse corporelle", p3: "Analyseur de menu restaurant", p4: "Icônes personnalisées", p5: "Support prioritaire",
+            title: "Paiement à l'usage", subtitle: "Application gratuite, payez uniquement les fonctions IA utilisées",
+            howItWorks: "Comment ça marche",
+            step1Title: "3 jours gratuits", step1Desc: "Testez toutes les fonctions IA gratuitement. Voyez ce que vous dépenseriez.",
+            step2Title: "Rechargez le solde", step2Desc: "Ajoutez des fonds via PayPal. À partir de $5.",
+            step3Title: "Utilisez l'IA", step3Desc: "Chaque scan coûte $0.05. Moyenne: ~$5/mois.",
+            free: "Toujours gratuit", freeSub: "Fonctions de base sans IA", forever: "pour toujours",
+            aiFeatures: "Fonctions IA", aiSub: "Payez uniquement ce que vous utilisez", payPerUse: "À L'USAGE",
+            fromPrice: "dès $0.05", perScan: "scan",
+            f1: "Entraînements & suivi illimités", f2: "850+ recettes hors-ligne", f3: "Journal alimentaire manuel", f4: "Objectifs & Séries", f5: "Graphiques de progrès", f6: "Mode hors-ligne",
+            p1: "Scanner alimentaire — $0.05/scan", p2: "Lecteur de balance — $0.02/scan", p3: "Scanner de reçus — $0.06/scan", p4: "Scanner frigo — $0.06/scan", p5: "Analyseur de menu — $0.05/scan", p6: "Recettes IA — $0.01/recette",
+            startFree: "Commencer gratuitement", tryFree: "Essayer 3 jours gratuits",
+            packages: "Forfaits recharge", pkg1: "~100 scans", pkg2: "~220 scans", pkg3: "~600 scans",
             startFree: "Commencer gratuitement", upgrade: "Passer à PRO"
         },
         download: {
@@ -323,12 +345,18 @@ const i18n = {
             motivation: "Motivación personalizada", motivationDesc: "La IA adapta el ánimo a tu progreso"
         },
         pricing: {
-            title: "Precios simples", subtitle: "Empieza gratis, mejora cuando estés listo",
-            free: "Gratis", freeSub: "Perfecto para empezar", forever: "para siempre",
-            pro: "FitStream PRO", proSub: "Para entusiastas serios del fitness", month: "mes",
-            popular: "MÁS POPULAR",
-            f1: "Entrenamientos ilimitados", f2: "Escáner de báscula IA", f3: "Escáner de comida IA", f4: "Metas y Rachas", f5: "Gráficos de progreso",
-            p1: "Todo de Gratis", p2: "Análisis de composición corporal", p3: "Analizador de menú", p4: "Iconos personalizados", p5: "Soporte prioritario",
+            title: "Pago por uso", subtitle: "App gratis, paga solo por las funciones de IA que usas",
+            howItWorks: "Cómo funciona",
+            step1Title: "3 días gratis", step1Desc: "Prueba todas las funciones de IA gratis. Ve cuánto gastarías.",
+            step2Title: "Recarga saldo", step2Desc: "Añade fondos vía PayPal. Desde solo $5.",
+            step3Title: "Usa funciones IA", step3Desc: "Cada escaneo cuesta $0.05. Promedio: ~$5/mes.",
+            free: "Siempre gratis", freeSub: "Funciones básicas sin IA", forever: "para siempre",
+            aiFeatures: "Funciones IA", aiSub: "Paga solo por lo que usas", payPerUse: "POR USO",
+            fromPrice: "desde $0.05", perScan: "escaneo",
+            f1: "Entrenamientos y seguimiento ilimitados", f2: "850+ recetas offline", f3: "Registro manual de comida", f4: "Metas y Rachas", f5: "Gráficos de progreso", f6: "Modo offline",
+            p1: "Escáner de comida — $0.05/escaneo", p2: "Lector de báscula — $0.02/escaneo", p3: "Escáner de recibos — $0.06/escaneo", p4: "Escáner de nevera — $0.06/escaneo", p5: "Analizador de menú — $0.05/escaneo", p6: "Recetas IA — $0.01/receta",
+            startFree: "Empezar gratis", tryFree: "Prueba 3 días gratis",
+            packages: "Paquetes de recarga", pkg1: "~100 escaneos", pkg2: "~220 escaneos", pkg3: "~600 escaneos",
             startFree: "Empezar gratis", upgrade: "Mejorar a PRO"
         },
         download: {

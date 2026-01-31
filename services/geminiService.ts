@@ -4,10 +4,12 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { t } from './i18n';
 import { ApiService } from './api';
 import { StorageService } from './storageService';
+import { BillingService } from './billingService';
 import { georgiaPrices } from './georgiaPricesService';
 import {
     InventoryItem, Recipe, CookingStep, CookingReminder, StorageType,
-    ShoppingPreferences, PlannedMeal, ShoppingListItem, ProductVerification, ShoppingCategory
+    ShoppingPreferences, PlannedMeal, ShoppingListItem, ProductVerification, ShoppingCategory,
+    BillingActionType
 } from '../types';
 
 // Helper to get API Key (Env Only)
@@ -29,8 +31,28 @@ const getMimeType = (b64: string): string => {
     return 'image/jpeg'; // default
 };
 
+// Helper to check balance and charge for AI actions
+const checkAndCharge = async (actionType: BillingActionType): Promise<{ allowed: boolean; reason?: string }> => {
+    const settings = StorageService.getSettings();
+    const userId = settings.googleId || StorageService.getUserId();
+
+    try {
+        const result = await BillingService.chargeForAction(userId, actionType);
+        return result;
+    } catch (e) {
+        console.error('Billing check failed:', e);
+        // Allow on billing error to not break UX
+        return { allowed: true };
+    }
+};
+
 // 1. Vision Service for Weight Scale Reading
 export const scanScaleDisplay = async (base64Image: string): Promise<{ weight: number | null, confidence: string }> => {
+  const billing = await checkAndCharge('scale_scan');
+  if (!billing.allowed) {
+    throw new Error('INSUFFICIENT_BALANCE');
+  }
+
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key missing");
   const ai = new GoogleGenAI({ apiKey });
@@ -89,6 +111,11 @@ export const analyzeFood = async (
     referenceObject: string,
     referenceDimensions?: string
 ): Promise<FoodAnalysisResult> => {
+    const billing = await checkAndCharge('food_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
@@ -205,6 +232,11 @@ export const analyzeFoodWithCost = async (
     referenceDimensions?: string,
     currency: string = 'RUB'
 ): Promise<FoodAnalysisWithCost> => {
+    const billing = await checkAndCharge('food_scan_cost');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
@@ -421,6 +453,11 @@ export interface MenuRecommendation {
 }
 
 export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendation[]> => {
+    const billing = await checkAndCharge('menu_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
@@ -555,6 +592,11 @@ export const scanStoragePhoto = async (
     base64Image: string,
     storageType: StorageType
 ): Promise<ScannedProduct[]> => {
+    const billing = await checkAndCharge('storage_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
@@ -648,6 +690,11 @@ export interface ScannedReceipt {
 }
 
 export const scanReceipt = async (base64Image: string): Promise<ScannedReceipt> => {
+    const billing = await checkAndCharge('receipt_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });
@@ -815,6 +862,11 @@ export const generateRecipes = async (
     inventory: InventoryItem[],
     context: RecipeGenerationContext
 ): Promise<GeneratedRecipe[]> => {
+    const billing = await checkAndCharge('recipe_ai');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
     const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
     const ai = new GoogleGenAI({ apiKey });

@@ -5,6 +5,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const telegramService = require('./services/telegramService');
 const currencyService = require('./services/currencyService');
+const { BillingService, PRICES_CENTS } = require('./services/billingService');
 
 // --- 0. SAFETY NETS (CRASH HANDLERS) ---
 process.on('uncaughtException', (err) => {
@@ -57,6 +58,8 @@ const pool = new Pool({
 pool.on('error', (err, client) => {
   console.error('❌ Unexpected error on idle client (DB Connection Lost)', err);
 });
+
+const billingService = new BillingService(pool);
 
 // --- 4. GOOGLE AUTH SETUP ---
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -1616,6 +1619,140 @@ app.post('/api/recipes/enrich', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// --- BILLING API ---
+
+// Get balance
+app.get('/api/billing/balance', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'User ID required' });
+
+    const balance = await billingService.getBalance(userId);
+    res.json(balance);
+  } catch (e) {
+    console.error('Error getting balance:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get usage stats
+app.get('/api/billing/usage', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'User ID required' });
+
+    const stats = await billingService.getUsageStats(userId);
+    res.json(stats);
+  } catch (e) {
+    console.error('Error getting usage:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get prices
+app.get('/api/billing/prices', (req, res) => {
+  res.json(PRICES_CENTS);
+});
+
+// Charge for action (internal use)
+app.post('/api/billing/charge', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    const { actionType } = req.body;
+    if (!userId) return res.status(401).json({ error: 'User ID required' });
+
+    const result = await billingService.chargeForAction(userId, actionType);
+    res.json(result);
+  } catch (e) {
+    console.error('Error charging:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Create PayPal order
+app.post('/api/billing/create-order', async (req, res) => {
+  try {
+    const { amountDollars } = req.body;
+    if (!amountDollars || amountDollars < 1) {
+      return res.status(400).json({ error: 'Minimum $1' });
+    }
+
+    const accessToken = await getPayPalAccessToken();
+    const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: {
+            currency_code: 'USD',
+            value: amountDollars.toFixed(2),
+          },
+          description: 'FitStream AI Balance Top-up',
+        }],
+      }),
+    });
+
+    const order = await response.json();
+    res.json({ orderId: order.id });
+  } catch (e) {
+    console.error('Error creating PayPal order:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Capture PayPal order
+app.post('/api/billing/capture-order', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    const { orderId } = req.body;
+    if (!userId) return res.status(401).json({ error: 'User ID required' });
+
+    const accessToken = await getPayPalAccessToken();
+    const response = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    const capture = await response.json();
+
+    if (capture.status === 'COMPLETED') {
+      const amountDollars = parseFloat(capture.purchase_units[0].payments.captures[0].amount.value);
+      const amountCents = Math.round(amountDollars * 100);
+
+      const result = await billingService.addBalance(userId, amountCents, orderId);
+      res.json({ success: true, ...result });
+    } else {
+      res.status(400).json({ error: 'Payment not completed', status: capture.status });
+    }
+  } catch (e) {
+    console.error('Error capturing PayPal order:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Migrate user (device -> google)
+app.post('/api/billing/migrate', async (req, res) => {
+  try {
+    const { deviceId, googleId } = req.body;
+    if (!deviceId || !googleId) {
+      return res.status(400).json({ error: 'Both IDs required' });
+    }
+
+    const result = await billingService.migrateUser(deviceId, googleId);
+    res.json(result);
+  } catch (e) {
+    console.error('Error migrating user:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // --- 8. STARTUP & SHUTDOWN ---

@@ -28,6 +28,8 @@ import { permissionsService } from './services/permissionsService';
 import { getCurrencyList, CurrencyCode } from './services/currencyService';
 import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
 import { BUILD_CONFIG } from './buildConfig';
+import { BillingProvider } from './contexts/BillingContext';
+import { BalanceIndicator, TopUpModal, TrialBanner } from './components/Billing';
 import { initTimerService } from './services/timerService';
 
 // Helper to decode Google JWT
@@ -53,6 +55,7 @@ const App = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showRefScanner, setShowRefScanner] = useState(false);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   
   // Custom Icons State
@@ -765,6 +768,7 @@ const App = () => {
   };
 
   return (
+    <BillingProvider>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
       {/* Header */}
       <header className="px-6 pt-8 pb-4">
@@ -777,6 +781,7 @@ const App = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
             </div>
             <div className="flex items-center gap-3">
+                <BalanceIndicator onTopUp={() => setShowTopUpModal(true)} />
                 <div className="flex flex-col items-end">
                     <span className="text-xs text-orange-500 font-bold tracking-wider uppercase">{t('streak')}</span>
                     <span className="text-xl font-bold text-gray-800 dark:text-white">{settings.streak} 🔥</span>
@@ -799,7 +804,10 @@ const App = () => {
       <main className="flex-1 overflow-y-auto">
         {activeTab === AppTab.DASHBOARD && (
           <div className="px-4 space-y-8 pb-32">
-            
+
+            {/* Trial Banner */}
+            <TrialBanner onTopUp={() => setShowTopUpModal(true)} />
+
             {/* Daily Goals Section */}
             <div className="space-y-4">
                 <div className="flex justify-between items-center px-1">
@@ -1626,7 +1634,11 @@ const App = () => {
               </div>
           </div>
       )}
+
+      {/* Top Up Modal */}
+      <TopUpModal isOpen={showTopUpModal} onClose={() => setShowTopUpModal(false)} />
     </div>
+    </BillingProvider>
   );
 };
 
