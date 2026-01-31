@@ -547,9 +547,9 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== SMART PANEL (MAIN ENTRY) ==========
   if (mode === 'smart_panel') {
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        {/* Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+      <div className={`fixed inset-0 z-50 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        {/* Header - sticky at top */}
+        <div className={`sticky top-0 z-10 flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
@@ -559,17 +559,19 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </button>
         </div>
 
-        {/* Smart recommendations */}
-        <div className="flex-1 p-4 overflow-auto">
-          <SmartWorkoutPanel
-            onStartWorkout={handleStartWorkout}
-            onStartExercise={handleStartExercise}
-            theme={settings.theme}
-          />
+        {/* Scrollable content with bottom padding for fixed button */}
+        <div className="h-[calc(100%-64px)] overflow-auto pb-20">
+          <div className="p-4">
+            <SmartWorkoutPanel
+              onStartWorkout={handleStartWorkout}
+              onStartExercise={handleStartExercise}
+              theme={settings.theme}
+            />
+          </div>
         </div>
 
-        {/* Custom workout button */}
-        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        {/* Custom workout button - fixed at bottom */}
+        <div className={`fixed bottom-0 left-0 right-0 p-4 border-t ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button
             onClick={() => setMode('local')}
             className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
@@ -766,9 +768,9 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   // ========== LOCAL MODE: Exercise Selection ==========
   if (mode === 'local') {
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        {/* Header */}
-        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+      <div className={`fixed inset-0 z-50 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        {/* Header - sticky at top */}
+        <div className={`sticky top-0 z-10 flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button onClick={() => setMode('smart_panel')} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
@@ -778,68 +780,70 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </button>
         </div>
 
-        {/* Exercise selection */}
-        <div className="flex-1 p-4 overflow-auto">
-          <div className="grid grid-cols-3 gap-2">
-            {LOCAL_EXERCISES.map(exercise => (
-              <button
-                key={exercise}
-                onClick={() => setSelectedExercise(exercise)}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
-                  selectedExercise === exercise
-                    ? 'border-green-500 bg-green-500/20 text-green-400'
-                    : isDark
-                      ? 'border-gray-700 bg-gray-800 text-gray-400'
-                      : 'border-gray-200 bg-white text-gray-600 shadow-sm'
-                }`}
-              >
-                <div className="mb-1">
-                  <ExerciseIcon exercise={exercise} className="w-8 h-8" />
-                </div>
-                <div className={`font-medium text-xs text-center leading-tight ${
-                  selectedExercise === exercise
-                    ? 'text-green-400'
-                    : isDark ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {getExerciseNameRu(exercise)}
-                </div>
-                {isTimeBased(exercise) && (
-                  <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>время</div>
-                )}
-              </button>
-            ))}
-          </div>
+        {/* Scrollable content with bottom padding for fixed button */}
+        <div className="h-[calc(100%-64px)] overflow-auto pb-24">
+          <div className="p-4">
+            <div className="grid grid-cols-3 gap-2">
+              {LOCAL_EXERCISES.map(exercise => (
+                <button
+                  key={exercise}
+                  onClick={() => setSelectedExercise(exercise)}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
+                    selectedExercise === exercise
+                      ? 'border-green-500 bg-green-500/20 text-green-400'
+                      : isDark
+                        ? 'border-gray-700 bg-gray-800 text-gray-400'
+                        : 'border-gray-200 bg-white text-gray-600 shadow-sm'
+                  }`}
+                >
+                  <div className="mb-1">
+                    <ExerciseIcon exercise={exercise} className="w-8 h-8" />
+                  </div>
+                  <div className={`font-medium text-xs text-center leading-tight ${
+                    selectedExercise === exercise
+                      ? 'text-green-400'
+                      : isDark ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {getExerciseNameRu(exercise)}
+                  </div>
+                  {isTimeBased(exercise) && (
+                    <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>время</div>
+                  )}
+                </button>
+              ))}
+            </div>
 
-          {/* Target selector */}
-          <div className={`mt-4 rounded-xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
-            <label className={`text-sm mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              {isTimeBased(selectedExercise) ? t('goalSeconds') : t('goalReps')}
-            </label>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setTargetReps(Math.max(5, targetReps - 5))}
-                className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
-              >
-                -
-              </button>
-              <div className="flex-1 text-center">
-                <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{targetReps}</span>
-                <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {isTimeBased(selectedExercise) ? t('secUnit') : t('repsUnit')}
-                </span>
+            {/* Target selector */}
+            <div className={`mt-4 rounded-xl p-4 ${isDark ? 'bg-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
+              <label className={`text-sm mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {isTimeBased(selectedExercise) ? t('goalSeconds') : t('goalReps')}
+              </label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setTargetReps(Math.max(5, targetReps - 5))}
+                  className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
+                >
+                  -
+                </button>
+                <div className="flex-1 text-center">
+                  <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{targetReps}</span>
+                  <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {isTimeBased(selectedExercise) ? t('secUnit') : t('repsUnit')}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setTargetReps(Math.min(120, targetReps + 5))}
+                  className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
+                >
+                  +
+                </button>
               </div>
-              <button
-                onClick={() => setTargetReps(Math.min(120, targetReps + 5))}
-                className={`w-12 h-12 rounded-xl text-xl font-bold ${isDark ? 'bg-gray-700 text-white active:bg-gray-600' : 'bg-gray-100 text-gray-900 active:bg-gray-200'}`}
-              >
-                +
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Start button */}
-        <div className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        {/* Start button - fixed at bottom */}
+        <div className={`fixed bottom-0 left-0 right-0 p-4 border-t ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button
             onClick={() => setMode('local_active')}
             className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
