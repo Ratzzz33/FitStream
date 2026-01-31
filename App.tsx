@@ -523,11 +523,10 @@ const App = () => {
           hapticFeedback('impact', 'light');
       }
       setShowExercisePicker(false);
-      // Find or create the goal for this exercise
-      const existingGoal = settings.goals.find(g => g.type === exerciseType);
-      if (existingGoal) {
-          setSelectedGoal(existingGoal);
-      }
+      // Note: WorkoutSession has its own exercise selection UI,
+      // so we don't need to pass the exercise type here.
+      // Previously setSelectedGoal was called here which incorrectly
+      // opened the statistics modal (GoalDetailsModal).
       setIsWorkoutActive(true);
   };
 
