@@ -1274,6 +1274,383 @@ export const OFFLINE_RECIPES: OfflineRecipe[] = [
     ],
     cookingTips: ['Добавьте чеснок или зелёный лук для вкуса'],
     mealTypes: ['lunch', 'dinner']
+  },
+
+  // ============================================
+  // ВЕГАНСКИЕ РЕЦЕПТЫ ДЛЯ ДИАБЕТИКОВ (низкий ГИ)
+  // ============================================
+
+  {
+    id: 'vegan-tofu-bowl',
+    name: 'Боул с тофу и овощами',
+    description: 'Низкоуглеводный веганский боул с тофу в арахисовом соусе. Идеален для диабетиков — низкий гликемический индекс.',
+    servings: 4,
+    totalTimeMinutes: 50,
+    caloriesPerServing: 423,
+    proteinPerServing: 23,
+    carbsPerServing: 30,
+    fatPerServing: 27,
+    difficulty: 'medium',
+    difficultyReason: 'Требует прессования тофу и приготовления соуса',
+    nutritionNote: '🌱 Веганский, низкий ГИ. Богат белком и клетчаткой (14г). Подходит для диабетиков.',
+    equipment: [
+      { name: 'Сковорода', emoji: '🍳', essential: true },
+      { name: 'Пресс для тофу', emoji: '🧱', essential: false }
+    ],
+    messyLevel: 2,
+    messyWarning: 'Нарезка овощей',
+    keywords: ['тофу', 'боул', 'арахис', 'брокколи', 'капуста', 'авокадо', 'веган', 'диабет'],
+    requiredIngredients: ['тофу', 'брокколи', 'капуста'],
+    optionalIngredients: ['авокадо', 'арахисовая паста', 'соевый соус', 'кунжут', 'зелёный лук'],
+    ingredients: [
+      { name: 'Тофу твёрдый', amount: '350', unit: 'г', emoji: '🧈' },
+      { name: 'Брокколи', amount: '400', unit: 'г', emoji: '🥦' },
+      { name: 'Капуста', amount: '300', unit: 'г', emoji: '🥬' },
+      { name: 'Авокадо', amount: '1', unit: 'шт', emoji: '🥑', isOptional: true },
+      { name: 'Арахисовая паста', amount: '4', unit: 'ст.л.', emoji: '🥜' },
+      { name: 'Соевый соус', amount: '4', unit: 'ст.л.', emoji: '🫘' },
+      { name: 'Чеснок', amount: '3', unit: 'зуб.', emoji: '🧄' },
+      { name: 'Кокосовое молоко', amount: '4', unit: 'ст.л.', emoji: '🥥' }
+    ],
+    steps: [
+      {
+        order: 1,
+        instruction: 'Прессуйте тофу 15 минут, затем нарежьте кубиками',
+        durationMinutes: 15,
+        tip: '💡 Хорошо отжатый тофу лучше впитывает маринад'
+      },
+      {
+        order: 2,
+        instruction: 'Смешайте соевый соус, чеснок и перец. Замаринуйте тофу на 10 мин',
+        durationMinutes: 10
+      },
+      {
+        order: 3,
+        instruction: 'Обжарьте тофу на сковороде до золотистой корочки',
+        durationMinutes: 10,
+        heatLevel: 2
+      },
+      {
+        order: 4,
+        instruction: 'Приготовьте соус: смешайте арахисовую пасту, соевый соус, кокосовое молоко',
+        durationMinutes: 3
+      },
+      {
+        order: 5,
+        instruction: 'Нарежьте капусту в "рис", обжарьте с чесноком 5 мин',
+        durationMinutes: 5,
+        heatLevel: 2,
+        tip: '💡 Капустный рис — отличная низкоуглеводная замена обычному'
+      },
+      {
+        order: 6,
+        instruction: 'Отварите брокколи на пару 5 минут',
+        durationMinutes: 5
+      },
+      {
+        order: 7,
+        instruction: 'Соберите боул: капустный рис, тофу, брокколи, авокадо, полейте соусом',
+        durationMinutes: 2
+      }
+    ],
+    cookingTips: [
+      'Замените арахисовую пасту на миндальную для разнообразия',
+      'Добавьте семена кунжута для хруста'
+    ],
+    mealTypes: ['lunch', 'dinner']
+  },
+
+  {
+    id: 'vegan-lentil-soup',
+    name: 'Чечевичный суп с овощами',
+    description: 'Сытный веганский суп из красной чечевицы. Низкий гликемический индекс, много белка и клетчатки.',
+    servings: 4,
+    totalTimeMinutes: 35,
+    caloriesPerServing: 280,
+    proteinPerServing: 18,
+    carbsPerServing: 38,
+    fatPerServing: 6,
+    difficulty: 'easy',
+    difficultyReason: 'Простое приготовление, всё в одной кастрюле',
+    nutritionNote: '🌱 Веганский, ГИ ~30. Чечевица — отличный источник растительного белка для диабетиков.',
+    equipment: [
+      { name: 'Кастрюля', emoji: '🍲', essential: true }
+    ],
+    messyLevel: 1,
+    messyWarning: 'Минимум беспорядка',
+    keywords: ['чечевица', 'суп', 'морковь', 'лук', 'томат', 'веган', 'диабет'],
+    requiredIngredients: ['чечевица', 'морковь', 'лук'],
+    optionalIngredients: ['томаты', 'чеснок', 'куркума', 'лимон'],
+    ingredients: [
+      { name: 'Красная чечевица', amount: '200', unit: 'г', emoji: '🫘' },
+      { name: 'Морковь', amount: '2', unit: 'шт', emoji: '🥕' },
+      { name: 'Лук репчатый', amount: '1', unit: 'шт', emoji: '🧅' },
+      { name: 'Томаты консервированные', amount: '400', unit: 'г', emoji: '🍅' },
+      { name: 'Чеснок', amount: '3', unit: 'зуб.', emoji: '🧄' },
+      { name: 'Куркума', amount: '1', unit: 'ч.л.', emoji: '🟡' },
+      { name: 'Овощной бульон', amount: '1', unit: 'л', emoji: '🥣' },
+      { name: 'Лимон', amount: '0.5', unit: 'шт', emoji: '🍋', isOptional: true }
+    ],
+    steps: [
+      {
+        order: 1,
+        instruction: 'Нарежьте лук и морковь мелкими кубиками',
+        durationMinutes: 5
+      },
+      {
+        order: 2,
+        instruction: 'Обжарьте лук и морковь в кастрюле 5 минут',
+        durationMinutes: 5,
+        heatLevel: 2
+      },
+      {
+        order: 3,
+        instruction: 'Добавьте чеснок и куркуму, готовьте 1 минуту',
+        durationMinutes: 1,
+        tip: '💡 Куркума — природный противовоспалительный продукт'
+      },
+      {
+        order: 4,
+        instruction: 'Добавьте чечевицу, томаты и бульон. Доведите до кипения',
+        durationMinutes: 5,
+        heatLevel: 3
+      },
+      {
+        order: 5,
+        instruction: 'Убавьте огонь и варите 20 минут до мягкости чечевицы',
+        durationMinutes: 20,
+        heatLevel: 1,
+        doneWhen: 'Чечевица полностью разварилась'
+      },
+      {
+        order: 6,
+        instruction: 'Посолите, поперчите, добавьте сок лимона',
+        durationMinutes: 1
+      }
+    ],
+    cookingTips: [
+      'Красная чечевица разваривается быстрее зелёной',
+      'Можно пюрировать часть супа для кремовой текстуры'
+    ],
+    mealTypes: ['lunch', 'dinner']
+  },
+
+  {
+    id: 'vegan-tofu-stir-fry',
+    name: 'Тофу с брокколи стир-фрай',
+    description: 'Быстрый азиатский стир-фрай с тофу и брокколи. Высокое содержание белка, низкий ГИ.',
+    servings: 2,
+    totalTimeMinutes: 25,
+    caloriesPerServing: 320,
+    proteinPerServing: 22,
+    carbsPerServing: 18,
+    fatPerServing: 19,
+    difficulty: 'easy',
+    difficultyReason: 'Быстрое приготовление на сильном огне',
+    nutritionNote: '🌱 Веганский, низкоуглеводный. Тофу + брокколи = полноценный белок.',
+    equipment: [
+      { name: 'Вок или сковорода', emoji: '🥘', essential: true }
+    ],
+    messyLevel: 2,
+    messyWarning: 'Брызги при жарке',
+    keywords: ['тофу', 'брокколи', 'стир-фрай', 'соевый соус', 'имбирь', 'веган'],
+    requiredIngredients: ['тофу', 'брокколи'],
+    optionalIngredients: ['соевый соус', 'имбирь', 'чеснок', 'кунжутное масло'],
+    ingredients: [
+      { name: 'Тофу твёрдый', amount: '300', unit: 'г', emoji: '🧈' },
+      { name: 'Брокколи', amount: '300', unit: 'г', emoji: '🥦' },
+      { name: 'Соевый соус', amount: '3', unit: 'ст.л.', emoji: '🫘' },
+      { name: 'Имбирь свежий', amount: '2', unit: 'см', emoji: '🫚' },
+      { name: 'Чеснок', amount: '2', unit: 'зуб.', emoji: '🧄' },
+      { name: 'Кунжутное масло', amount: '1', unit: 'ст.л.', emoji: '🫒' },
+      { name: 'Растительное масло', amount: '2', unit: 'ст.л.', emoji: '🫒' }
+    ],
+    steps: [
+      {
+        order: 1,
+        instruction: 'Нарежьте тофу кубиками 2см, брокколи разберите на соцветия',
+        durationMinutes: 5
+      },
+      {
+        order: 2,
+        instruction: 'Натрите имбирь и измельчите чеснок',
+        durationMinutes: 2
+      },
+      {
+        order: 3,
+        instruction: 'Разогрейте масло в воке на сильном огне, обжарьте тофу до золотистости',
+        durationMinutes: 7,
+        heatLevel: 3,
+        tip: '💡 Не перемешивайте часто — дайте образоваться корочке'
+      },
+      {
+        order: 4,
+        instruction: 'Добавьте брокколи, жарьте 3 минуты',
+        durationMinutes: 3,
+        heatLevel: 3
+      },
+      {
+        order: 5,
+        instruction: 'Добавьте имбирь, чеснок, соевый соус. Жарьте ещё 2 минуты',
+        durationMinutes: 2,
+        heatLevel: 2
+      },
+      {
+        order: 6,
+        instruction: 'Снимите с огня, сбрызните кунжутным маслом',
+        durationMinutes: 1
+      }
+    ],
+    cookingTips: [
+      'Подавайте с рисом из цветной капусты для low-carb варианта',
+      'Добавьте шрирачу для остроты'
+    ],
+    mealTypes: ['lunch', 'dinner']
+  },
+
+  {
+    id: 'vegan-quinoa-salad',
+    name: 'Салат из киноа с овощами',
+    description: 'Питательный салат с киноа, нутом и свежими овощами. Полноценный белок, низкий ГИ.',
+    servings: 3,
+    totalTimeMinutes: 30,
+    caloriesPerServing: 380,
+    proteinPerServing: 14,
+    carbsPerServing: 48,
+    fatPerServing: 15,
+    difficulty: 'easy',
+    difficultyReason: 'Простая варка и нарезка',
+    nutritionNote: '🌱 Веганский, ГИ ~53. Киноа — один из немногих растительных источников полноценного белка.',
+    equipment: [
+      { name: 'Кастрюля', emoji: '🍲', essential: true }
+    ],
+    messyLevel: 1,
+    messyWarning: 'Минимум беспорядка',
+    keywords: ['киноа', 'нут', 'огурец', 'помидор', 'салат', 'веган', 'диабет'],
+    requiredIngredients: ['киноа', 'огурец', 'помидор'],
+    optionalIngredients: ['нут', 'лимон', 'оливковое масло', 'петрушка', 'мята'],
+    ingredients: [
+      { name: 'Киноа', amount: '150', unit: 'г', emoji: '🌾' },
+      { name: 'Нут консервированный', amount: '200', unit: 'г', emoji: '🫘' },
+      { name: 'Огурец', amount: '1', unit: 'шт', emoji: '🥒' },
+      { name: 'Помидоры черри', amount: '200', unit: 'г', emoji: '🍅' },
+      { name: 'Красный лук', amount: '0.5', unit: 'шт', emoji: '🧅' },
+      { name: 'Оливковое масло', amount: '3', unit: 'ст.л.', emoji: '🫒' },
+      { name: 'Лимонный сок', amount: '2', unit: 'ст.л.', emoji: '🍋' },
+      { name: 'Петрушка', amount: '30', unit: 'г', emoji: '🌿' }
+    ],
+    steps: [
+      {
+        order: 1,
+        instruction: 'Промойте киноа и сварите в подсоленной воде 15 минут',
+        durationMinutes: 15,
+        heatLevel: 2,
+        tip: '💡 Промывка убирает горечь киноа'
+      },
+      {
+        order: 2,
+        instruction: 'Нарежьте огурец кубиками, помидоры пополам, лук тонкими полукольцами',
+        durationMinutes: 5
+      },
+      {
+        order: 3,
+        instruction: 'Слейте и промойте нут',
+        durationMinutes: 2
+      },
+      {
+        order: 4,
+        instruction: 'Приготовьте заправку: смешайте оливковое масло, лимонный сок, соль, перец',
+        durationMinutes: 2
+      },
+      {
+        order: 5,
+        instruction: 'Остудите киноа, смешайте с овощами и нутом',
+        durationMinutes: 3
+      },
+      {
+        order: 6,
+        instruction: 'Заправьте салат, посыпьте рубленой петрушкой',
+        durationMinutes: 2
+      }
+    ],
+    cookingTips: [
+      'Салат хранится в холодильнике 2-3 дня',
+      'Добавьте авокадо для кремовости'
+    ],
+    mealTypes: ['lunch', 'dinner']
+  },
+
+  {
+    id: 'vegan-cauliflower-rice',
+    name: 'Рис из цветной капусты с овощами',
+    description: 'Низкоуглеводная альтернатива рису. Идеально для кето и диабетического питания.',
+    servings: 2,
+    totalTimeMinutes: 20,
+    caloriesPerServing: 180,
+    proteinPerServing: 8,
+    carbsPerServing: 15,
+    fatPerServing: 11,
+    difficulty: 'easy',
+    difficultyReason: 'Простая обработка и быстрая обжарка',
+    nutritionNote: '🌱 Веганский, очень низкий ГИ (~15). Всего 15г углеводов на порцию.',
+    equipment: [
+      { name: 'Блендер или тёрка', emoji: '🔪', essential: true },
+      { name: 'Сковорода', emoji: '🍳', essential: true }
+    ],
+    messyLevel: 2,
+    messyWarning: 'Крошки капусты',
+    keywords: ['цветная капуста', 'рис', 'горошек', 'морковь', 'низкоуглеводный', 'веган', 'кето'],
+    requiredIngredients: ['цветная капуста'],
+    optionalIngredients: ['горошек', 'морковь', 'соевый соус', 'зелёный лук'],
+    ingredients: [
+      { name: 'Цветная капуста', amount: '500', unit: 'г', emoji: '🥬' },
+      { name: 'Горошек замороженный', amount: '100', unit: 'г', emoji: '🟢' },
+      { name: 'Морковь', amount: '1', unit: 'шт', emoji: '🥕' },
+      { name: 'Соевый соус', amount: '2', unit: 'ст.л.', emoji: '🫘' },
+      { name: 'Кунжутное масло', amount: '1', unit: 'ст.л.', emoji: '🫒' },
+      { name: 'Зелёный лук', amount: '30', unit: 'г', emoji: '🧅' }
+    ],
+    steps: [
+      {
+        order: 1,
+        instruction: 'Разберите капусту на соцветия, измельчите в блендере до размера риса',
+        durationMinutes: 5,
+        tip: '💡 Не перемалывайте слишком мелко — будет каша'
+      },
+      {
+        order: 2,
+        instruction: 'Натрите морковь на тёрке',
+        durationMinutes: 2
+      },
+      {
+        order: 3,
+        instruction: 'Разогрейте масло в сковороде, обжарьте морковь 2 минуты',
+        durationMinutes: 2,
+        heatLevel: 2
+      },
+      {
+        order: 4,
+        instruction: 'Добавьте капустный "рис", жарьте 5 минут помешивая',
+        durationMinutes: 5,
+        heatLevel: 2
+      },
+      {
+        order: 5,
+        instruction: 'Добавьте горошек, соевый соус, готовьте ещё 3 минуты',
+        durationMinutes: 3,
+        heatLevel: 2
+      },
+      {
+        order: 6,
+        instruction: 'Снимите с огня, сбрызните кунжутным маслом, посыпьте зелёным луком',
+        durationMinutes: 1
+      }
+    ],
+    cookingTips: [
+      'Не накрывайте крышкой — капуста станет водянистой',
+      'Отличный гарнир к тофу или темпе'
+    ],
+    mealTypes: ['lunch', 'dinner']
   }
 ];
 
