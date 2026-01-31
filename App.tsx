@@ -27,6 +27,7 @@ import { googleAuthService } from './services/googleAuthService';
 import { getCurrencyList, CurrencyCode } from './services/currencyService';
 import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
 import { BUILD_CONFIG } from './buildConfig';
+import { initTimerService } from './services/timerService';
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -365,14 +366,19 @@ const App = () => {
   useEffect(() => {
       // 1. Load Local Data Immediately
       refreshData();
-      
-      // 2. Start Background Sync
+
+      // 2. Initialize Timer Service (for background notifications)
+      initTimerService().catch(err => {
+          console.warn('Timer service initialization failed:', err);
+      });
+
+      // 3. Start Background Sync
       const initBackground = async () => {
           try {
               // Check server health first
               const isHealthy = await ApiService.checkHealth(settings.backendUrl);
               setServerOnline(isHealthy);
-              
+
               if (isHealthy) {
                   const hasUpdates = await StorageService.initializeFromBackend();
                   // If backend had new data, refresh the UI
@@ -385,7 +391,7 @@ const App = () => {
               setServerOnline(false);
           }
       };
-      
+
       initBackground();
   }, []);
 
