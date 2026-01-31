@@ -92,6 +92,15 @@ export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'VERY_ACTIVE';
 export type WeightGoal = 'LOSE' | 'MAINTAIN' | 'GAIN';
 
+// Recipe categories for filtering
+export type RecipeCategory = 'breakfast' | 'salad' | 'soup' | 'main' | 'dessert' | 'snack' | 'drink' | 'side';
+
+// Dietary preferences for recipe filtering
+export interface DietaryPreferences {
+  vegetarian: boolean;
+  diabetic: boolean;
+}
+
 export interface UserSettings {
   name: string;
   email?: string; // Added for Google Auth
@@ -123,6 +132,7 @@ export interface UserSettings {
   currency?: 'RUB' | 'USD' | 'EUR' | 'GBP' | 'KZT' | 'UAH' | 'GEL'; // Currency for displaying prices
   language?: 'auto' | 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh'; // UI language
   shoppingPreferences?: ShoppingPreferences; // Shopping assistant preferences
+  dietaryPreferences?: DietaryPreferences; // Dietary restrictions for recipe filtering
 }
 
 export interface Friend {

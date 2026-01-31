@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store, WifiOff } from 'lucide-react';
+import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store, WifiOff, SlidersHorizontal } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
@@ -7,6 +7,8 @@ import { findMatchingRecipes, convertToGeneratedRecipe } from '../../data/offlin
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
+import { RecipeFilters } from './RecipeFilters';
+import { DietaryPreferences, RecipeCategory } from '../../types';
 
 // Custom Fridge Icon
 const FridgeIcon = ({ className }: { className?: string }) => (
@@ -95,6 +97,57 @@ export const Cooking: React.FC<CookingProps> = ({
   const [error, setError] = useState<string>('');
   const [generatingSlots, setGeneratingSlots] = useState<number[]>([]); // Slots being AI-generated
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+
+  // Filters state
+  const [showFilters, setShowFilters] = useState(false);
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | null>(null);
+
+  // Load dietary preferences from settings
+  const settings = StorageService.getSettings();
+  const [dietaryPreferences, setDietaryPreferences] = useState<DietaryPreferences>(
+    settings.dietaryPreferences || { vegetarian: false, diabetic: false }
+  );
+
+  // Get available categories based on time of day
+  const getAvailableCategories = (): RecipeCategory[] => {
+    const timeOfDay = getTimeOfDay();
+    switch (timeOfDay) {
+      case 'breakfast':
+        return ['breakfast', 'dessert', 'drink'];
+      case 'lunch':
+        return ['salad', 'soup', 'main', 'dessert'];
+      case 'snack':
+        return ['snack', 'dessert', 'drink'];
+      case 'dinner':
+        return ['salad', 'soup', 'main', 'side'];
+    }
+  };
+
+  // Get recommended calories for current meal
+  const getRecommendedCalories = (): { min: number; max: number } => {
+    const timeOfDay = getTimeOfDay();
+    const dailyGoal = caloriesRemaining + (2000 - caloriesRemaining); // Approximate total daily goal
+    switch (timeOfDay) {
+      case 'breakfast':
+        return { min: Math.round(dailyGoal * 0.2), max: Math.round(dailyGoal * 0.3) };
+      case 'lunch':
+        return { min: Math.round(dailyGoal * 0.3), max: Math.round(dailyGoal * 0.4) };
+      case 'snack':
+        return { min: Math.round(dailyGoal * 0.1), max: Math.round(dailyGoal * 0.15) };
+      case 'dinner':
+        return { min: Math.round(dailyGoal * 0.25), max: Math.round(dailyGoal * 0.35) };
+    }
+  };
+
+  // Save dietary preferences when changed
+  const handleDietaryChange = (key: keyof DietaryPreferences, value: boolean) => {
+    const newPrefs = { ...dietaryPreferences, [key]: value };
+    setDietaryPreferences(newPrefs);
+    StorageService.saveSettings({ ...settings, dietaryPreferences: newPrefs });
+    // Reload recipes with new preferences
+    loadRecipes(true);
+  };
 
   // Determine time of day for meal type
   const getTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
@@ -299,7 +352,11 @@ export const Cooking: React.FC<CookingProps> = ({
           ...offlineRecipes.map(r => r.name) // Exclude already shown
         ],
         todayMeals: meals.length > 0 ? meals : undefined,
-        todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
+        todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined,
+        // Add dietary filters
+        vegetarian: dietaryPreferences.vegetarian,
+        diabetic: dietaryPreferences.diabetic,
+        onlyAvailable: onlyAvailable
       };
 
       const aiRecipes = await generateRecipes(inventory, context);
@@ -479,17 +536,79 @@ export const Cooking: React.FC<CookingProps> = ({
                 <span className="text-2xl">{getMealEmoji()}</span>
                 <h2 className="text-xl font-bold dark:text-white">{getMealName()}</h2>
               </div>
-              <button
-                onClick={loadRecipes}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <RefreshCw className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-2 rounded-full transition-colors ${
+                    showFilters || dietaryPreferences.vegetarian || dietaryPreferences.diabetic || onlyAvailable
+                      ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600'
+                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => loadRecipes(true)}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Выберите блюдо • {recipes.length} варианта
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Выберите блюдо • {recipes.length} варианта
+              </p>
+              {/* Recommended calories hint */}
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Рекомендуемо: {getRecommendedCalories().min}-{getRecommendedCalories().max} ккал
+              </p>
+            </div>
           </div>
+
+          {/* Filters panel */}
+          {showFilters && (
+            <div className="px-4">
+              <RecipeFilters
+                mealEmoji={getMealEmoji()}
+                mealName={getMealName()}
+                dietaryPreferences={dietaryPreferences}
+                onlyAvailable={onlyAvailable}
+                selectedCategory={selectedCategory}
+                availableCategories={getAvailableCategories()}
+                onDietaryChange={handleDietaryChange}
+                onOnlyAvailableChange={(val) => {
+                  setOnlyAvailable(val);
+                  loadRecipes(true);
+                }}
+                onCategoryChange={setSelectedCategory}
+                onClose={() => setShowFilters(false)}
+              />
+            </div>
+          )}
+
+          {/* Active filters indicator */}
+          {!showFilters && (dietaryPreferences.vegetarian || dietaryPreferences.diabetic || onlyAvailable) && (
+            <div className="px-4 mb-2">
+              <div className="flex flex-wrap gap-2">
+                {dietaryPreferences.vegetarian && (
+                  <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full flex items-center gap-1">
+                    🌱 Вегетарианское
+                  </span>
+                )}
+                {dietaryPreferences.diabetic && (
+                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full flex items-center gap-1">
+                    💙 Для диабетиков
+                  </span>
+                )}
+                {onlyAvailable && (
+                  <span className="text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full flex items-center gap-1">
+                    📦 Только имеющиеся
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Offline mode indicator */}
           {isOfflineMode && (

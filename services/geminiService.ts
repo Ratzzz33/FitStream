@@ -737,6 +737,10 @@ export interface RecipeGenerationContext {
     maxCookingTime?: number; // minutes
     excludeRecipeIds?: string[];
     dietaryPreferences?: string[];
+    // Dietary restrictions
+    vegetarian?: boolean;
+    diabetic?: boolean;
+    onlyAvailable?: boolean; // Only use ingredients from inventory
     // История питания сегодня
     todayMeals?: TodayMealContext[];
     // БЖУ съеденное сегодня
@@ -870,6 +874,9 @@ ${macrosInfo}
 - Осталось калорий на день: ${context.caloriesRemaining}
 - Максимум времени готовки: ${context.maxCookingTime || 60} минут
 ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferences.join(', ')}` : ''}
+${context.vegetarian ? '- ⚠️ ВЕГЕТАРИАНСКОЕ: БЕЗ мяса, рыбы, морепродуктов! Только растительные продукты + молочные + яйца.' : ''}
+${context.diabetic ? '- ⚠️ ДЛЯ ДИАБЕТИКОВ: Низкий гликемический индекс! БЕЗ сахара, белого риса, картофеля. Минимум простых углеводов.' : ''}
+${context.onlyAvailable ? '- ⚠️ ТОЛЬКО ИЗ ИМЕЮЩИХСЯ: Используй ТОЛЬКО продукты из списка выше! Не добавляй никаких других ингредиентов, даже базовых.' : ''}
 
 ОБЯЗАТЕЛЬНЫЕ ПОЛЯ для каждого рецепта:
 1. proteinPerServing, carbsPerServing, fatPerServing — БЖУ на порцию в граммах
