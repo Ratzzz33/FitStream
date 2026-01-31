@@ -5,16 +5,32 @@
  *   npx tsx scripts/generate-landing-images.ts [--covers] [--tiles] [--feature=smartKitchen]
  *
  * Requires:
- *   - API_KEY environment variable with Gemini API key
+ *   - API_KEY in .env file or environment variable
  */
 
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-const API_KEY = process.env.API_KEY;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env manually
+const envPath = path.join(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length) {
+      process.env[key.trim()] = valueParts.join('=').trim();
+    }
+  });
+}
+
+const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY;
 if (!API_KEY) {
-  console.error('❌ API_KEY environment variable required');
+  console.error('❌ GEMINI_API_KEY or API_KEY environment variable required');
   process.exit(1);
 }
 
@@ -152,7 +168,7 @@ const tilePrompts: Record<string, Record<string, string>> = {
 async function generateImage(prompt: string, aspectRatio: '16:9' | '1:1'): Promise<Buffer | null> {
   try {
     const response = await ai.models.generateImages({
-      model: 'imagen-3.0-generate-002',
+      model: 'imagen-4.0-generate-001',
       prompt,
       config: {
         numberOfImages: 1,
@@ -194,7 +210,7 @@ async function generateCovers(features?: string[]) {
     }
 
     // Rate limiting
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 7000)); // 10 req/min limit
   }
 }
 
@@ -222,7 +238,7 @@ async function generateTiles(features?: string[]) {
       }
 
       // Rate limiting
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 7000)); // 10 req/min limit
     }
   }
 }
