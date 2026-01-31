@@ -41,7 +41,7 @@ describe('StorageService', () => {
       const settings = StorageService.getSettings();
       expect(settings.name).toBe('User');
       expect(settings.theme).toBe('dark');
-      expect(settings.goals).toHaveLength(9);
+      expect(settings.goals).toHaveLength(11); // STEPS, CALORIES, WATER + 8 exercise types
     });
 
     it('migrates settings with missing goals', () => {
