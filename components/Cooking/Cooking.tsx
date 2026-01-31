@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Flame, ChefHat, AlertTriangle, Database, Sparkles } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
+import { matchRecipesByIngredients, saveGeneratedRecipe, RecipeWithMatch } from '../../services/recipeService';
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
@@ -110,6 +111,50 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
+  // Convert DB recipe to GeneratedRecipe format
+  const convertDbRecipe = (dbRecipe: RecipeWithMatch): GeneratedRecipe => {
+    const instructions = (dbRecipe.instructions_ru || dbRecipe.instructions || '').split('\n').filter(Boolean);
+
+    return {
+      name: dbRecipe.name_ru || dbRecipe.name_en || 'Рецепт',
+      description: dbRecipe.tips_ru || dbRecipe.tips || '',
+      servings: dbRecipe.servings || 2,
+      totalTimeMinutes: dbRecipe.cooking_time || 30,
+      caloriesPerServing: dbRecipe.calories || 300,
+      proteinPerServing: dbRecipe.protein || 15,
+      carbsPerServing: dbRecipe.carbs || 30,
+      fatPerServing: dbRecipe.fat || 10,
+      difficulty: (dbRecipe.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+      difficultyReason: dbRecipe.difficulty === 'easy' ? 'Просто' : dbRecipe.difficulty === 'hard' ? 'Сложно' : 'Средне',
+      nutritionNote: dbRecipe.is_healthy ? '🥗 Полезный рецепт' : '',
+      equipment: [],
+      messyLevel: 1,
+      messyWarning: '',
+      ingredients: (dbRecipe.ingredients || []).map(ing => ({
+        name: ing.name_ru || ing.name || '',
+        amount: (ing.amount || '').split(' ')[0] || '',
+        unit: (ing.amount || '').split(' ').slice(1).join(' ') || '',
+        emoji: '🥘',
+        isOptional: false,
+        inInventory: true,
+        inventoryAmount: ''
+      })),
+      steps: instructions.map((inst, i) => ({
+        stepNumber: i + 1,
+        instruction: inst.replace(/^\d+\.\s*/, ''),
+        durationMinutes: Math.ceil((dbRecipe.cooking_time || 30) / Math.max(instructions.length, 1)),
+        heatLevel: 2
+      })),
+      cookingTips: dbRecipe.tips_ru ? [dbRecipe.tips_ru] : [],
+      // Mark as from DB for UI distinction
+      _fromDb: true,
+      _dbId: dbRecipe.id,
+      _imageUrl: dbRecipe.image_url,
+      _matchPercentage: dbRecipe.matchPercentage,
+      _missingIngredients: dbRecipe.missingIngredients
+    } as GeneratedRecipe & { _fromDb?: boolean; _dbId?: number; _matchPercentage?: number; _missingIngredients?: string[] };
+  };
+
   const loadRecipes = async () => {
     setState('loading');
     setError('');
@@ -125,33 +170,97 @@ export const Cooking: React.FC<CookingProps> = ({
         return;
       }
 
+      const ingredientNames = inventory.map(i => i.name);
       const { meals, macros } = getTodayMealsContext();
+      let allRecipes: GeneratedRecipe[] = [];
 
-      const context: RecipeGenerationContext = {
-        timeOfDay: getTimeOfDay(),
-        currentTime: getCurrentTime(),
-        caloriesRemaining,
-        servingsNeeded,
-        maxCookingTime: 45,
-        excludeRecipeIds: StorageService.getRecentRecipeIds(3),
-        todayMeals: meals.length > 0 ? meals : undefined,
-        todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
-      };
+      // Step 1: Try to get recipes from database first
+      console.log('🔍 Searching recipes in database...');
+      try {
+        const dbRecipes = await matchRecipesByIngredients(ingredientNames, {
+          maxMissing: 3,
+          limit: 10
+        });
 
-      const generatedRecipes = await generateRecipes(inventory, context);
+        if (dbRecipes.length > 0) {
+          console.log(`📚 Found ${dbRecipes.length} recipes in DB`);
+          allRecipes = dbRecipes.map(convertDbRecipe);
+        }
+      } catch (dbErr) {
+        console.warn('⚠️ DB search failed, will try AI:', dbErr);
+      }
 
-      if (generatedRecipes.length === 0) {
-        setError('Не удалось подобрать рецепты. Попробуйте добавить больше продуктов.');
+      // Step 2: If DB has < 3 recipes, generate more with AI
+      const MIN_RECIPES = 3;
+      if (allRecipes.length < MIN_RECIPES) {
+        console.log(`🤖 Need more recipes (have ${allRecipes.length}), calling AI...`);
+
+        try {
+          const context: RecipeGenerationContext = {
+            timeOfDay: getTimeOfDay(),
+            currentTime: getCurrentTime(),
+            caloriesRemaining,
+            servingsNeeded,
+            maxCookingTime: 45,
+            excludeRecipeIds: StorageService.getRecentRecipeIds(3),
+            todayMeals: meals.length > 0 ? meals : undefined,
+            todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
+          };
+
+          const aiRecipes = await generateRecipes(inventory, context);
+          console.log(`✨ AI generated ${aiRecipes.length} recipes`);
+
+          // Save AI recipes to DB for future users (async, don't wait)
+          aiRecipes.forEach(recipe => {
+            saveGeneratedRecipe(recipe, StorageService.getUserId())
+              .then(result => {
+                if (!result.alreadyExists) {
+                  console.log(`💾 Saved recipe "${recipe.name}" to DB`);
+                }
+              })
+              .catch(err => console.warn('Failed to save recipe:', err));
+          });
+
+          // Combine DB + AI recipes, avoiding duplicates
+          const existingNames = new Set(allRecipes.map(r => r.name.toLowerCase()));
+          for (const aiRecipe of aiRecipes) {
+            if (!existingNames.has(aiRecipe.name.toLowerCase())) {
+              allRecipes.push(aiRecipe);
+            }
+          }
+        } catch (aiErr) {
+          console.warn('⚠️ AI generation failed:', aiErr);
+          // If AI fails but we have some DB recipes, continue with those
+        }
+      }
+
+      // Final check
+      if (allRecipes.length === 0) {
+        setError('Не удалось подобрать рецепты. Проверьте подключение к интернету и попробуйте снова.');
         setState('error');
         return;
       }
 
-      setRecipes(generatedRecipes);
+      // Sort: DB recipes with high match first, then AI
+      allRecipes.sort((a, b) => {
+        const aMatch = (a as any)._matchPercentage || 0;
+        const bMatch = (b as any)._matchPercentage || 0;
+        return bMatch - aMatch;
+      });
+
+      // Take top 4 recipes
+      setRecipes(allRecipes.slice(0, 4));
       setState('menu');
 
       // Generate images for ALL recipes in parallel
-      generatedRecipes.forEach((recipe, index) => {
-        generateImageForRecipe(recipe, index);
+      allRecipes.slice(0, 4).forEach((recipe, index) => {
+        // Use DB image if available
+        const dbRecipe = recipe as any;
+        if (dbRecipe._fromDb && dbRecipe._imageUrl) {
+          setRecipeImages(prev => ({ ...prev, [index]: dbRecipe._imageUrl }));
+        } else {
+          generateImageForRecipe(recipe, index);
+        }
       });
 
     } catch (err) {

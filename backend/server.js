@@ -1333,6 +1333,164 @@ app.get('/api/recipes/random/:count', async (req, res) => {
     }
 });
 
+// Match recipes by user's ingredients
+app.post('/api/recipes/match', async (req, res) => {
+    try {
+        const { ingredients, mealType, maxMissing = 3, limit = 10 } = req.body;
+
+        if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+            return res.status(400).json({ error: 'Ingredients array required' });
+        }
+
+        // Normalize ingredient names for matching
+        const normalizedIngredients = ingredients.map(i =>
+            i.toLowerCase().replace(/[ёе]/g, 'е').trim()
+        );
+
+        // Get all recipes with ingredients
+        const result = await pool.query(`
+            SELECT r.*,
+                   json_agg(json_build_object(
+                       'id', ri.id,
+                       'name', ri.name,
+                       'name_ru', ri.name_ru,
+                       'amount', ri.amount
+                   ) ORDER BY ri.sort_order) as ingredients
+            FROM recipes r
+            LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+            WHERE r.calories IS NOT NULL
+            GROUP BY r.id
+        `);
+
+        // Score each recipe by ingredient match
+        const scoredRecipes = result.rows
+            .map(recipe => {
+                const recipeIngredients = (recipe.ingredients || [])
+                    .filter(i => i.id !== null)
+                    .map(i => ({
+                        ...i,
+                        normalized: (i.name_ru || i.name || '').toLowerCase().replace(/[ёе]/g, 'е').trim()
+                    }));
+
+                let matchedCount = 0;
+                let missingIngredients = [];
+
+                for (const ri of recipeIngredients) {
+                    const isMatched = normalizedIngredients.some(ui =>
+                        ui.includes(ri.normalized) ||
+                        ri.normalized.includes(ui) ||
+                        // Check word overlap
+                        ui.split(/\s+/).some(w => w.length > 2 && ri.normalized.includes(w)) ||
+                        ri.normalized.split(/\s+/).some(w => w.length > 2 && ui.includes(w))
+                    );
+
+                    if (isMatched) {
+                        matchedCount++;
+                    } else {
+                        missingIngredients.push(ri.name_ru || ri.name);
+                    }
+                }
+
+                const totalIngredients = recipeIngredients.length || 1;
+                const matchPercentage = Math.round((matchedCount / totalIngredients) * 100);
+
+                return {
+                    ...recipe,
+                    ingredients: recipe.ingredients.filter(i => i.id !== null),
+                    matchedCount,
+                    missingCount: missingIngredients.length,
+                    missingIngredients,
+                    matchPercentage
+                };
+            })
+            // Filter by max missing ingredients
+            .filter(r => r.missingCount <= maxMissing && r.matchedCount > 0)
+            // Sort by match percentage desc, then by missing count asc
+            .sort((a, b) => {
+                if (b.matchPercentage !== a.matchPercentage) {
+                    return b.matchPercentage - a.matchPercentage;
+                }
+                return a.missingCount - b.missingCount;
+            })
+            .slice(0, parseInt(limit));
+
+        res.json(scoredRecipes);
+    } catch (e) {
+        console.error('Recipe match error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Save AI-generated recipe to database
+app.post('/api/recipes/save-generated', async (req, res) => {
+    try {
+        const { recipe, userId } = req.body;
+
+        if (!recipe || !recipe.name) {
+            return res.status(400).json({ error: 'Recipe data required' });
+        }
+
+        // Check if similar recipe already exists
+        const existing = await pool.query(
+            'SELECT id FROM recipes WHERE name_ru ILIKE $1 OR name_en ILIKE $1 LIMIT 1',
+            [`%${recipe.name.replace(/^[^\s]+\s/, '')}%`] // Remove emoji prefix
+        );
+
+        if (existing.rows.length > 0) {
+            return res.json({ id: existing.rows[0].id, alreadyExists: true });
+        }
+
+        // Insert new recipe
+        const result = await pool.query(`
+            INSERT INTO recipes (
+                name_ru, name_en, instructions_ru, tips_ru,
+                calories, protein, fat, carbs,
+                cooking_time, servings, difficulty,
+                is_healthy, is_ai_generated, created_by_user
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
+            RETURNING id
+        `, [
+            recipe.name,
+            recipe.name, // English same as Russian for AI-generated
+            recipe.steps?.map((s, i) => `${i + 1}. ${s.instruction}`).join('\n') || '',
+            recipe.cookingTips?.join('\n') || '',
+            recipe.caloriesPerServing || null,
+            recipe.proteinPerServing || null,
+            recipe.fatPerServing || null,
+            recipe.carbsPerServing || null,
+            recipe.totalTimeMinutes || null,
+            recipe.servings || 2,
+            recipe.difficulty || 'medium',
+            recipe.caloriesPerServing && recipe.caloriesPerServing < 400,
+            userId || null
+        ]);
+
+        const recipeId = result.rows[0].id;
+
+        // Insert ingredients
+        if (recipe.ingredients?.length) {
+            for (let i = 0; i < recipe.ingredients.length; i++) {
+                const ing = recipe.ingredients[i];
+                await pool.query(`
+                    INSERT INTO recipe_ingredients (recipe_id, name, name_ru, amount, sort_order)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [
+                    recipeId,
+                    ing.name,
+                    ing.name,
+                    `${ing.amount || ''} ${ing.unit || ''}`.trim(),
+                    i + 1
+                ]);
+            }
+        }
+
+        res.json({ id: recipeId, alreadyExists: false });
+    } catch (e) {
+        console.error('Save recipe error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Admin: Import recipes from MealDB
 app.post('/api/recipes/import/mealdb', async (req, res) => {
     try {
