@@ -1,14 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, Package, Thermometer, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap } from 'lucide-react';
+import { Camera, Plus, Package, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap, ChevronLeft, Utensils } from 'lucide-react';
 import { KitchenStorage, InventoryItem, StorageType, StoragePhoto as StoragePhotoType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { StoragePhoto } from './StoragePhoto';
 import { ProductList } from './ProductList';
 import { AddProductModal } from './AddProductModal';
 import { ScanReceiptModal } from './ScanReceiptModal';
-import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhotoId } from '../../services/geminiService';
+import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhotoId, detectStorageType } from '../../services/geminiService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 import { georgiaPrices } from '../../services/georgiaPricesService';
+
+// Custom Fridge Icon (matches Dashboard)
+const FridgeIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="9" x2="19" y2="9" />
+    <line x1="15" y1="5" x2="15" y2="7" />
+    <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
+
+// Check if we have price database for user's currency
+const hasPriceDatabase = (currency: CurrencyCode): boolean => {
+  // Currently only Georgia (GEL) has price database
+  return currency === 'GEL';
+};
 
 interface KitchenProps {
   onClose?: () => void;
@@ -32,8 +56,13 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   // Camera state
   const [cameraMode, setCameraMode] = useState<CameraMode>('IDLE');
   const [replacePhotoId, setReplacePhotoId] = useState<string | null>(null);
+  const [flashMode, setFlashMode] = useState<'auto' | 'on' | 'off'>('auto');
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const [exposure, setExposure] = useState(0); // -2 to +2
+  const [isDraggingExposure, setIsDraggingExposure] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const settings = StorageService.getSettings();
 
@@ -139,25 +168,37 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   // Process new photo (original handleTakePhoto logic)
   const processNewPhoto = async (base64: string) => {
     setIsScanning(true);
-    setScanProgress('Сохраняем фото...');
+    setScanProgress('Определяем тип хранения...');
 
     try {
-      // Добавляем фото в хранилище
-      const photoId = StorageService.addStoragePhoto(activeStorage, base64);
+      // Автоматически определяем тип хранения
+      const detectedType = await detectStorageType(base64);
+
+      // Если тип отличается от текущего, переключаемся
+      if (detectedType !== activeStorage) {
+        setActiveStorage(detectedType);
+      }
+      const targetStorage = detectedType;
+
+      setScanProgress('Сохраняем фото...');
+
+      // Добавляем фото в хранилище (используем определённый тип)
+      const photoId = StorageService.addStoragePhoto(targetStorage, base64);
       setScanProgress('Распознаём продукты...');
 
-      // Сканируем новое фото
-      const newProducts = await scanSinglePhoto(base64, photoId);
+      // Сканируем новое фото (используем targetStorage для правильного определения контекста)
+      const scannedProducts = await scanStoragePhoto(base64, targetStorage);
+      const newProducts: ProductWithPhotoId[] = scannedProducts.map(p => ({ ...p, photoId }));
 
       // Получаем все фото хранилища
-      const allPhotos = StorageService.getStoragePhotos(activeStorage);
+      const allPhotos = StorageService.getStoragePhotos(targetStorage);
 
       if (allPhotos.length > 1) {
         // Мультифото режим — нужна дедупликация
         setScanProgress('Объединяем продукты с разных фото...');
 
         // Собираем продукты со всех фото
-        const existingInventory = StorageService.getInventoryByStorage(activeStorage)
+        const existingInventory = StorageService.getInventoryByStorage(targetStorage)
           .filter(i => i.source === 'photo');
 
         // Конвертируем существующие items обратно в ProductWithPhotoId для дедупликации
@@ -189,7 +230,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
 
         // Удаляем старые photo-items для этого хранилища
         const nonPhotoItems = StorageService.getInventory().filter(
-          i => i.storageId !== activeStorage || i.source !== 'photo'
+          i => i.storageId !== targetStorage || i.source !== 'photo'
         );
 
         // Создаём новые items из дедуплицированных
@@ -202,7 +243,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             emoji: p.emoji,
             quantity: p.quantity,
             unit: p.unit,
-            storageId: activeStorage,
+            storageId: targetStorage,
             expiresAt: p.expiresInDays
               ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
               : undefined,
@@ -227,7 +268,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           emoji: p.emoji,
           quantity: p.quantity,
           unit: p.unit,
-          storageId: activeStorage,
+          storageId: targetStorage,
           expiresAt: p.expiresInDays
             ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
             : undefined,
@@ -282,6 +323,58 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     };
 
     input.click();
+  };
+
+  // Track which photo is currently being retried
+  const [retryingPhotoId, setRetryingPhotoId] = useState<string | null>(null);
+
+  // Retry parsing for a single photo
+  const handleRetryParse = async (photoId: string) => {
+    const photos = StorageService.getStoragePhotos(activeStorage);
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    setRetryingPhotoId(photoId);
+
+    try {
+      const products = await scanSinglePhoto(photo.base64, photoId);
+
+      // Update inventory with new products
+      const nonPhotoItems = StorageService.getInventory().filter(
+        i => i.storageId !== activeStorage || i.source !== 'photo' || i.photoId !== photoId
+      );
+
+      const newItems: InventoryItem[] = products.map(p => ({
+        id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: p.name,
+        emoji: p.emoji,
+        quantity: p.quantity,
+        unit: p.unit,
+        storageId: activeStorage,
+        expiresAt: p.expiresInDays
+          ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+          : undefined,
+        addedAt: new Date().toISOString(),
+        source: 'photo' as const,
+        position: { x: p.positionX, y: p.positionY },
+        photoId: p.photoId,
+        caloriesPer100: p.caloriesPer100,
+        price: p.price
+      }));
+
+      localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
+
+      // Update parseStatus on photo
+      StorageService.updateStoragePhotoParseStatus(activeStorage, photoId, products.length > 0 ? 'success' : 'empty');
+
+      setStorages(StorageService.getStorages());
+      setInventory(StorageService.getInventory());
+    } catch (error) {
+      console.error('Error retrying parse:', error);
+      StorageService.updateStoragePhotoParseStatus(activeStorage, photoId, 'error');
+    } finally {
+      setRetryingPhotoId(null);
+    }
   };
 
   // Rescan all photos (refresh)
@@ -578,34 +671,52 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   };
 
   const storageIcons: Record<StorageType, React.ReactNode> = {
-    fridge: <Thermometer className="w-4 h-4" />,
+    fridge: <FridgeIcon className="w-4 h-4" />,
     cabinet: <Package className="w-4 h-4" />,
-    freezer: <Snowflake className="w-4 h-4" />
+    freezer: <Snowflake className="w-4 h-4" />,
+    appliances: <Utensils className="w-4 h-4" />
   };
 
   const storageLabels: Record<StorageType, string> = {
     fridge: 'Холодильник',
     cabinet: 'Шкафы',
-    freezer: 'Морозилка'
+    freezer: 'Морозилка',
+    appliances: 'Приборы'
+  };
+
+  const storageEmojis: Record<StorageType, string> = {
+    fridge: '🧊',
+    freezer: '❄️',
+    cabinet: '📦',
+    appliances: '🍳'
+  };
+
+  // Check if prices should be shown
+  const showPrices = hasPriceDatabase(currency);
+
+  // Get expiring items count per storage
+  const getExpiringCount = (type: StorageType) => {
+    return expiringItems.filter(i => i.storageId === type).length;
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🗄️</span>
-          <h2 className="text-lg font-semibold dark:text-white">Моя Кухня</h2>
-        </div>
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+      {/* Clean Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        {onClose && (
+          <button onClick={onClose} className="p-1 -ml-1">
+            <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+          </button>
+        )}
+        <h2 className="text-lg font-semibold dark:text-white flex-1 text-center">Кухня</h2>
 
-        {/* Add button with dropdown */}
+        {/* Add button */}
         <div className="relative">
           <button
             onClick={() => setAddMenuOpen(addMenuOpen ? null : 'photo')}
-            className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            className="w-9 h-9 flex items-center justify-center bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            <span>Добавить</span>
+            <Plus className="w-5 h-5" />
           </button>
 
           {addMenuOpen && (
@@ -689,67 +800,52 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 text-sm">
-        <div className="flex items-center gap-1">
-          <span>📊</span>
-          <span className="text-gray-600 dark:text-gray-400">Всего продуктов:</span>
-          <span className="font-medium dark:text-white">{totalItems}</span>
+      {/* Storage Tiles - 2x2 Grid */}
+      <div className="p-3 bg-white dark:bg-gray-800">
+        <div className="grid grid-cols-2 gap-2">
+          {(['fridge', 'freezer', 'cabinet', 'appliances'] as StorageType[]).map(type => {
+            const count = inventory.filter(i => i.storageId === type).length;
+            const hasExpiring = getExpiringCount(type) > 0;
+            const isActive = activeStorage === type;
+
+            return (
+              <button
+                key={type}
+                onClick={() => setActiveStorage(type)}
+                className={`relative h-16 rounded-xl flex items-center justify-center gap-2 transition-all
+                  ${isActive
+                    ? 'bg-blue-500 text-white shadow-lg scale-[1.02]'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+              >
+                {/* Expiring badge */}
+                {hasExpiring && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-3 h-3 text-white" />
+                  </div>
+                )}
+
+                {/* Content: emoji + count */}
+                <span className="text-2xl">{storageEmojis[type]}</span>
+                <span className={`text-lg font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-1">
-          <span>💰</span>
-          <span className="text-gray-600 dark:text-gray-400">~</span>
-          <span className="font-medium dark:text-white">{formatCurrency(totalValue, currency)}</span>
-        </div>
-        {currentPhotos.length > 1 && (
-          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-            <Images className="w-4 h-4" />
-            <span>Фото:</span>
-            <span className="font-medium">{currentPhotos.length}</span>
-          </div>
-        )}
-        {expiringItems.length > 0 && (
-          <>
-            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Скоро портится:</span>
-              <span className="font-medium">{expiringItems.length}</span>
-            </div>
-            <div className="flex items-center gap-1 text-red-500 dark:text-red-400 col-span-2">
-              <span>❌</span>
-              <span>~{formatCurrency(expiringValue, currency)}</span>
-            </div>
-          </>
-        )}
       </div>
 
-      {/* Storage tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {(['fridge', 'cabinet', 'freezer'] as StorageType[]).map(type => {
-          const typePhotos = storages.find(s => s.type === type)?.photos || [];
-          return (
-            <button
-              key={type}
-              onClick={() => setActiveStorage(type)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors
-                ${activeStorage === type
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-            >
-              {storageIcons[type]}
-              <span>{storageLabels[type]}</span>
-              <span className="text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                {inventory.filter(i => i.storageId === type).length}
-              </span>
-              {typePhotos.length > 1 && (
-                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
-                  {typePhotos.length}📷
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Selected storage indicator - visual embrace */}
+      <div className="px-3 -mt-1">
+        <div className={`h-2 mx-auto rounded-b-lg transition-all ${
+          activeStorage === 'fridge' ? 'w-[calc(50%-0.5rem)] mr-auto ml-3' :
+          activeStorage === 'freezer' ? 'w-[calc(50%-0.5rem)] ml-auto mr-3' :
+          activeStorage === 'cabinet' ? 'w-[calc(50%-0.5rem)] mr-auto ml-3' :
+          'w-[calc(50%-0.5rem)] ml-auto mr-3'
+        } bg-blue-500`} style={{
+          marginLeft: activeStorage === 'fridge' || activeStorage === 'cabinet' ? '0.75rem' : 'auto',
+          marginRight: activeStorage === 'freezer' || activeStorage === 'appliances' ? '0.75rem' : 'auto',
+          marginTop: activeStorage === 'cabinet' || activeStorage === 'appliances' ? '-0.25rem' : '-0.25rem',
+        }} />
       </div>
 
       {/* Content */}
@@ -772,6 +868,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                 onRemovePhoto={handleRemovePhoto}
                 onLabelPhoto={handleLabelPhoto}
                 onReplacePhoto={handleReplacePhoto}
+                onRetryParse={handleRetryParse}
+                isRetrying={retryingPhotoId}
               />
             )}
 
@@ -779,10 +877,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             {currentPhotos.length === 0 && currentInventory.length === 0 && (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <div className="text-6xl mb-4">
-                  {activeStorage === 'fridge' ? '🧊' : activeStorage === 'freezer' ? '❄️' : '📦'}
+                  {storageEmojis[activeStorage]}
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  {storageLabels[activeStorage]} пуст
+                  {storageLabels[activeStorage]} пуст{activeStorage === 'appliances' ? 'ы' : ''}
                 </p>
                 <button
                   onClick={() => handleTakePhoto(false)}
@@ -818,26 +916,108 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             >
               <X className="w-6 h-6" />
             </button>
-            <span className="text-white font-medium">
-              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : 'Сфотографируйте ' + storageLabels[activeStorage].toLowerCase()}
+            <span className="text-white font-medium text-sm">
+              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : `Сфотографируйте ${storageLabels[activeStorage].toLowerCase()}`}
             </span>
-            <div className="w-10" /> {/* Spacer */}
+            {/* Flash toggle */}
+            <button
+              onClick={() => {
+                setFlashMode(prev => prev === 'auto' ? 'on' : prev === 'on' ? 'off' : 'auto');
+              }}
+              className="p-2 text-white hover:bg-white/20 rounded-full"
+            >
+              {flashMode === 'auto' && <span className="text-sm font-medium">⚡A</span>}
+              {flashMode === 'on' && <span className="text-sm font-medium">⚡</span>}
+              {flashMode === 'off' && <span className="text-sm font-medium text-gray-400">⚡̸</span>}
+            </button>
           </div>
 
-          {/* Video preview */}
-          <div className="flex-1 relative">
+          {/* Video preview with tap-to-focus */}
+          <div
+            className="flex-1 relative"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = ((e.clientX - rect.left) / rect.width) * 100;
+              const y = ((e.clientY - rect.top) / rect.height) * 100;
+              setFocusPoint({ x, y });
+              setExposure(0); // Reset exposure on new focus
+
+              // Clear previous timeout
+              if (focusTimeoutRef.current) {
+                clearTimeout(focusTimeoutRef.current);
+              }
+              // Hide focus square after 1.5s
+              focusTimeoutRef.current = setTimeout(() => {
+                setFocusPoint(null);
+              }, 1500);
+            }}
+            onTouchMove={(e) => {
+              if (focusPoint && isDraggingExposure) {
+                const touch = e.touches[0];
+                const rect = e.currentTarget.getBoundingClientRect();
+                const deltaY = (touch.clientY - rect.top - (focusPoint.y / 100 * rect.height)) / rect.height;
+                const newExposure = Math.max(-2, Math.min(2, -deltaY * 4));
+                setExposure(newExposure);
+              }
+            }}
+            onTouchStart={() => {
+              if (focusPoint) {
+                setIsDraggingExposure(true);
+              }
+            }}
+            onTouchEnd={() => {
+              setIsDraggingExposure(false);
+            }}
+          >
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
               className="w-full h-full object-cover"
+              style={{
+                filter: `brightness(${1 + exposure * 0.25})`
+              }}
             />
-            {/* Overlay grid */}
+
+            {/* Center guide frame */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="w-48 h-36 border-2 border-white/40 rounded-lg" />
+            </div>
+
+            {/* Focus square */}
+            {focusPoint && (
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${focusPoint.x}%`,
+                  top: `${focusPoint.y}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="w-20 h-20 border-2 border-yellow-400 rounded-sm animate-pulse">
+                  {/* Corner marks */}
+                  <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 border-yellow-400" />
+                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 border-yellow-400" />
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-yellow-400" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-yellow-400" />
+                </div>
+
+                {/* Exposure indicator */}
+                {exposure !== 0 && (
+                  <div className="absolute -right-10 top-1/2 -translate-y-1/2 flex items-center gap-1 text-yellow-400">
+                    <span className="text-lg">☀️</span>
+                    <span className="text-xs font-medium">{exposure > 0 ? '+' : ''}{exposure.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Rule of thirds grid (subtle) */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="w-full h-full grid grid-cols-3 grid-rows-3">
                 {[...Array(9)].map((_, i) => (
-                  <div key={i} className="border border-white/20" />
+                  <div key={i} className="border border-white/10" />
                 ))}
               </div>
             </div>
