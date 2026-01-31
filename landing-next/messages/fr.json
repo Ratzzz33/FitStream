@@ -1,181 +1,196 @@
 {
   "meta": {
-    "title": "FitStream AI - AI-Powered Fitness & Nutrition Companion",
-    "description": "Track workouts with AI pose detection, scan food for calories, manage your kitchen inventory, and get personalized coaching. Available on iOS, Android, and Web."
+    "title": "FitStream AI - Votre Assistant Fitness et Nutrition IA",
+    "description": "Suivez vos entraînements avec détection de poses IA, scannez vos repas pour les calories, gérez votre inventaire cuisine et obtenez un coaching personnalisé. Disponible sur iOS, Android et Web."
   },
   "nav": {
-    "features": "Features",
-    "pricing": "Pricing",
-    "download": "Download",
-    "getStarted": "Get Started"
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "download": "Télécharger",
+    "getStarted": "Commencer"
   },
   "hero": {
-    "badge": "Powered by Google Gemini AI",
-    "title1": "Your AI-Powered",
-    "title2": "Fitness Companion",
-    "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
-    "downloadFree": "Download Free",
-    "tryWebApp": "Try Web App"
+    "badge": "Propulsé par Google Gemini AI",
+    "title1": "Votre Compagnon",
+    "title2": "Fitness IA",
+    "dynamicTitles": [
+      "Entraînez-vous avec l'IA",
+      "Scannez vos repas instantanément",
+      "Cuisinez plus intelligemment",
+      "Atteignez vos objectifs plus vite"
+    ],
+    "description": "Suivez vos entraînements, scannez vos repas pour les calories, lisez votre balance avec l'IA et obtenez une motivation personnalisée — tout dans une belle app.",
+    "demoLabel": "Aperçu interactif de l'app",
+    "downloadFree": "Télécharger Gratuit",
+    "tryWebApp": "Essayer Web App"
   },
   "social": {
-    "users": "10,000+ users",
-    "rating": "4.8★ rating",
-    "exercises": "15 exercises tracked"
+    "users": "10 000+ utilisateurs",
+    "rating": "Note 4,8★",
+    "exercises": "15 exercices suivis"
   },
   "features": {
-    "title": "Everything You Need",
-    "subtitle": "Powerful features to transform your fitness journey",
-    "seeAll": "See all 16 features",
+    "title": "Tout ce dont vous avez besoin",
+    "subtitle": "Des fonctionnalités puissantes pour transformer votre parcours fitness",
+    "seeAll": "Voir les 16 fonctionnalités",
     "poseTracking": {
-      "title": "AI Pose Tracking",
-      "description": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
-      "short": "Real-time form analysis with MediaPipe. 15 exercises with instant feedback."
+      "title": "Suivi de Pose IA",
+      "description": "Analyse de forme en temps réel avec MediaPipe. Feedback instantané sur votre technique sans traitement cloud.",
+      "short": "Analyse de forme en temps réel. 15 exercices avec feedback."
     },
     "smartKitchen": {
-      "title": "Smart Kitchen",
-      "description": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
-      "short": "Manage fridge, pantry & freezer. AI recognizes products from photos."
+      "title": "Cuisine Intelligente",
+      "description": "Gérez votre réfrigérateur, garde-manger et congélateur. L'IA reconnaît les produits sur photos. Suggestions de recettes basées sur ce que vous avez.",
+      "short": "Gérez votre frigo. L'IA reconnaît les produits sur photos."
     },
     "cookingMode": {
-      "title": "Guided Cooking",
-      "description": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
-      "short": "Step-by-step recipes with timers, reminders & troubleshooting tips."
+      "title": "Cuisine Guidée",
+      "description": "Instructions étape par étape avec minuteries intégrées, rappels de remuer et conseils de dépannage. Enregistrez les calories une fois terminé.",
+      "short": "Recettes étape par étape avec minuteries et conseils."
     },
     "nutritionScanner": {
-      "title": "AI Food Scanner",
-      "description": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
-      "short": "Snap a photo for instant calorie and macro estimates."
+      "title": "Scanner Repas IA",
+      "description": "Prenez une photo de votre repas et obtenez une estimation instantanée des calories. Utilise un objet de référence pour des portions précises.",
+      "short": "Prenez une photo pour estimation instantanée des calories et macros."
     },
     "smartScale": {
-      "title": "Smart Scale",
-      "description": "Connect Xiaomi Mi Scale via Bluetooth or point your camera at any scale — AI reads automatically.",
-      "short": "Point your camera at any scale — AI reads automatically."
+      "title": "Balance Intelligente",
+      "description": "Connectez Xiaomi Mi Scale via Bluetooth ou pointez votre caméra vers n'importe quelle balance — l'IA lit automatiquement.",
+      "short": "Pointez la caméra vers la balance — l'IA lit automatiquement."
     },
     "healthIntegrations": {
-      "title": "Health Sync",
-      "description": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
-      "short": "Seamless sync with Google Fit, Apple Health & Samsung Health."
+      "title": "Sync Santé",
+      "description": "Synchronisation transparente avec Google Fit, Apple Health et Samsung Health. Vos données circulent automatiquement entre les plateformes.",
+      "short": "Sync transparente avec Google Fit, Apple Health & Samsung Health."
     },
     "exercises": {
-      "title": "15 Exercises",
-      "description": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
-      "short": "Track 15 different exercises with automatic rep counting."
+      "title": "15 Exercices",
+      "description": "Squats, Pompes, Abdos, Fentes, Burpees, Jumping Jacks, Genoux Hauts, Mountain Climbers, Planche, Chaise, Relevés de Jambes, Ponts Fessiers, Mollets, Fentes Latérales, Dips Triceps",
+      "short": "Suivez 15 exercices différents avec comptage automatique des répétitions."
     },
     "offlineFirst": {
       "title": "Offline First",
-      "description": "Full functionality without internet. Your data syncs automatically when you're back online.",
-      "short": "Works without internet — syncs when back online."
+      "description": "Fonctionnalité complète sans internet. Vos données se synchronisent automatiquement quand vous êtes de retour en ligne.",
+      "short": "Fonctionne sans internet — sync à la reconnexion."
     },
     "multiLanguage": {
-      "title": "6 Languages",
-      "description": "English, Русский, Español, Français, Deutsch, 中文. Auto-detects your browser language.",
-      "short": "Available in 6 languages with auto-detection."
+      "title": "6 Langues",
+      "description": "English, Русский, Español, Français, Deutsch, 中文. Détecte automatiquement la langue de votre navigateur.",
+      "short": "Disponible en 6 langues avec auto-détection."
     },
     "multiPlatform": {
-      "title": "Multi-Platform",
-      "description": "Web, iOS, Android, and Telegram Mini App. One account, all your devices.",
-      "short": "Web, iOS, Android, and Telegram. One account everywhere."
+      "title": "Multi-Plateforme",
+      "description": "Web, iOS, Android et Telegram Mini App. Un compte pour tous vos appareils.",
+      "short": "Web, iOS, Android et Telegram. Un compte partout."
     },
     "aiCoach": {
-      "title": "AI Coach",
-      "description": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
-      "short": "Personalized motivation with voice coaching.",
+      "title": "Coach IA",
+      "description": "Citations motivationnelles personnalisées et conseils de Gemini AI. Choisissez une voix masculine (Fenrir) ou féminine (Kore).",
+      "short": "Motivation personnalisée avec coaching vocal.",
       "premium": true
     },
     "smartShopping": {
-      "title": "Shopping Assistant",
-      "description": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need.",
-      "short": "AI plans meals and creates smart shopping lists."
+      "title": "Assistant Shopping",
+      "description": "Planifiez les repas, générez des listes de courses, vérifiez les produits par photo, scannez les rayons pour trouver ce dont vous avez besoin.",
+      "short": "L'IA planifie les repas et crée des listes de courses intelligentes."
     },
     "foodFinance": {
-      "title": "Food Finance",
-      "description": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
-      "short": "Track food spending. Calculate savings from home cooking."
+      "title": "Finances Alimentaires",
+      "description": "Suivez vos dépenses alimentaires, voyez où va votre argent et calculez les économies de la cuisine maison.",
+      "short": "Suivez les dépenses alimentaires. Calculez les économies de la cuisine maison."
     },
     "receiptScanning": {
-      "title": "Receipt Scanning",
-      "description": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
-      "short": "Scan receipts to auto-add products with prices & expiry dates."
+      "title": "Scan de Tickets",
+      "description": "Scannez les tickets de caisse pour ajouter automatiquement les produits à votre inventaire avec prix et dates de péremption.",
+      "short": "Scannez les tickets pour auto-ajouter avec prix & dates."
     },
     "gamification": {
-      "title": "Achievements",
-      "description": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
-      "short": "Earn achievements. Compete on the leaderboard."
+      "title": "Succès",
+      "description": "Gagnez des succès en atteignant des étapes. Affrontez vos amis dans le classement social.",
+      "short": "Gagnez des succès. Affrontez-vous dans le classement."
     },
     "charts": {
-      "title": "Analytics",
-      "description": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
-      "short": "Visualize progress with beautiful charts."
+      "title": "Analyses",
+      "description": "Visualisez vos progrès avec de beaux graphiques. Suivez les tendances de poids, calories, entraînements et composition corporelle.",
+      "short": "Visualisez vos progrès avec de beaux graphiques."
     }
   },
   "ai": {
-    "badge": "Powered by Gemini 2.5",
-    "title1": "AI That Actually",
-    "title2": "Understands Fitness",
-    "description": "Our AI doesn't just count — it sees, understands, and adapts to your unique fitness journey.",
-    "vision": "Vision AI",
-    "visionDesc": "Reads scales, identifies food, analyzes menus",
-    "portion": "Smart Portion Estimation",
-    "portionDesc": "Uses reference objects for accurate portions",
-    "motivation": "Personalized Motivation",
-    "motivationDesc": "AI adapts encouragement to your progress"
+    "badge": "Propulsé par Gemini 2.5",
+    "title1": "L'IA qui comprend",
+    "title2": "vraiment le fitness",
+    "description": "Notre IA ne fait pas que compter — elle voit, comprend et s'adapte à votre parcours fitness unique.",
+    "vision": "Vision IA",
+    "visionDesc": "Lit les balances, identifie les repas, analyse les menus",
+    "portion": "Estimation Intelligente des Portions",
+    "portionDesc": "Utilise des objets de référence pour des portions précises",
+    "motivation": "Motivation Personnalisée",
+    "motivationDesc": "L'IA adapte les encouragements à vos progrès"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
+    "title": "Tarifs Simples",
+    "subtitle": "Commencez gratuitement, passez à la version supérieure quand vous êtes prêt",
     "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
+      "name": "Gratuit",
+      "subtitle": "Parfait pour commencer",
       "price": "€0",
-      "period": "forever",
+      "period": "pour toujours",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "Entraînements illimités",
+        "Scanner Balance IA",
+        "Scanner Repas IA",
+        "Objectifs Quotidiens & Séries",
+        "Graphiques de Progrès"
       ],
-      "cta": "Get Started Free"
+      "cta": "Commencer Gratuitement"
     },
     "pro": {
       "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
-      "price": "€4.99",
-      "period": "month",
+      "badge": "LE PLUS POPULAIRE",
+      "subtitle": "Pour les passionnés de fitness",
+      "price": "€4,99",
+      "period": "mois",
       "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+        "Tout ce qui est dans Gratuit",
+        "Requêtes IA illimitées",
+        "Analyse de Composition Corporelle",
+        "Analyseur de Menus Restaurant",
+        "Assistant Vocal",
+        "Export PDF",
+        "Support Prioritaire"
       ],
-      "cta": "Upgrade to PRO"
+      "cta": "Passer à PRO"
     }
   },
   "download": {
-    "title1": "Ready to Transform",
-    "title2": "Your Fitness?",
-    "description": "Download FitStream now and start your AI-powered fitness journey",
+    "title1": "Prêt à transformer",
+    "title2": "votre fitness?",
+    "description": "Téléchargez FitStream maintenant et commencez votre parcours fitness avec l'IA",
     "appStore": "App Store",
     "googlePlay": "Google Play",
     "webApp": "Web App",
-    "on": "Download on the",
-    "get": "Get it on",
-    "use": "Use in"
+    "androidApk": "Android APK",
+    "on": "Télécharger sur",
+    "get": "Télécharger sur",
+    "use": "Utiliser dans",
+    "download": "Télécharger",
+    "directDownload": "Téléchargement direct",
+    "version": "Version",
+    "size": "Taille",
+    "comingSoon": "Bientôt",
+    "androidDirect": "Android (direct)",
+    "anyAndroid": "Tout Android 8.0+"
   },
   "footer": {
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation",
     "contact": "Contact",
-    "rights": "All rights reserved."
+    "rights": "Tous droits réservés."
   },
   "common": {
-    "learnMore": "Learn more",
-    "getStarted": "Get Started",
-    "tryFree": "Try Free",
+    "learnMore": "En savoir plus",
+    "getStarted": "Commencer",
+    "tryFree": "Essayer Gratuitement",
     "premium": "Premium"
   }
 }

@@ -2,25 +2,23 @@
 
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
-import { Apple, Play, Globe } from 'lucide-react';
+import { Download, Globe, Smartphone } from 'lucide-react';
+
+// APK download URL from Supabase Storage
+const APK_DOWNLOAD_URL = 'https://ouhvagzgwjlzygjcxdmb.supabase.co/storage/v1/object/public/apk-releases/FitStream-latest.apk';
+const APK_VERSION = '1.1.4';
 
 export function DownloadCTA() {
   const t = useTranslations('download');
 
   const downloadLinks = [
     {
-      href: '#', // App Store link
-      icon: Apple,
-      label1: t('on'),
-      label2: t('appStore'),
-      className: 'bg-black text-white hover:bg-gray-800',
-    },
-    {
-      href: '#', // Google Play link
-      icon: Play,
-      label1: t('get'),
-      label2: t('googlePlay'),
-      className: 'bg-black text-white hover:bg-gray-800',
+      href: APK_DOWNLOAD_URL,
+      icon: Download,
+      label1: t('directDownload'),
+      label2: `Android APK v${APK_VERSION}`,
+      className: 'bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-500 hover:to-green-500',
+      download: 'FitStream.apk',
     },
     {
       href: 'https://app.fitstream.health',
@@ -28,7 +26,7 @@ export function DownloadCTA() {
       label1: t('use'),
       label2: t('webApp'),
       className:
-        'bg-gradient-to-r from-blue-600 to-emerald-600 text-white hover:from-blue-500 hover:to-emerald-500',
+        'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500',
     },
   ];
 
@@ -61,6 +59,7 @@ export function DownloadCTA() {
             <a
               key={i}
               href={link.href}
+              download={link.download}
               className={`flex w-full items-center justify-center gap-3 rounded-xl px-6 py-4 transition sm:w-auto ${link.className}`}
             >
               <link.icon className="h-8 w-8" />
@@ -70,6 +69,20 @@ export function DownloadCTA() {
               </div>
             </a>
           ))}
+        </motion.div>
+
+        {/* Store links - Coming Soon */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-[var(--foreground-muted)]"
+        >
+          <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2">
+            <Smartphone className="h-4 w-4" />
+            <span>App Store & Google Play — {t('comingSoon')}</span>
+          </div>
         </motion.div>
       </div>
     </section>

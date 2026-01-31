@@ -1,181 +1,196 @@
 {
   "meta": {
-    "title": "FitStream AI - AI-Powered Fitness & Nutrition Companion",
-    "description": "Track workouts with AI pose detection, scan food for calories, manage your kitchen inventory, and get personalized coaching. Available on iOS, Android, and Web."
+    "title": "FitStream AI - AI智能健身与营养助手",
+    "description": "使用AI姿势检测追踪训练，扫描食物计算卡路里，管理厨房库存，获得个性化指导。支持iOS、Android和Web。"
   },
   "nav": {
-    "features": "Features",
-    "pricing": "Pricing",
-    "download": "Download",
-    "getStarted": "Get Started"
+    "features": "功能",
+    "pricing": "价格",
+    "download": "下载",
+    "getStarted": "开始使用"
   },
   "hero": {
-    "badge": "Powered by Google Gemini AI",
-    "title1": "Your AI-Powered",
-    "title2": "Fitness Companion",
-    "description": "Track workouts, scan food for calories, read your scale with AI, and get personalized motivation — all in one beautiful app.",
-    "downloadFree": "Download Free",
-    "tryWebApp": "Try Web App"
+    "badge": "由Google Gemini AI驱动",
+    "title1": "您的AI智能",
+    "title2": "健身伙伴",
+    "dynamicTitles": [
+      "AI指导训练",
+      "即时扫描食物",
+      "智能烹饪食谱",
+      "更快达成目标"
+    ],
+    "description": "追踪训练、扫描食物计算卡路里、AI读取体重秤、获得个性化激励 — 尽在一款精美应用中。",
+    "demoLabel": "交互式应用预览",
+    "downloadFree": "免费下载",
+    "tryWebApp": "试用网页版"
   },
   "social": {
-    "users": "10,000+ users",
-    "rating": "4.8★ rating",
-    "exercises": "15 exercises tracked"
+    "users": "10,000+ 用户",
+    "rating": "4.8★ 评分",
+    "exercises": "追踪15种运动"
   },
   "features": {
-    "title": "Everything You Need",
-    "subtitle": "Powerful features to transform your fitness journey",
-    "seeAll": "See all 16 features",
+    "title": "您所需要的一切",
+    "subtitle": "强大功能助您健身蜕变",
+    "seeAll": "查看全部16项功能",
     "poseTracking": {
-      "title": "AI Pose Tracking",
-      "description": "Real-time form analysis using MediaPipe. Get instant feedback on your exercise technique without any cloud processing.",
-      "short": "Real-time form analysis with MediaPipe. 15 exercises with instant feedback."
+      "title": "AI姿势追踪",
+      "description": "使用MediaPipe实时分析动作姿势。无需云端处理即可获得即时技术反馈。",
+      "short": "实时姿势分析。15种运动即时反馈。"
     },
     "smartKitchen": {
-      "title": "Smart Kitchen",
-      "description": "Manage your fridge, pantry & freezer inventory. AI recognizes products from photos. Get recipe suggestions based on what you have.",
-      "short": "Manage fridge, pantry & freezer. AI recognizes products from photos."
+      "title": "智能厨房",
+      "description": "管理冰箱、储物柜和冷冻室库存。AI通过照片识别产品。根据现有食材推荐食谱。",
+      "short": "管理冰箱。AI通过照片识别产品。"
     },
     "cookingMode": {
-      "title": "Guided Cooking",
-      "description": "Step-by-step instructions with integrated timers, stir/flip reminders, and troubleshooting tips. Log calories when done.",
-      "short": "Step-by-step recipes with timers, reminders & troubleshooting tips."
+      "title": "引导烹饪",
+      "description": "带计时器、翻炒提醒和故障排除提示的分步说明。完成后记录卡路里。",
+      "short": "带计时器和提示的分步食谱。"
     },
     "nutritionScanner": {
-      "title": "AI Food Scanner",
-      "description": "Take a photo of your meal and get instant calorie estimation. Uses a reference object for accurate portion sizing.",
-      "short": "Snap a photo for instant calorie and macro estimates."
+      "title": "AI食物扫描",
+      "description": "拍摄餐食照片即可获得即时卡路里估算。使用参照物准确估算份量。",
+      "short": "拍照即可获得卡路里和宏量营养素估算。"
     },
     "smartScale": {
-      "title": "Smart Scale",
-      "description": "Connect Xiaomi Mi Scale via Bluetooth or point your camera at any scale — AI reads automatically.",
-      "short": "Point your camera at any scale — AI reads automatically."
+      "title": "智能体重秤",
+      "description": "通过蓝牙连接小米体重秤，或将摄像头对准任何体重秤 — AI自动读取。",
+      "short": "将摄像头对准体重秤 — AI自动读取。"
     },
     "healthIntegrations": {
-      "title": "Health Sync",
-      "description": "Seamlessly sync with Google Fit, Apple Health, and Samsung Health. Your data flows automatically between platforms.",
-      "short": "Seamless sync with Google Fit, Apple Health & Samsung Health."
+      "title": "健康同步",
+      "description": "与Google Fit、Apple Health和Samsung Health无缝同步。数据在平台间自动流转。",
+      "short": "与Google Fit、Apple Health和Samsung Health无缝同步。"
     },
     "exercises": {
-      "title": "15 Exercises",
-      "description": "Squats, Push-ups, Sit-ups, Lunges, Burpees, Jumping Jacks, High Knees, Mountain Climbers, Plank, Wall Sit, Leg Raises, Glute Bridges, Calf Raises, Side Lunges, Tricep Dips",
-      "short": "Track 15 different exercises with automatic rep counting."
+      "title": "15种运动",
+      "description": "深蹲、俯卧撑、仰卧起坐、弓步、波比跳、开合跳、高抬腿、登山跑、平板支撑、靠墙静蹲、抬腿、臀桥、提踵、侧弓步、三头肌臂屈伸",
+      "short": "追踪15种不同运动，自动计数。"
     },
     "offlineFirst": {
-      "title": "Offline First",
-      "description": "Full functionality without internet. Your data syncs automatically when you're back online.",
-      "short": "Works without internet — syncs when back online."
+      "title": "离线优先",
+      "description": "无需网络即可完整使用。重新上线时数据自动同步。",
+      "short": "离线可用 — 联网时自动同步。"
     },
     "multiLanguage": {
-      "title": "6 Languages",
-      "description": "English, Русский, Español, Français, Deutsch, 中文. Auto-detects your browser language.",
-      "short": "Available in 6 languages with auto-detection."
+      "title": "6种语言",
+      "description": "English, Русский, Español, Français, Deutsch, 中文。自动检测浏览器语言。",
+      "short": "支持6种语言，自动检测。"
     },
     "multiPlatform": {
-      "title": "Multi-Platform",
-      "description": "Web, iOS, Android, and Telegram Mini App. One account, all your devices.",
-      "short": "Web, iOS, Android, and Telegram. One account everywhere."
+      "title": "多平台",
+      "description": "Web、iOS、Android和Telegram小程序。一个账户，所有设备。",
+      "short": "Web、iOS、Android和Telegram。一个账户，随处可用。"
     },
     "aiCoach": {
-      "title": "AI Coach",
-      "description": "Personalized motivational quotes and tips powered by Gemini AI. Choose male (Fenrir) or female (Kore) voice.",
-      "short": "Personalized motivation with voice coaching.",
+      "title": "AI教练",
+      "description": "由Gemini AI驱动的个性化激励语录和建议。选择男声（Fenrir）或女声（Kore）。",
+      "short": "个性化激励与语音指导。",
       "premium": true
     },
     "smartShopping": {
-      "title": "Shopping Assistant",
-      "description": "Plan meals, generate shopping lists, verify products by photo, scan store shelves to find what you need.",
-      "short": "AI plans meals and creates smart shopping lists."
+      "title": "购物助手",
+      "description": "规划餐食、生成购物清单、通过照片验证产品、扫描货架找到所需物品。",
+      "short": "AI规划餐食并创建智能购物清单。"
     },
     "foodFinance": {
-      "title": "Food Finance",
-      "description": "Track your food spending, see where your money goes, and calculate savings from home cooking vs eating out.",
-      "short": "Track food spending. Calculate savings from home cooking."
+      "title": "食品财务",
+      "description": "追踪食品支出，了解钱花在哪里，计算自己做饭与外出就餐的节省金额。",
+      "short": "追踪食品支出。计算自己做饭的节省。"
     },
     "receiptScanning": {
-      "title": "Receipt Scanning",
-      "description": "Scan grocery receipts to automatically add products to your kitchen inventory with prices and expiry dates.",
-      "short": "Scan receipts to auto-add products with prices & expiry dates."
+      "title": "小票扫描",
+      "description": "扫描超市小票，自动将产品添加到厨房库存，包括价格和保质期。",
+      "short": "扫描小票自动添加产品及价格和保质期。"
     },
     "gamification": {
-      "title": "Achievements",
-      "description": "Earn achievements for hitting milestones. Compete with friends on the social leaderboard.",
-      "short": "Earn achievements. Compete on the leaderboard."
+      "title": "成就系统",
+      "description": "完成里程碑获得成就。在社交排行榜上与朋友竞争。",
+      "short": "获得成就。在排行榜上竞争。"
     },
     "charts": {
-      "title": "Analytics",
-      "description": "Visualize your progress with beautiful charts. Track trends in weight, calories, workouts, and body composition.",
-      "short": "Visualize progress with beautiful charts."
+      "title": "数据分析",
+      "description": "用精美图表可视化您的进步。追踪体重、卡路里、训练和身体成分趋势。",
+      "short": "用精美图表可视化进步。"
     }
   },
   "ai": {
-    "badge": "Powered by Gemini 2.5",
-    "title1": "AI That Actually",
-    "title2": "Understands Fitness",
-    "description": "Our AI doesn't just count — it sees, understands, and adapts to your unique fitness journey.",
-    "vision": "Vision AI",
-    "visionDesc": "Reads scales, identifies food, analyzes menus",
-    "portion": "Smart Portion Estimation",
-    "portionDesc": "Uses reference objects for accurate portions",
-    "motivation": "Personalized Motivation",
-    "motivationDesc": "AI adapts encouragement to your progress"
+    "badge": "由Gemini 2.5驱动",
+    "title1": "真正理解",
+    "title2": "健身的AI",
+    "description": "我们的AI不仅仅是计数 — 它能看、能理解、能适应您独特的健身之旅。",
+    "vision": "视觉AI",
+    "visionDesc": "读取体重秤、识别食物、分析菜单",
+    "portion": "智能份量估算",
+    "portionDesc": "使用参照物准确估算份量",
+    "motivation": "个性化激励",
+    "motivationDesc": "AI根据您的进步调整鼓励方式"
   },
   "pricing": {
-    "title": "Simple Pricing",
-    "subtitle": "Start free, upgrade when you're ready",
+    "title": "简单定价",
+    "subtitle": "免费开始，准备好时再升级",
     "free": {
-      "name": "Free",
-      "subtitle": "Perfect for getting started",
+      "name": "免费版",
+      "subtitle": "完美的入门选择",
       "price": "€0",
-      "period": "forever",
+      "period": "永久",
       "features": [
-        "Unlimited workouts",
-        "AI Scale Scanner",
-        "AI Food Scanner",
-        "Daily Goals & Streaks",
-        "Progress Charts"
+        "无限训练",
+        "AI体重秤扫描",
+        "AI食物扫描",
+        "每日目标与连续记录",
+        "进度图表"
       ],
-      "cta": "Get Started Free"
+      "cta": "免费开始"
     },
     "pro": {
       "name": "FitStream PRO",
-      "badge": "MOST POPULAR",
-      "subtitle": "For serious fitness enthusiasts",
+      "badge": "最受欢迎",
+      "subtitle": "适合认真的健身爱好者",
       "price": "€4.99",
-      "period": "month",
+      "period": "月",
       "features": [
-        "Everything in Free",
-        "Unlimited AI requests",
-        "Body Composition Analysis",
-        "Restaurant Menu Analyzer",
-        "Voice Assistant",
-        "PDF Export",
-        "Priority Support"
+        "免费版全部功能",
+        "无限AI请求",
+        "身体成分分析",
+        "餐厅菜单分析器",
+        "语音助手",
+        "PDF导出",
+        "优先支持"
       ],
-      "cta": "Upgrade to PRO"
+      "cta": "升级到PRO"
     }
   },
   "download": {
-    "title1": "Ready to Transform",
-    "title2": "Your Fitness?",
-    "description": "Download FitStream now and start your AI-powered fitness journey",
+    "title1": "准备好改变",
+    "title2": "您的健身了吗？",
+    "description": "立即下载FitStream，开启您的AI智能健身之旅",
     "appStore": "App Store",
     "googlePlay": "Google Play",
-    "webApp": "Web App",
-    "on": "Download on the",
-    "get": "Get it on",
-    "use": "Use in"
+    "webApp": "网页版",
+    "androidApk": "Android APK",
+    "on": "下载自",
+    "get": "下载自",
+    "use": "使用",
+    "download": "下载",
+    "directDownload": "直接下载",
+    "version": "版本",
+    "size": "大小",
+    "comingSoon": "即将推出",
+    "androidDirect": "Android（直接下载）",
+    "anyAndroid": "任何Android 8.0+"
   },
   "footer": {
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
-    "contact": "Contact",
-    "rights": "All rights reserved."
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "contact": "联系我们",
+    "rights": "版权所有。"
   },
   "common": {
-    "learnMore": "Learn more",
-    "getStarted": "Get Started",
-    "tryFree": "Try Free",
-    "premium": "Premium"
+    "learnMore": "了解更多",
+    "getStarted": "开始使用",
+    "tryFree": "免费试用",
+    "premium": "高级版"
   }
 }
