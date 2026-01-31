@@ -5,6 +5,7 @@ import {
   KitchenStorage, InventoryItem, Recipe, CookedMeal, Leftover, StorageType, StoragePhoto
 } from '../types';
 import { ApiService } from './api';
+import { BUILD_CONFIG } from '../buildConfig';
 
 const KEYS = {
   EXERCISES: 'fitstream_exercises',
@@ -560,7 +561,12 @@ export const StorageService = {
         if (!g.color) g.color = GOAL_DEFAULTS[g.type]?.color || '#94a3b8';
     });
     if (!settings.avatar) settings.avatar = DEFAULT_SETTINGS.avatar;
-    if (settings.isPro === undefined) settings.isPro = false;
+    // Admin builds always have Pro status
+    if (BUILD_CONFIG.isAdminBuild) {
+      settings.isPro = true;
+    } else if (settings.isPro === undefined) {
+      settings.isPro = false;
+    }
     
     if (!settings.height) settings.height = 175;
     if (!settings.gender) settings.gender = 'MALE';
