@@ -21,7 +21,7 @@ export function Header() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-lg">
+    <header className="fixed top-4 left-4 right-4 z-50 rounded-2xl border border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-lg shadow-lg shadow-black/5">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href={`/${locale}`} className="flex items-center gap-2">

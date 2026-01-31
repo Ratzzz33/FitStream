@@ -4,27 +4,41 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { motion } from 'motion/react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-
-const dynamicTitles = [
-  'Track workouts with AI',
-  'Scan food instantly',
-  'Cook smarter',
-  'Reach your goals',
-];
 
 export function Hero() {
   const t = useTranslations('hero');
   const locale = useLocale();
   const [titleIndex, setTitleIndex] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Get dynamic titles from translations
+  const dynamicTitles = t.raw('dynamicTitles') as string[];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTitleIndex((prev) => (prev + 1) % dynamicTitles.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+
+    // Only animate if user doesn't prefer reduced motion
+    if (!mediaQuery.matches) {
+      const interval = setInterval(() => {
+        setTitleIndex((prev) => (prev + 1) % dynamicTitles.length);
+      }, 3000);
+      return () => {
+        clearInterval(interval);
+        mediaQuery.removeEventListener('change', handleChange);
+      };
+    }
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [dynamicTitles.length]);
 
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pt-20">
@@ -61,10 +75,10 @@ export function Hero() {
 
           {/* Dynamic subtitle */}
           <motion.p
-            key={titleIndex}
-            initial={{ opacity: 0, y: 10 }}
+            key={prefersReducedMotion ? 'static' : titleIndex}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -10 }}
             className="mb-4 text-2xl font-semibold text-blue-600"
           >
             {dynamicTitles[titleIndex]}
@@ -108,9 +122,9 @@ export function Hero() {
               style={{ aspectRatio: '9/18' }}
             >
               <div className="text-center">
-                <div className="mb-4 text-6xl">📱</div>
+                <Smartphone className="mx-auto mb-4 h-16 w-16 text-blue-600/60" strokeWidth={1.5} />
                 <p className="text-sm text-[var(--foreground-muted)]">
-                  Interactive demo
+                  {t('demoLabel')}
                 </p>
               </div>
             </div>

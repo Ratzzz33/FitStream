@@ -354,6 +354,45 @@ const initDb = async () => {
             ON CONFLICT (name) DO NOTHING
         `, [phone.name, phone.weight]);
     }
+
+    // Recipe ratings table
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS recipe_ratings (
+            id SERIAL PRIMARY KEY,
+            recipe_id INTEGER NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(recipe_id, user_id)
+        );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_recipe_ratings_recipe_id ON recipe_ratings(recipe_id);`);
+
+    // Recipe comments table
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS recipe_comments (
+            id SERIAL PRIMARY KEY,
+            recipe_id INTEGER NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            user_name VARCHAR(255) DEFAULT 'Аноним',
+            text TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_recipe_comments_recipe_id ON recipe_comments(recipe_id);`);
+
+    // Add created_at to recipes if not exists (for "new recipes" feature)
+    await client.query(`
+        ALTER TABLE recipes ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    `);
+    await client.query(`
+        ALTER TABLE recipes ADD COLUMN IF NOT EXISTS is_ai_generated BOOLEAN DEFAULT FALSE;
+    `);
+    await client.query(`
+        ALTER TABLE recipes ADD COLUMN IF NOT EXISTS created_by_user VARCHAR(255);
+    `);
+
     console.log("✅ Database initialized successfully.");
   } catch (err) {
     console.error("❌ Error initializing database:", err.message);
@@ -1421,10 +1460,10 @@ app.post('/api/recipes/match', async (req, res) => {
     }
 });
 
-// Save AI-generated recipe to database
+// Save AI-generated recipe to database (with image)
 app.post('/api/recipes/save-generated', async (req, res) => {
     try {
-        const { recipe, userId } = req.body;
+        const { recipe, imageUrl, userId } = req.body;
 
         if (!recipe || !recipe.name) {
             return res.status(400).json({ error: 'Recipe data required' });
@@ -1437,21 +1476,28 @@ app.post('/api/recipes/save-generated', async (req, res) => {
         );
 
         if (existing.rows.length > 0) {
+            // Update image if we have one and existing doesn't
+            if (imageUrl) {
+                await pool.query(
+                    'UPDATE recipes SET image_url = $1 WHERE id = $2 AND image_url IS NULL',
+                    [imageUrl, existing.rows[0].id]
+                );
+            }
             return res.json({ id: existing.rows[0].id, alreadyExists: true });
         }
 
-        // Insert new recipe
+        // Insert new recipe with image
         const result = await pool.query(`
             INSERT INTO recipes (
                 name_ru, name_en, instructions_ru, tips_ru,
                 calories, protein, fat, carbs,
                 cooking_time, servings, difficulty,
-                is_healthy, is_ai_generated, created_by_user
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
+                is_healthy, is_ai_generated, created_by_user, image_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13, $14)
             RETURNING id
         `, [
             recipe.name,
-            recipe.name, // English same as Russian for AI-generated
+            recipe.name,
             recipe.steps?.map((s, i) => `${i + 1}. ${s.instruction}`).join('\n') || '',
             recipe.cookingTips?.join('\n') || '',
             recipe.caloriesPerServing || null,
@@ -1462,7 +1508,8 @@ app.post('/api/recipes/save-generated', async (req, res) => {
             recipe.servings || 2,
             recipe.difficulty || 'medium',
             recipe.caloriesPerServing && recipe.caloriesPerServing < 400,
-            userId || null
+            userId || null,
+            imageUrl || null
         ]);
 
         const recipeId = result.rows[0].id;
@@ -1487,6 +1534,148 @@ app.post('/api/recipes/save-generated', async (req, res) => {
         res.json({ id: recipeId, alreadyExists: false });
     } catch (e) {
         console.error('Save recipe error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get recipe stats (count, new since date)
+app.get('/api/recipes/stats', async (req, res) => {
+    try {
+        const { since } = req.query; // ISO date string
+
+        const totalResult = await pool.query('SELECT COUNT(*) as total FROM recipes WHERE calories IS NOT NULL');
+        const total = parseInt(totalResult.rows[0].total);
+
+        let newCount = 0;
+        if (since) {
+            const newResult = await pool.query(
+                'SELECT COUNT(*) as new FROM recipes WHERE created_at > $1',
+                [since]
+            );
+            newCount = parseInt(newResult.rows[0].new);
+        }
+
+        res.json({ total, newSince: newCount });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Rate a recipe
+app.post('/api/recipes/:id/rate', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, rating } = req.body;
+
+        if (!userId || !rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'userId and rating (1-5) required' });
+        }
+
+        // Upsert rating
+        await pool.query(`
+            INSERT INTO recipe_ratings (recipe_id, user_id, rating)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (recipe_id, user_id)
+            DO UPDATE SET rating = $3, updated_at = CURRENT_TIMESTAMP
+        `, [id, userId, rating]);
+
+        // Get average rating
+        const avgResult = await pool.query(
+            'SELECT AVG(rating)::numeric(2,1) as avg, COUNT(*) as count FROM recipe_ratings WHERE recipe_id = $1',
+            [id]
+        );
+
+        res.json({
+            averageRating: parseFloat(avgResult.rows[0].avg) || 0,
+            totalRatings: parseInt(avgResult.rows[0].count)
+        });
+    } catch (e) {
+        console.error('Rate recipe error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get recipe rating
+app.get('/api/recipes/:id/rating', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId } = req.query;
+
+        const avgResult = await pool.query(
+            'SELECT AVG(rating)::numeric(2,1) as avg, COUNT(*) as count FROM recipe_ratings WHERE recipe_id = $1',
+            [id]
+        );
+
+        let userRating = null;
+        if (userId) {
+            const userResult = await pool.query(
+                'SELECT rating FROM recipe_ratings WHERE recipe_id = $1 AND user_id = $2',
+                [id, userId]
+            );
+            userRating = userResult.rows[0]?.rating || null;
+        }
+
+        res.json({
+            averageRating: parseFloat(avgResult.rows[0].avg) || 0,
+            totalRatings: parseInt(avgResult.rows[0].count),
+            userRating
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get recipe comments
+app.get('/api/recipes/:id/comments', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { limit = 20, offset = 0 } = req.query;
+
+        const result = await pool.query(`
+            SELECT c.*, u.name as user_name, u.avatar as user_avatar
+            FROM recipe_comments c
+            LEFT JOIN users u ON u.id = c.user_id
+            WHERE c.recipe_id = $1
+            ORDER BY c.created_at DESC
+            LIMIT $2 OFFSET $3
+        `, [id, parseInt(limit), parseInt(offset)]);
+
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Add recipe comment
+app.post('/api/recipes/:id/comments', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, userName, text } = req.body;
+
+        if (!userId || !text || text.trim().length === 0) {
+            return res.status(400).json({ error: 'userId and text required' });
+        }
+
+        if (text.length > 500) {
+            return res.status(400).json({ error: 'Comment too long (max 500 chars)' });
+        }
+
+        const result = await pool.query(`
+            INSERT INTO recipe_comments (recipe_id, user_id, user_name, text)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, created_at
+        `, [id, userId, userName || 'Аноним', text.trim()]);
+
+        res.json({
+            id: result.rows[0].id,
+            recipe_id: parseInt(id),
+            user_id: userId,
+            user_name: userName || 'Аноним',
+            text: text.trim(),
+            created_at: result.rows[0].created_at
+        });
+    } catch (e) {
+        console.error('Add comment error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });

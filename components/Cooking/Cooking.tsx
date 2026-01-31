@@ -1,12 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle, Database, Sparkles } from 'lucide-react';
+import { RefreshCw, Flame, ChefHat, AlertTriangle, Database, Sparkles, X } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
 import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
 import { generateDishImage } from '../../services/nanaBananaService';
-import { matchRecipesByIngredients, saveGeneratedRecipe, RecipeWithMatch } from '../../services/recipeService';
+import { matchRecipesByIngredients, saveGeneratedRecipe, getRecipeStats, RecipeWithMatch } from '../../services/recipeService';
 import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
+
+// Toast component for new recipes notification
+const NewRecipesToast: React.FC<{ count: number; onClose: () => void }> = ({ count, onClose }) => (
+  <div className="fixed top-4 left-4 right-4 z-50 animate-slide-down">
+    <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
+      <span className="text-3xl">🆕</span>
+      <div className="flex-1">
+        <p className="font-bold">Новые рецепты!</p>
+        <p className="text-sm opacity-90">
+          Добавлено {count} {count === 1 ? 'рецепт' : count < 5 ? 'рецепта' : 'рецептов'} с прошлого обновления
+        </p>
+      </div>
+      <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full">
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  </div>
+);
+
+const LAST_RECIPE_CHECK_KEY = 'fitstream_last_recipe_check';
 
 interface CookingProps {
   caloriesRemaining: number;
@@ -27,6 +47,30 @@ export const Cooking: React.FC<CookingProps> = ({
   const [recipeImages, setRecipeImages] = useState<Record<number, string>>({});
   const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
+  const [newRecipesCount, setNewRecipesCount] = useState<number>(0);
+
+  // Check for new recipes on mount
+  useEffect(() => {
+    checkForNewRecipes();
+  }, []);
+
+  const checkForNewRecipes = async () => {
+    try {
+      const lastCheck = localStorage.getItem(LAST_RECIPE_CHECK_KEY);
+      const stats = await getRecipeStats(lastCheck || undefined);
+
+      if (lastCheck && stats.newSince > 0) {
+        setNewRecipesCount(stats.newSince);
+        // Auto-hide after 5 seconds
+        setTimeout(() => setNewRecipesCount(0), 5000);
+      }
+
+      // Update last check time
+      localStorage.setItem(LAST_RECIPE_CHECK_KEY, new Date().toISOString());
+    } catch (err) {
+      console.warn('Failed to check for new recipes:', err);
+    }
+  };
 
   // Determine time of day for meal type
   const getTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
@@ -90,7 +134,7 @@ export const Cooking: React.FC<CookingProps> = ({
     loadRecipes();
   }, []);
 
-  // Generate image for a recipe (parallel)
+  // Generate image for a recipe (parallel) and save to DB if AI-generated
   const generateImageForRecipe = async (recipe: GeneratedRecipe, index: number) => {
     setLoadingImages(prev => new Set(prev).add(index));
 
@@ -100,6 +144,16 @@ export const Cooking: React.FC<CookingProps> = ({
         ingredients: recipe.ingredients.map(i => i.name)
       });
       setRecipeImages(prev => ({ ...prev, [index]: image.url }));
+
+      // If this is NOT a DB recipe, save image to DB
+      const recipeAny = recipe as any;
+      if (!recipeAny._fromDb && image.url) {
+        saveGeneratedRecipe(recipe, image.url, StorageService.getUserId())
+          .then(result => {
+            console.log(`🖼️ Saved recipe "${recipe.name}" with image to DB`);
+          })
+          .catch(err => console.warn('Failed to save recipe with image:', err));
+      }
     } catch (err) {
       console.error(`Error generating image for recipe ${index}:`, err);
     } finally {
@@ -210,16 +264,8 @@ export const Cooking: React.FC<CookingProps> = ({
           const aiRecipes = await generateRecipes(inventory, context);
           console.log(`✨ AI generated ${aiRecipes.length} recipes`);
 
-          // Save AI recipes to DB for future users (async, don't wait)
-          aiRecipes.forEach(recipe => {
-            saveGeneratedRecipe(recipe, StorageService.getUserId())
-              .then(result => {
-                if (!result.alreadyExists) {
-                  console.log(`💾 Saved recipe "${recipe.name}" to DB`);
-                }
-              })
-              .catch(err => console.warn('Failed to save recipe:', err));
-          });
+          // Note: AI recipes will be saved to DB when their images are generated
+          // (in generateImageForRecipe function)
 
           // Combine DB + AI recipes, avoiding duplicates
           const existingNames = new Set(allRecipes.map(r => r.name.toLowerCase()));
@@ -302,6 +348,11 @@ export const Cooking: React.FC<CookingProps> = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* New recipes toast */}
+      {newRecipesCount > 0 && (
+        <NewRecipesToast count={newRecipesCount} onClose={() => setNewRecipesCount(0)} />
+      )}
+
       {/* Loading state */}
       {state === 'loading' && (
         <div className="flex-1 flex flex-col items-center justify-center p-8">

@@ -138,13 +138,76 @@ export async function matchRecipesByIngredients(
 }
 
 /**
- * Save AI-generated recipe to database for future users
+ * Save AI-generated recipe to database for future users (with image)
  */
 export async function saveGeneratedRecipe(
     recipe: any,
+    imageUrl?: string,
     userId?: string
 ): Promise<{ id: number; alreadyExists: boolean }> {
-    return api.post('/api/recipes/save-generated', { recipe, userId });
+    return api.post('/api/recipes/save-generated', { recipe, imageUrl, userId });
+}
+
+/**
+ * Get recipe stats (total count, new recipes since date)
+ */
+export async function getRecipeStats(since?: string): Promise<{ total: number; newSince: number }> {
+    const params = since ? `?since=${encodeURIComponent(since)}` : '';
+    return api.get(`/api/recipes/stats${params}`);
+}
+
+/**
+ * Rate a recipe (1-5 stars)
+ */
+export async function rateRecipe(
+    recipeId: number,
+    userId: string,
+    rating: number
+): Promise<{ averageRating: number; totalRatings: number }> {
+    return api.post(`/api/recipes/${recipeId}/rate`, { userId, rating });
+}
+
+/**
+ * Get recipe rating
+ */
+export async function getRecipeRating(
+    recipeId: number,
+    userId?: string
+): Promise<{ averageRating: number; totalRatings: number; userRating: number | null }> {
+    const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+    return api.get(`/api/recipes/${recipeId}/rating${params}`);
+}
+
+export interface RecipeComment {
+    id: number;
+    recipe_id: number;
+    user_id: string;
+    user_name: string;
+    text: string;
+    created_at: string;
+}
+
+/**
+ * Get comments for a recipe
+ */
+export async function getRecipeComments(
+    recipeId: number,
+    limit: number = 20,
+    offset: number = 0
+): Promise<RecipeComment[]> {
+    return api.get(`/api/recipes/${recipeId}/comments?limit=${limit}&offset=${offset}`);
+}
+
+/**
+ * Add a comment to a recipe
+ */
+export async function addRecipeComment(
+    recipeId: number,
+    userId: string,
+    userName: string,
+    text: string
+): Promise<RecipeComment> {
+    return api.post(`/api/recipes/${recipeId}/comments`, { userId, userName, text });
 }
 
 export default {
@@ -155,5 +218,10 @@ export default {
     getRecipesWithIngredientMatch,
     getReadyToCookRecipes,
     matchRecipesByIngredients,
-    saveGeneratedRecipe
+    saveGeneratedRecipe,
+    getRecipeStats,
+    rateRecipe,
+    getRecipeRating,
+    getRecipeComments,
+    addRecipeComment
 };
