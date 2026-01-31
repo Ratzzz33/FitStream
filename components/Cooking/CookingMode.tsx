@@ -433,9 +433,9 @@ export const CookingMode: React.FC<CookingModeProps> = ({
         {currentStepIndex > 0 && (
           <div className="px-4 pb-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-3 opacity-60">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <Check className="w-4 h-4 text-green-500" />
-                <span>Шаг {currentStepIndex}: {recipe.steps[currentStepIndex - 1].instruction.slice(0, 50)}...</span>
+              <div className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Шаг {currentStepIndex}: {recipe.steps[currentStepIndex - 1].instruction}</span>
               </div>
             </div>
           </div>
@@ -445,11 +445,11 @@ export const CookingMode: React.FC<CookingModeProps> = ({
         {currentStepIndex < totalSteps - 1 && (
           <div className="px-4 pb-4">
             <div className="bg-white/50 dark:bg-gray-800/50 rounded-xl p-3 border border-dashed border-gray-300 dark:border-gray-600">
-              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
-                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-xs">
+              <div className="flex items-start gap-2 text-sm text-gray-400 dark:text-gray-500">
+                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-xs flex-shrink-0">
                   {currentStepIndex + 2}
                 </span>
-                <span>{recipe.steps[currentStepIndex + 1].instruction.slice(0, 50)}...</span>
+                <span>{recipe.steps[currentStepIndex + 1].instruction}</span>
               </div>
             </div>
           </div>
