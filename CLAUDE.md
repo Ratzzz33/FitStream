@@ -97,3 +97,48 @@ IMPORTANT: При добавлении/изменении функций:
 3. Обновить скриншоты в `landing/screenshots/` если UI изменился
 
 Лендинг должен всегда отражать актуальные возможности приложения.
+
+## Agent Rules (ОБЯЗАТЕЛЬНО)
+
+### Git Workflow
+
+**ЗАПРЕЩЕНО пушить напрямую в main:**
+- Все изменения ТОЛЬКО через Pull Request
+- Прямой `git push origin main` — ЗАПРЕЩЁН
+- Каждый PR должен пройти CI перед merge
+
+### PR и Merge
+
+**Обязательный порядок:**
+1. Создать feature-ветку: `git checkout -b fix/...` или `feat/...`
+2. Закоммитить изменения
+3. Создать PR: `gh pr create`
+4. **ЖДАТЬ** завершения CI: `gh pr checks <number> --watch`
+5. При красном CI — исправить ошибки, дождаться нового прогона
+6. Мёрджить ТОЛЬКО после зелёного CI: `gh pr merge <number> --squash`
+
+```bash
+# Правильный flow
+git checkout -b fix/my-fix
+git add . && git commit -m "fix: ..."
+git push -u origin fix/my-fix
+gh pr create --title "..." --body "..."
+gh pr checks 123 --watch        # ОБЯЗАТЕЛЬНО ждать!
+# CI красный? → исправить → push → снова ждать CI
+gh pr merge 123 --squash        # Только после ✅
+```
+
+**ЗАПРЕЩЕНО:**
+- `git push origin main` — прямой пуш в main
+- `gh pr merge` без проверки CI статуса
+- Игнорировать failed checks
+- Использовать `--admin` флаг для обхода защиты
+- Мёрджить пока CI ещё выполняется (pending)
+
+### Branch Protection
+
+**ЗАПРЕЩЕНО** менять настройки branch protection без явного разрешения пользователя:
+- Не трогать `gh api repos/.../branches/.../protection`
+- Не менять required checks, reviewers, restrictions
+
+При необходимости изменений — спросить пользователя.
