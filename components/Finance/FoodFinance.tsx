@@ -36,52 +36,22 @@ export const FoodFinance: React.FC = () => {
     }, [selectedMonth]);
 
     const loadFinanceData = () => {
-        // Load real data from storage - expenses logged via food scanning
-        const nutritionLogs = StorageService.getNutritionHistory();
-        const now = new Date();
-        const currentMonthStr = now.toISOString().slice(0, 7);
-        const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const prevMonthStr = prevMonth.toISOString().slice(0, 7);
-
-        // Filter logs by month and calculate totals
-        const calcMonthStats = (monthStr: string): MonthlyStats => {
-            const monthLogs = nutritionLogs.filter(log =>
-                log.date?.startsWith(monthStr) && log.cost && log.cost > 0
-            );
-
-            let groceries = 0;
-            let restaurants = 0;
-            let delivery = 0;
-            let mealsCooked = 0;
-
-            monthLogs.forEach(log => {
-                const cost = log.cost || 0;
-                if (log.isHomeMade) {
-                    groceries += cost;
-                    mealsCooked++;
-                } else if (log.source === 'delivery') {
-                    delivery += cost;
-                } else {
-                    restaurants += cost;
-                }
-            });
-
-            const total = groceries + restaurants + delivery;
-            // Estimate savings: home cooking costs ~40% less than equivalent restaurant meal
-            const savedFromCooking = Math.round(groceries * 0.6);
-
-            return { groceries, restaurants, delivery, total, savedFromCooking, mealsCooked };
+        // Finance tracking requires cost fields in NutritionLog (not yet implemented)
+        // Show empty data until the feature is fully implemented
+        const emptyStats: MonthlyStats = {
+            groceries: 0,
+            restaurants: 0,
+            delivery: 0,
+            total: 0,
+            savedFromCooking: 0,
+            mealsCooked: 0
         };
 
-        const currentMonth = calcMonthStats(currentMonthStr);
-        const previousMonth = calcMonthStats(prevMonthStr);
-
-        // Calculate all-time savings from cooking
-        const allTimeSaved = nutritionLogs
-            .filter(log => log.isHomeMade && log.cost && log.cost > 0)
-            .reduce((sum, log) => sum + Math.round((log.cost || 0) * 0.6), 0);
-
-        setData({ currentMonth, previousMonth, allTimeSaved });
+        setData({
+            currentMonth: emptyStats,
+            previousMonth: emptyStats,
+            allTimeSaved: 0
+        });
     };
 
     const monthDiff = data.currentMonth.total - data.previousMonth.total;
