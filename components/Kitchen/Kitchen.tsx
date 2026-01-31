@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, Package, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap, ChevronLeft, Utensils } from 'lucide-react';
+import { Camera, Plus, Package, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap, ChevronLeft } from 'lucide-react';
 import { KitchenStorage, InventoryItem, StorageType, StoragePhoto as StoragePhotoType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { StoragePhoto } from './StoragePhoto';
@@ -26,6 +26,29 @@ const FridgeIcon = ({ className }: { className?: string }) => (
     <line x1="15" y1="5" x2="15" y2="7" />
     <line x1="15" y1="12" x2="15" y2="16" />
   </svg>
+);
+
+// Custom Appliances Icon (oven + mixer)
+const AppliancesIcon = ({ className }: { className?: string }) => (
+  <div className={`flex items-center gap-0.5 ${className}`}>
+    {/* Oven/Microwave */}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <rect x="5" y="8" width="10" height="8" rx="1" />
+      <circle cx="18" cy="10" r="1" />
+      <circle cx="18" cy="14" r="1" />
+    </svg>
+    {/* Mixer */}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <ellipse cx="12" cy="6" rx="4" ry="2" />
+      <path d="M8 6v4c0 1.5 1.8 3 4 3s4-1.5 4-3V6" />
+      <line x1="12" y1="13" x2="12" y2="18" />
+      <line x1="9" y1="18" x2="15" y2="18" />
+      <line x1="10" y1="21" x2="14" y2="21" />
+      <line x1="10" y1="18" x2="10" y2="21" />
+      <line x1="14" y1="18" x2="14" y2="21" />
+    </svg>
+  </div>
 );
 
 // Check if we have price database for user's currency
@@ -671,10 +694,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   };
 
   const storageIcons: Record<StorageType, React.ReactNode> = {
-    fridge: <FridgeIcon className="w-4 h-4" />,
-    cabinet: <Package className="w-4 h-4" />,
-    freezer: <Snowflake className="w-4 h-4" />,
-    appliances: <Utensils className="w-4 h-4" />
+    fridge: <FridgeIcon className="w-5 h-5" />,
+    cabinet: <FridgeIcon className="w-5 h-5" />,
+    freezer: <Snowflake className="w-5 h-5" />,
+    appliances: <AppliancesIcon className="" />
   };
 
   const storageLabels: Record<StorageType, string> = {
@@ -812,7 +835,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               <button
                 key={type}
                 onClick={() => setActiveStorage(type)}
-                className={`relative h-16 rounded-xl flex items-center justify-center gap-2 transition-all
+                className={`relative h-20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all
                   ${isActive
                     ? 'bg-blue-500 text-white shadow-lg scale-[1.02]'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -825,28 +848,24 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                {/* Content: emoji + count */}
-                <span className="text-2xl">{storageEmojis[type]}</span>
-                <span className={`text-lg font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
+                {/* Icon + count row */}
+                <div className="flex items-center gap-2">
+                  <span className={`${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                    {storageIcons[type]}
+                  </span>
+                  <span className={`text-lg font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
+                </div>
+
+                {/* Label */}
+                <span className={`text-xs font-medium ${isActive ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {storageLabels[type]}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Selected storage indicator - visual embrace */}
-      <div className="px-3 -mt-1">
-        <div className={`h-2 mx-auto rounded-b-lg transition-all ${
-          activeStorage === 'fridge' ? 'w-[calc(50%-0.5rem)] mr-auto ml-3' :
-          activeStorage === 'freezer' ? 'w-[calc(50%-0.5rem)] ml-auto mr-3' :
-          activeStorage === 'cabinet' ? 'w-[calc(50%-0.5rem)] mr-auto ml-3' :
-          'w-[calc(50%-0.5rem)] ml-auto mr-3'
-        } bg-blue-500`} style={{
-          marginLeft: activeStorage === 'fridge' || activeStorage === 'cabinet' ? '0.75rem' : 'auto',
-          marginRight: activeStorage === 'freezer' || activeStorage === 'appliances' ? '0.75rem' : 'auto',
-          marginTop: activeStorage === 'cabinet' || activeStorage === 'appliances' ? '-0.25rem' : '-0.25rem',
-        }} />
-      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
@@ -876,8 +895,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             {/* Empty state */}
             {currentPhotos.length === 0 && currentInventory.length === 0 && (
               <div className="flex flex-col items-center justify-center h-64 text-center">
-                <div className="text-6xl mb-4">
-                  {storageEmojis[activeStorage]}
+                <div className="mb-4 text-gray-400 dark:text-gray-500 [&_svg]:w-16 [&_svg]:h-16">
+                  {storageIcons[activeStorage]}
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
                   {storageLabels[activeStorage]} пуст{activeStorage === 'appliances' ? 'ы' : ''}
