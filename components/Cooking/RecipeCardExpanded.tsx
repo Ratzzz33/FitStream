@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Clock, Flame, Users, ChefHat, AlertTriangle, Check, ShoppingCart, Eye } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Clock, Flame, Users, ChefHat, AlertTriangle, Check, ShoppingCart, Eye, ArrowLeft } from 'lucide-react';
 import { GeneratedRecipe, RecipeDifficulty } from '../../services/geminiService';
 import { StorageService } from '../../services/storageService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
@@ -33,6 +33,78 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
   onChooseAnother
 }) => {
   const [showFullPreview, setShowFullPreview] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Swipe down to close
+  const touchStartY = useRef(0);
+  const touchCurrentY = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only start drag if at top of scroll or touching the header
+    const content = contentRef.current;
+    if (content && content.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isDragging.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    touchCurrentY.current = e.touches[0].clientY;
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    // Only allow dragging down
+    if (diff > 0 && modalRef.current) {
+      modalRef.current.style.transform = `translateY(${diff}px)`;
+      modalRef.current.style.transition = 'none';
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    if (modalRef.current) {
+      modalRef.current.style.transition = 'transform 0.3s ease-out';
+
+      // If dragged more than 100px, close the modal
+      if (diff > 100) {
+        modalRef.current.style.transform = 'translateY(100%)';
+        setTimeout(() => {
+          onClose();
+        }, 300);
+      } else {
+        // Snap back
+        modalRef.current.style.transform = 'translateY(0)';
+      }
+    }
+
+    touchStartY.current = 0;
+    touchCurrentY.current = 0;
+  };
+
+  // Close on backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const difficulty = difficultyConfig[recipe.difficulty] || difficultyConfig.medium;
   const messyLevel = messyLevelConfig[(recipe.messyLevel as 1 | 2 | 3) || 1];
@@ -64,8 +136,23 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-slide-up">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-slide-up"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag indicator for swipe */}
+        <div className="flex justify-center pt-2 pb-1 shrink-0 sm:hidden">
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+
         {/* Header with image */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-amber-50 dark:from-gray-700 dark:to-gray-800 shrink-0">
           {imageUrl && (
@@ -76,10 +163,28 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
             />
           )}
 
+          {/* Back button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-4 left-4 w-10 h-10 bg-black/50 hover:bg-black/70 active:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-10"
+            type="button"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
           {/* Close button */}
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 active:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-10"
+            type="button"
           >
             <X className="w-5 h-5" />
           </button>
@@ -105,7 +210,7 @@ export const RecipeCardExpanded: React.FC<RecipeCardExpandedProps> = ({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div ref={contentRef} className="flex-1 overflow-y-auto p-5">
           {/* Title & description */}
           <h2 className="text-xl font-bold dark:text-white mb-2">{recipe.name}</h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{recipe.description}</p>

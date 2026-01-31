@@ -26,6 +26,44 @@ const FridgeIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Skeleton card with shimmer effect (AI generation style)
+const RecipeSkeletonCard = ({ delay = 0 }: { delay?: number }) => (
+  <div
+    className="relative overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 p-4"
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    {/* Shimmer overlay */}
+    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+
+    <div className="flex gap-4">
+      {/* Image placeholder */}
+      <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+        <ChefHat className="w-8 h-8 text-gray-300 dark:text-gray-600 animate-pulse" />
+      </div>
+
+      {/* Content placeholder */}
+      <div className="flex-1 space-y-3">
+        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-3/4" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2" />
+        <div className="flex gap-2">
+          <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+          <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        </div>
+      </div>
+    </div>
+
+    {/* Generating text */}
+    <div className="mt-3 flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+      <span className="flex gap-1">
+        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      </span>
+      <span>AI генерирует рецепт...</span>
+    </div>
+  </div>
+);
+
 interface CookingProps {
   caloriesRemaining: number;
   servingsNeeded?: number;
@@ -36,6 +74,8 @@ interface CookingProps {
 }
 
 type ViewState = 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
+
+const MAX_RECIPES = 3; // Total recipe slots to show
 
 export const Cooking: React.FC<CookingProps> = ({
   caloriesRemaining,
@@ -53,6 +93,8 @@ export const Cooking: React.FC<CookingProps> = ({
   const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string>('');
+  const [generatingSlots, setGeneratingSlots] = useState<number[]>([]); // Slots being AI-generated
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
 
   // Determine time of day for meal type
   const getTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
@@ -111,6 +153,42 @@ export const Cooking: React.FC<CookingProps> = ({
     return { meals, macros };
   };
 
+  // Cache key for recipes
+  const getCacheKey = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const timeOfDay = getTimeOfDay();
+    return `fitstream_recipes_${today}_${timeOfDay}`;
+  };
+
+  // Load cached recipes
+  const loadCachedRecipes = (): GeneratedRecipe[] | null => {
+    try {
+      const cached = localStorage.getItem(getCacheKey());
+      if (cached) {
+        const { recipes, timestamp } = JSON.parse(cached);
+        // Cache valid for 2 hours
+        if (Date.now() - timestamp < 2 * 60 * 60 * 1000) {
+          return recipes;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached recipes:', e);
+    }
+    return null;
+  };
+
+  // Save recipes to cache
+  const cacheRecipes = (recipes: GeneratedRecipe[]) => {
+    try {
+      localStorage.setItem(getCacheKey(), JSON.stringify({
+        recipes,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to cache recipes:', e);
+    }
+  };
+
   // Load recipes on mount
   useEffect(() => {
     loadRecipes();
@@ -137,85 +215,127 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
-  const loadRecipes = async () => {
-    setState('loading');
+  const loadRecipes = async (forceRefresh = false) => {
     setError('');
-    setRecipeImages({});
     setSelectedRecipeIndex(undefined);
     setIsOfflineMode(false);
     setMissingIngredients([]);
+    setGeneratingSlots([]);
+    setIsGeneratingMore(false);
 
-    try {
-      const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
+    // Check inventory
+    const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
+    if (inventory.length === 0) {
+      setError('Добавьте продукты в Кухню, чтобы получить рекомендации рецептов.');
+      setState('error');
+      return;
+    }
 
-      if (inventory.length === 0) {
-        setError('Добавьте продукты в Кухню, чтобы получить рекомендации рецептов.');
-        setState('error');
+    // 1. Check cache first (instant load)
+    if (!forceRefresh) {
+      const cached = loadCachedRecipes();
+      if (cached && cached.length > 0) {
+        setRecipes(cached);
+        setRecipeImages({});
+        setState('menu');
+        // Generate images in background
+        cached.forEach((recipe, index) => {
+          generateImageForRecipe(recipe, index);
+        });
         return;
       }
+    }
 
-      const ingredientNames = inventory.map(i => i.name);
+    const ingredientNames = inventory.map(i => i.name);
+    const mealType = getTimeOfDay();
+
+    // 2. Load offline recipes FIRST (fast)
+    const offlineMatches = findMatchingRecipes(ingredientNames, mealType, 2);
+    let offlineRecipes: GeneratedRecipe[] = [];
+
+    if (offlineMatches.length > 0) {
+      // Collect missing ingredients
+      const allMissing = new Set<string>();
+      offlineMatches.slice(0, MAX_RECIPES).forEach(m => m.missing.forEach(i => allMissing.add(i)));
+      setMissingIngredients(Array.from(allMissing));
+
+      offlineRecipes = offlineMatches
+        .slice(0, MAX_RECIPES)
+        .map(match => convertToGeneratedRecipe(match.recipe, ingredientNames));
+    }
+
+    // Show offline recipes immediately
+    if (offlineRecipes.length > 0) {
+      setRecipes(offlineRecipes);
+      setRecipeImages({});
+      setState('menu');
+
+      // If we have less than MAX_RECIPES, show generating slots
+      if (offlineRecipes.length < MAX_RECIPES) {
+        const slotsToGenerate = Array.from(
+          { length: MAX_RECIPES - offlineRecipes.length },
+          (_, i) => offlineRecipes.length + i
+        );
+        setGeneratingSlots(slotsToGenerate);
+        setIsGeneratingMore(true);
+      }
+    } else {
+      // No offline recipes - show loading with generating effect
+      setState('loading');
+      setGeneratingSlots([0, 1, 2]);
+    }
+
+    // 3. Generate AI recipes in background (for empty slots)
+    try {
       const { meals, macros } = getTodayMealsContext();
-
       const context: RecipeGenerationContext = {
-        timeOfDay: getTimeOfDay(),
+        timeOfDay: mealType,
         currentTime: getCurrentTime(),
         caloriesRemaining,
         servingsNeeded,
         maxCookingTime: 45,
-        excludeRecipeIds: StorageService.getRecentRecipeIds(3),
+        excludeRecipeIds: [
+          ...StorageService.getRecentRecipeIds(3),
+          ...offlineRecipes.map(r => r.id || r.name) // Exclude already shown
+        ],
         todayMeals: meals.length > 0 ? meals : undefined,
         todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined
       };
 
-      // Try AI recipes first
-      let generatedRecipes: GeneratedRecipe[] = [];
-      try {
-        generatedRecipes = await generateRecipes(inventory, context);
-      } catch (aiError) {
-        console.warn('AI recipes failed, trying offline:', aiError);
-      }
+      const aiRecipes = await generateRecipes(inventory, context);
 
-      // Fallback to offline recipes if AI fails or returns nothing
-      if (generatedRecipes.length === 0) {
-        console.log('Using offline recipes');
-        setIsOfflineMode(true);
+      // Merge: keep offline recipes, add AI recipes to fill slots
+      const slotsNeeded = MAX_RECIPES - offlineRecipes.length;
+      const newAiRecipes = aiRecipes.slice(0, slotsNeeded);
 
-        const mealType = getTimeOfDay();
-        const offlineMatches = findMatchingRecipes(ingredientNames, mealType, 2);
+      const finalRecipes = [...offlineRecipes, ...newAiRecipes];
 
-        if (offlineMatches.length > 0) {
-          // Collect all missing ingredients
-          const allMissing = new Set<string>();
-          offlineMatches.slice(0, 3).forEach(m => m.missing.forEach(i => allMissing.add(i)));
-          setMissingIngredients(Array.from(allMissing));
-
-          generatedRecipes = offlineMatches
-            .slice(0, 3)
-            .map(match => convertToGeneratedRecipe(match.recipe, ingredientNames));
-        }
-      }
-
-      if (generatedRecipes.length === 0) {
-        setError('Не удалось подобрать рецепты. Попробуйте добавить больше продуктов.');
-        setState('error');
-        return;
-      }
-
-      setRecipes(generatedRecipes);
+      setRecipes(finalRecipes);
+      setGeneratingSlots([]);
+      setIsGeneratingMore(false);
       setState('menu');
 
-      // Generate images only if online (skip for offline mode)
-      if (!isOfflineMode) {
-        generatedRecipes.forEach((recipe, index) => {
-          generateImageForRecipe(recipe, index);
-        });
-      }
+      // Cache the result
+      cacheRecipes(finalRecipes);
 
-    } catch (err) {
-      console.error('Error loading recipes:', err);
-      setError('Не удалось загрузить рецепты. Проверьте подключение к интернету.');
-      setState('error');
+      // Generate images for new AI recipes
+      newAiRecipes.forEach((recipe, index) => {
+        generateImageForRecipe(recipe, offlineRecipes.length + index);
+      });
+
+    } catch (aiError) {
+      console.warn('AI recipes failed:', aiError);
+      setGeneratingSlots([]);
+      setIsGeneratingMore(false);
+
+      // If we have offline recipes, that's fine
+      if (offlineRecipes.length > 0) {
+        setIsOfflineMode(true);
+        cacheRecipes(offlineRecipes);
+      } else {
+        setError('Не удалось подобрать рецепты. Проверьте подключение к интернету.');
+        setState('error');
+      }
     }
   };
 
@@ -251,18 +371,26 @@ export const Cooking: React.FC<CookingProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Loading state */}
+      {/* Loading state - shows skeleton cards */}
       {state === 'loading' && (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="relative">
-            <ChefHat className="w-16 h-16 text-orange-500 animate-bounce" />
+        <div className="flex-1 flex flex-col">
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xl">{getMealEmoji()}</span>
+              <h2 className="text-xl font-bold dark:text-white">{getMealName()}</h2>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <span className="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              Подбираем рецепты...
+            </p>
           </div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400 text-center">
-            Подбираем меню для вас...
-          </p>
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-            {getMealEmoji()} {getMealName()} • {getCurrentTime()}
-          </p>
+
+          {/* Skeleton recipe cards */}
+          <div className="flex-1 px-4 space-y-4">
+            {[0, 1, 2].map((idx) => (
+              <RecipeSkeletonCard key={idx} delay={idx * 150} />
+            ))}
+          </div>
         </div>
       )}
 

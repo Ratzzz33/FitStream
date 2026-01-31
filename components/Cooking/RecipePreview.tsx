@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Clock, Flame, AlertTriangle, ChefHat, Droplets } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
+import { X, Clock, Flame, AlertTriangle, ChefHat, Droplets, ArrowLeft } from 'lucide-react';
 import { GeneratedRecipe, RecipeDifficulty, RecipeEquipment } from '../../services/geminiService';
 
 interface RecipePreviewProps {
@@ -29,6 +29,73 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
   onChooseAnother,
   onClose
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Swipe down to close
+  const touchStartY = useRef(0);
+  const touchCurrentY = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const content = contentRef.current;
+    if (content && content.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isDragging.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    touchCurrentY.current = e.touches[0].clientY;
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    if (diff > 0 && modalRef.current) {
+      modalRef.current.style.transform = `translateY(${diff}px)`;
+      modalRef.current.style.transition = 'none';
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    if (modalRef.current) {
+      modalRef.current.style.transition = 'transform 0.3s ease-out';
+
+      if (diff > 100) {
+        modalRef.current.style.transform = 'translateY(100%)';
+        setTimeout(() => {
+          onClose();
+        }, 300);
+      } else {
+        modalRef.current.style.transform = 'translateY(0)';
+      }
+    }
+
+    touchStartY.current = 0;
+    touchCurrentY.current = 0;
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const difficulty = difficultyConfig[recipe.difficulty] || difficultyConfig.medium;
   const messyLevel = messyLevelConfig[recipe.messyLevel as 1 | 2 | 3] || messyLevelConfig[1];
 
@@ -40,8 +107,23 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
   const optionalEquipment = recipe.equipment?.filter(e => !e.essential) || [];
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[95vh] overflow-hidden flex flex-col animate-slide-up">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[95vh] overflow-hidden flex flex-col animate-slide-up"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag indicator for swipe */}
+        <div className="flex justify-center pt-2 pb-1 shrink-0 sm:hidden">
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+
         {/* Header with image */}
         <div className="relative h-40 bg-gradient-to-br from-orange-100 to-amber-50 dark:from-gray-700 dark:to-gray-800 shrink-0">
           {imageUrl && (
@@ -53,10 +135,28 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
+          {/* Back button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-4 left-4 w-10 h-10 bg-black/50 hover:bg-black/70 active:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-10"
+            type="button"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
           {/* Close button */}
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 active:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-10"
+            type="button"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,7 +178,7 @@ export const RecipePreview: React.FC<RecipePreviewProps> = ({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div ref={contentRef} className="flex-1 overflow-y-auto p-4">
           {/* Warning badges */}
           <div className="flex flex-wrap gap-2 mb-4">
             {/* Difficulty */}
