@@ -19,6 +19,7 @@ import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
 import { useStepCounter } from './hooks/useStepCounter';
+import { useAppLifecycle } from './hooks/useAppLifecycle';
 import { t, getLanguageList, getSavedLanguage, setLanguage } from './services/i18n';
 import { isTelegramWebApp, initTelegramApp, getTelegramUser, getTelegramUserId, getColorScheme, hapticFeedback, openTelegramLink } from './services/telegramService';
 import TelegramLinkButton from './components/TelegramLinkButton';
@@ -407,6 +408,14 @@ const App = () => {
         setCurrentWeightInput(StorageService.getLastWeight().toString() || '0');
     }
   };
+
+  // Handle app lifecycle (fixes WebView rendering issues on Android/iOS resume)
+  useAppLifecycle({
+    onResume: () => {
+      console.log('[App] Resumed from background');
+      refreshData();
+    }
+  });
 
   useEffect(() => {
     refreshData();
