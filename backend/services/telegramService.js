@@ -5,6 +5,8 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 
 // In-memory store for link codes (in production, use Redis or DB)
 const linkCodes = new Map(); // code -> { userId, expiresAt }
@@ -17,6 +19,36 @@ let pool = null;
 
 // Admin chat ID for receiving feedback (your personal Telegram ID)
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
+
+// Support chat ID for receiving questions (@ratsss33)
+const SUPPORT_USERNAME = 'ratsss33';
+let SUPPORT_CHAT_ID = null; // Will be resolved on first question
+
+// Welcome image path
+const WELCOME_IMAGE_PATH = path.join(__dirname, '../assets/welcome-image.png');
+
+// Bilingual welcome messages
+const WELCOME_MESSAGE_RU = `*Привет! Я FitStream AI — твой умный фитнес-помощник.*
+
+Что я умею:
+📷 *Сканирование весов* — сфотографируй весы, я считаю вес
+🍽️ *Анализ еды по фото* — покажи блюдо, получи калории и БЖУ
+📋 *Меню ресторана* — найду полезные блюда в любом меню
+🏋️ *Тренировки с ИИ-коучем* — голосовой тренер ведёт занятие
+🥗 *Рецепты из холодильника* — сфотографируй продукты, получи рецепт
+
+📲 Скачай приложение и начни путь к форме!`;
+
+const WELCOME_MESSAGE_EN = `*Hi! I'm FitStream AI — your smart fitness companion.*
+
+What I can do:
+📷 *Scale scanning* — snap a photo, I'll read your weight
+🍽️ *Food analysis* — show me your meal, get calories & macros
+📋 *Menu helper* — find healthy options in any restaurant menu
+🏋️ *AI workout coach* — voice-guided training sessions
+🥗 *Fridge recipes* — photo your ingredients, get a recipe
+
+📲 Download the app and start your fitness journey!`;
 
 /**
  * Initialize the Telegram bot
@@ -71,7 +103,7 @@ function getBot() {
 }
 
 /**
- * Handle /start command
+ * Handle /start command - send bilingual welcome with image
  */
 async function handleStart(msg) {
     const chatId = msg.chat.id;
@@ -93,26 +125,44 @@ async function handleStart(msg) {
             { parse_mode: 'HTML' }
         );
     } else {
-        bot.sendMessage(chatId,
-            `Hello ${firstName}! Welcome to FitStream Bot.\n\n` +
-            `To get started, link your FitStream account:\n\n` +
-            `1. Open FitStream app\n` +
-            `2. Go to Settings\n` +
-            `3. Tap "Link Telegram"\n` +
-            `4. Send the code here with /link CODE\n\n` +
-            `Or open the Mini App to use FitStream directly in Telegram!`,
-            {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [[
-                        {
-                            text: 'Open FitStream Mini App',
-                            web_app: { url: process.env.TELEGRAM_WEBAPP_URL || 'https://fitstream.health' }
-                        }
-                    ]]
-                }
+        // Build bilingual welcome message
+        const welcomeText = `${WELCOME_MESSAGE_RU}\n\n━━━━━━━━━━━━━━━━━━━━━\n\n${WELCOME_MESSAGE_EN}`;
+
+        const replyMarkup = {
+            inline_keyboard: [
+                [
+                    { text: '📲 Скачать / Download', web_app: { url: process.env.TELEGRAM_WEBAPP_URL || 'https://fitstream.health' } }
+                ],
+                [
+                    { text: '🌐 Сайт / Website', url: 'https://fitstream.health' },
+                    { text: '💬 Поддержка / Support', url: 'https://t.me/fitstream_support' }
+                ]
+            ]
+        };
+
+        // Try to send welcome image with caption
+        try {
+            if (fs.existsSync(WELCOME_IMAGE_PATH)) {
+                await bot.sendPhoto(chatId, WELCOME_IMAGE_PATH, {
+                    caption: welcomeText,
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
+            } else {
+                // Fallback: send text only if image not found
+                await bot.sendMessage(chatId, welcomeText, {
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
             }
-        );
+        } catch (e) {
+            console.error('Error sending welcome message:', e);
+            // Fallback to simple text
+            await bot.sendMessage(chatId, welcomeText, {
+                parse_mode: 'Markdown',
+                reply_markup: replyMarkup
+            });
+        }
     }
 }
 
@@ -342,24 +392,42 @@ async function handleFeedbackCommand(msg) {
 
 /**
  * Handle regular messages from users (forward to admin as feedback)
+ * Messages with "?" are forwarded to support (@ratsss33)
  */
 async function handleUserMessage(msg) {
     // Skip if it's a command
     if (msg.text && msg.text.startsWith('/')) return;
 
     const chatId = msg.chat.id;
+    const messageText = msg.text || msg.caption || '';
 
-    // Skip if this is admin replying
+    // Check if this is a question (contains "?")
+    const isQuestion = messageText.includes('?');
+
+    // Skip if this is admin/support replying
     if (ADMIN_CHAT_ID && chatId.toString() === ADMIN_CHAT_ID.toString()) {
-        // Check if admin is replying to a forwarded message
         if (msg.reply_to_message) {
             await handleAdminReply(msg);
         }
         return;
     }
 
+    // Also skip if support user is replying
+    if (SUPPORT_CHAT_ID && chatId.toString() === SUPPORT_CHAT_ID.toString()) {
+        if (msg.reply_to_message) {
+            await handleAdminReply(msg);
+        }
+        return;
+    }
+
+    // Resolve support chat ID from username if not set
+    if (!SUPPORT_CHAT_ID && msg.from.username === SUPPORT_USERNAME) {
+        SUPPORT_CHAT_ID = chatId;
+        console.log(`Support chat ID resolved: ${SUPPORT_CHAT_ID} (@${SUPPORT_USERNAME})`);
+    }
+
     // No admin configured - just acknowledge
-    if (!ADMIN_CHAT_ID) {
+    if (!ADMIN_CHAT_ID && !SUPPORT_CHAT_ID) {
         return;
     }
 
@@ -369,45 +437,53 @@ async function handleUserMessage(msg) {
     const username = msg.from.username ? `@${msg.from.username}` : 'no username';
     const isPro = user?.is_pro ? '⭐ PRO' : '';
 
-    // Build header for admin
-    const header = `📨 <b>Feedback from ${userName}</b> ${isPro}\n` +
+    // Build header - mark questions specially
+    const questionMark = isQuestion ? '❓ ' : '';
+    const header = `${questionMark}📨 <b>${isQuestion ? 'Question' : 'Feedback'} from ${userName}</b> ${isPro}\n` +
         `👤 ${username} | ID: <code>${chatId}</code>\n` +
         `━━━━━━━━━━━━━━━\n`;
+
+    // Determine where to forward: questions go to support, others to admin
+    const targetChatId = isQuestion && SUPPORT_CHAT_ID ? SUPPORT_CHAT_ID : ADMIN_CHAT_ID;
+
+    if (!targetChatId) {
+        return;
+    }
 
     try {
         let sentMessage;
 
-        // Forward different message types
+        // Forward different message types to target (support for questions, admin for feedback)
         if (msg.photo) {
             // Photo message
             const photo = msg.photo[msg.photo.length - 1]; // Get highest resolution
-            sentMessage = await bot.sendPhoto(ADMIN_CHAT_ID, photo.file_id, {
+            sentMessage = await bot.sendPhoto(targetChatId, photo.file_id, {
                 caption: header + (msg.caption || ''),
                 parse_mode: 'HTML'
             });
         } else if (msg.video) {
-            sentMessage = await bot.sendVideo(ADMIN_CHAT_ID, msg.video.file_id, {
+            sentMessage = await bot.sendVideo(targetChatId, msg.video.file_id, {
                 caption: header + (msg.caption || ''),
                 parse_mode: 'HTML'
             });
         } else if (msg.document) {
-            sentMessage = await bot.sendDocument(ADMIN_CHAT_ID, msg.document.file_id, {
+            sentMessage = await bot.sendDocument(targetChatId, msg.document.file_id, {
                 caption: header + (msg.caption || ''),
                 parse_mode: 'HTML'
             });
         } else if (msg.voice) {
-            sentMessage = await bot.sendVoice(ADMIN_CHAT_ID, msg.voice.file_id, {
+            sentMessage = await bot.sendVoice(targetChatId, msg.voice.file_id, {
                 caption: header,
                 parse_mode: 'HTML'
             });
         } else if (msg.text) {
-            sentMessage = await bot.sendMessage(ADMIN_CHAT_ID,
+            sentMessage = await bot.sendMessage(targetChatId,
                 header + msg.text,
                 { parse_mode: 'HTML' }
             );
         } else {
             // Unknown message type - forward as is
-            sentMessage = await bot.forwardMessage(ADMIN_CHAT_ID, chatId, msg.message_id);
+            sentMessage = await bot.forwardMessage(targetChatId, chatId, msg.message_id);
         }
 
         // Store mapping for replies
