@@ -348,124 +348,12 @@ const initDb = async () => {
         );
     `);
 
-    // Exercise Videos Table
-    await client.query(`
-        CREATE TABLE IF NOT EXISTS exercise_videos (
-            id SERIAL PRIMARY KEY,
-            exercise_type VARCHAR(50) NOT NULL,
-            language VARCHAR(10) NOT NULL,
-            youtube_id VARCHAR(20) NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            channel VARCHAR(100),
-            duration VARCHAR(20),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(exercise_type, language, youtube_id)
-        );
-    `);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_exercise_videos_type ON exercise_videos(exercise_type);`);
-
     for (const phone of SEED_PHONES) {
         await client.query(`
             INSERT INTO phones (name, weight) VALUES ($1, $2)
             ON CONFLICT (name) DO NOTHING
         `, [phone.name, phone.weight]);
     }
-
-    // Seed Exercise Videos (YouTube tutorials)
-    const EXERCISE_VIDEOS = [
-        // PUSHUPS
-        { exercise_type: 'PUSHUPS', language: 'en', youtube_id: 'IODxDxX7oi4', title: 'How to Do a Push-Up Correctly', channel: 'Athlean-X', duration: '8:21' },
-        { exercise_type: 'PUSHUPS', language: 'en', youtube_id: '_l3ySVKYVJ8', title: 'Push Up Progression', channel: 'Calisthenicmovement', duration: '6:45' },
-        { exercise_type: 'PUSHUPS', language: 'ru', youtube_id: 'gn8M9g-0WGE', title: 'Отжимания от пола - техника', channel: 'Archo Morris', duration: '7:32' },
-        { exercise_type: 'PUSHUPS', language: 'ru', youtube_id: 'eFOXkEVj5y4', title: 'Как правильно отжиматься', channel: 'Михаил Прыгунов', duration: '10:15' },
-
-        // SQUATS
-        { exercise_type: 'SQUATS', language: 'en', youtube_id: 'YaXPRqUwItQ', title: 'How to Squat Properly', channel: 'Athlean-X', duration: '11:42' },
-        { exercise_type: 'SQUATS', language: 'en', youtube_id: 'gsNoPYwWXeM', title: 'Squat Tutorial', channel: 'Calisthenicmovement', duration: '5:18' },
-        { exercise_type: 'SQUATS', language: 'ru', youtube_id: 'DuMNpX3A_RI', title: 'Приседания - правильная техника', channel: 'Денис Семенихин', duration: '8:45' },
-        { exercise_type: 'SQUATS', language: 'ru', youtube_id: 'PqR6F7pKqso', title: 'Как правильно приседать', channel: 'Михаил Прыгунов', duration: '9:30' },
-
-        // SITUPS / CRUNCHES
-        { exercise_type: 'SITUPS', language: 'en', youtube_id: '1fbU_MkV7NE', title: 'How to Do Sit Ups Properly', channel: 'Athlean-X', duration: '7:15' },
-        { exercise_type: 'SITUPS', language: 'en', youtube_id: 'Xyd_fa5zoEU', title: 'Sit Up Tutorial', channel: 'ScottHermanFitness', duration: '4:22' },
-        { exercise_type: 'SITUPS', language: 'ru', youtube_id: '9DnJPq6wWjk', title: 'Скручивания на пресс', channel: 'Archo Morris', duration: '6:10' },
-        { exercise_type: 'SITUPS', language: 'ru', youtube_id: 'VmB1G1K7v94', title: 'Как качать пресс правильно', channel: 'Михаил Прыгунов', duration: '8:20' },
-
-        // PULLUPS
-        { exercise_type: 'PULLUPS', language: 'en', youtube_id: 'eGo4IYlbE5g', title: 'How to Do a Pull-Up', channel: 'Athlean-X', duration: '10:33' },
-        { exercise_type: 'PULLUPS', language: 'en', youtube_id: 'XB_7En-zf_M', title: 'Pull Up Progression', channel: 'Calisthenicmovement', duration: '8:12' },
-        { exercise_type: 'PULLUPS', language: 'ru', youtube_id: 'quH9p4UgXtM', title: 'Подтягивания - полный гид', channel: 'Archo Morris', duration: '12:45' },
-        { exercise_type: 'PULLUPS', language: 'ru', youtube_id: 'D2t-4rP5mHE', title: 'Как научиться подтягиваться', channel: 'Михаил Прыгунов', duration: '15:20' },
-
-        // BURPEES
-        { exercise_type: 'BURPEES', language: 'en', youtube_id: 'dZgVxmf6jkA', title: 'How to Do Burpees Correctly', channel: 'Athlean-X', duration: '6:48' },
-        { exercise_type: 'BURPEES', language: 'en', youtube_id: 'TU8QYVW0gDU', title: 'Burpee Tutorial', channel: 'THENX', duration: '4:15' },
-        { exercise_type: 'BURPEES', language: 'ru', youtube_id: 'zLFGjQJE6KM', title: 'Берпи - техника выполнения', channel: 'Archo Morris', duration: '5:30' },
-        { exercise_type: 'BURPEES', language: 'ru', youtube_id: '2bPvfkRCTRo', title: 'Как делать берпи правильно', channel: 'Денис Семенихин', duration: '7:45' },
-
-        // LUNGES
-        { exercise_type: 'LUNGES', language: 'en', youtube_id: 'QOVaHwm-Q6U', title: 'How to Lunge Properly', channel: 'Athlean-X', duration: '8:30' },
-        { exercise_type: 'LUNGES', language: 'en', youtube_id: 'wrwwXE_x-pQ', title: 'Lunge Variations', channel: 'THENX', duration: '6:22' },
-        { exercise_type: 'LUNGES', language: 'ru', youtube_id: 'v5cDsNHaJ3k', title: 'Выпады - правильная техника', channel: 'Михаил Прыгунов', duration: '7:15' },
-        { exercise_type: 'LUNGES', language: 'ru', youtube_id: 'J6TlX4GV_D8', title: 'Как делать выпады', channel: 'Денис Семенихин', duration: '6:40' },
-
-        // DIPS
-        { exercise_type: 'DIPS', language: 'en', youtube_id: 'wjUmnZH528Y', title: 'How to Do Dips Properly', channel: 'Athlean-X', duration: '9:15' },
-        { exercise_type: 'DIPS', language: 'en', youtube_id: 'vi1-BOkRSMU', title: 'Dip Progression', channel: 'Calisthenicmovement', duration: '7:33' },
-        { exercise_type: 'DIPS', language: 'ru', youtube_id: 'cTILUNoMcSs', title: 'Отжимания на брусьях', channel: 'Archo Morris', duration: '8:20' },
-        { exercise_type: 'DIPS', language: 'ru', youtube_id: 'vCBfwssMQNM', title: 'Брусья - техника для новичков', channel: 'Михаил Прыгунов', duration: '10:10' },
-
-        // PLANK
-        { exercise_type: 'PLANK', language: 'en', youtube_id: 'ASdvN_XEl_c', title: 'How to Plank Correctly', channel: 'Athlean-X', duration: '5:45' },
-        { exercise_type: 'PLANK', language: 'en', youtube_id: 'pSHjTRCQxIw', title: 'Plank Tutorial', channel: 'THENX', duration: '4:30' },
-        { exercise_type: 'PLANK', language: 'ru', youtube_id: 'Exa5S5PYEqs', title: 'Планка - как делать правильно', channel: 'Archo Morris', duration: '6:15' },
-        { exercise_type: 'PLANK', language: 'ru', youtube_id: 'TvxNkmjdhMM', title: 'Упражнение планка', channel: 'Михаил Прыгунов', duration: '7:00' },
-
-        // JUMPING_JACKS
-        { exercise_type: 'JUMPING_JACKS', language: 'en', youtube_id: 'c4DAnQ6DtF8', title: 'Jumping Jacks Tutorial', channel: 'FitnessBlender', duration: '3:15' },
-        { exercise_type: 'JUMPING_JACKS', language: 'en', youtube_id: '2W4ZNSwoW_4', title: 'How to Do Jumping Jacks', channel: 'ScottHermanFitness', duration: '2:45' },
-        { exercise_type: 'JUMPING_JACKS', language: 'ru', youtube_id: 'B7LpY_QE2l4', title: 'Прыжки Джампинг Джек', channel: 'Archo Morris', duration: '4:00' },
-        { exercise_type: 'JUMPING_JACKS', language: 'ru', youtube_id: 'KqOh3ep2bQw', title: 'Jumping Jack техника', channel: 'Денис Семенихин', duration: '3:30' },
-
-        // MOUNTAIN_CLIMBERS
-        { exercise_type: 'MOUNTAIN_CLIMBERS', language: 'en', youtube_id: 'nmwgirgXLYM', title: 'Mountain Climbers Tutorial', channel: 'THENX', duration: '4:20' },
-        { exercise_type: 'MOUNTAIN_CLIMBERS', language: 'en', youtube_id: 'cnyTQDSE884', title: 'How to Do Mountain Climbers', channel: 'Athlean-X', duration: '5:10' },
-        { exercise_type: 'MOUNTAIN_CLIMBERS', language: 'ru', youtube_id: 'DyeZM-_VnRc', title: 'Скалолаз упражнение', channel: 'Archo Morris', duration: '4:45' },
-        { exercise_type: 'MOUNTAIN_CLIMBERS', language: 'ru', youtube_id: 'Fz1E4Qr5xaQ', title: 'Mountain Climbers техника', channel: 'Михаил Прыгунов', duration: '5:30' },
-
-        // HIGH_KNEES
-        { exercise_type: 'HIGH_KNEES', language: 'en', youtube_id: 'oDdkytliOqE', title: 'High Knees Tutorial', channel: 'FitnessBlender', duration: '2:30' },
-        { exercise_type: 'HIGH_KNEES', language: 'en', youtube_id: 'tx5rgpDAJRI', title: 'How to Do High Knees', channel: 'THENX', duration: '3:15' },
-        { exercise_type: 'HIGH_KNEES', language: 'ru', youtube_id: 'oAuLnKOGpr0', title: 'Бег с высоким подниманием колен', channel: 'Archo Morris', duration: '3:45' },
-        { exercise_type: 'HIGH_KNEES', language: 'ru', youtube_id: 'g1XJDYQJu6s', title: 'High Knees упражнение', channel: 'Денис Семенихин', duration: '4:00' },
-
-        // CRUNCHES
-        { exercise_type: 'CRUNCHES', language: 'en', youtube_id: 'Xyd_fa5zoEU', title: 'How to Do Crunches', channel: 'ScottHermanFitness', duration: '4:15' },
-        { exercise_type: 'CRUNCHES', language: 'en', youtube_id: '5ER5Of4MOPI', title: 'Crunches Tutorial', channel: 'Athlean-X', duration: '6:30' },
-        { exercise_type: 'CRUNCHES', language: 'ru', youtube_id: '9DnJPq6wWjk', title: 'Скручивания - техника', channel: 'Archo Morris', duration: '5:20' },
-        { exercise_type: 'CRUNCHES', language: 'ru', youtube_id: 'VmB1G1K7v94', title: 'Как делать скручивания', channel: 'Михаил Прыгунов', duration: '6:45' },
-
-        // LEG_RAISES
-        { exercise_type: 'LEG_RAISES', language: 'en', youtube_id: 'l4kQd9eWclE', title: 'Leg Raises Tutorial', channel: 'Athlean-X', duration: '7:20' },
-        { exercise_type: 'LEG_RAISES', language: 'en', youtube_id: 'JB2oyawG9KI', title: 'How to Do Leg Raises', channel: 'THENX', duration: '5:45' },
-        { exercise_type: 'LEG_RAISES', language: 'ru', youtube_id: 'qpQG0yHBdAA', title: 'Подъем ног в висе', channel: 'Archo Morris', duration: '6:30' },
-        { exercise_type: 'LEG_RAISES', language: 'ru', youtube_id: 'pqr6b4iXV6I', title: 'Подъем ног лежа', channel: 'Михаил Прыгунов', duration: '5:15' },
-
-        // BICYCLE_CRUNCHES
-        { exercise_type: 'BICYCLE_CRUNCHES', language: 'en', youtube_id: '9FGilxCbdz8', title: 'Bicycle Crunches Tutorial', channel: 'Athlean-X', duration: '5:30' },
-        { exercise_type: 'BICYCLE_CRUNCHES', language: 'en', youtube_id: 'cbKIDZ_XyjY', title: 'How to Do Bicycle Crunches', channel: 'THENX', duration: '4:15' },
-        { exercise_type: 'BICYCLE_CRUNCHES', language: 'ru', youtube_id: 'Iwyvozckjak', title: 'Велосипед упражнение', channel: 'Archo Morris', duration: '4:45' },
-        { exercise_type: 'BICYCLE_CRUNCHES', language: 'ru', youtube_id: 'QZEqB6wUPxQ', title: 'Скручивания велосипед', channel: 'Михаил Прыгунов', duration: '5:00' },
-    ];
-
-    for (const video of EXERCISE_VIDEOS) {
-        await client.query(`
-            INSERT INTO exercise_videos (exercise_type, language, youtube_id, title, channel, duration)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (exercise_type, language, youtube_id) DO NOTHING
-        `, [video.exercise_type, video.language, video.youtube_id, video.title, video.channel, video.duration]);
-    }
-    console.log(`✅ Seeded ${EXERCISE_VIDEOS.length} exercise videos.`);
 
     // Migration: Add admin and premium columns
     await client.query(`
@@ -748,64 +636,6 @@ app.get('/api/phones', async (req, res) => {
     } catch (e) {
         // Fallback to seed data if DB fails
         res.json(SEED_PHONES);
-    }
-});
-
-// Get exercise tutorial videos
-app.get('/api/exercises/videos', async (req, res) => {
-    const { type, language } = req.query;
-
-    try {
-        const client = await pool.connect();
-        try {
-            let query = 'SELECT exercise_type, language, youtube_id, title, channel, duration FROM exercise_videos';
-            const params = [];
-            const conditions = [];
-
-            if (type) {
-                conditions.push(`exercise_type = $${params.length + 1}`);
-                params.push(type.toUpperCase());
-            }
-            if (language) {
-                conditions.push(`language = $${params.length + 1}`);
-                params.push(language.toLowerCase());
-            }
-
-            if (conditions.length > 0) {
-                query += ' WHERE ' + conditions.join(' AND ');
-            }
-
-            query += ' ORDER BY exercise_type, language';
-
-            const result = await client.query(query, params);
-            res.json(result.rows);
-        } finally {
-            client.release();
-        }
-    } catch (e) {
-        console.error('Error fetching exercise videos:', e.message);
-        res.status(500).json({ error: 'Failed to fetch videos' });
-    }
-});
-
-// Get all exercise types with video counts
-app.get('/api/exercises/types', async (req, res) => {
-    try {
-        const client = await pool.connect();
-        try {
-            const result = await client.query(`
-                SELECT exercise_type, language, COUNT(*) as video_count
-                FROM exercise_videos
-                GROUP BY exercise_type, language
-                ORDER BY exercise_type, language
-            `);
-            res.json(result.rows);
-        } finally {
-            client.release();
-        }
-    } catch (e) {
-        console.error('Error fetching exercise types:', e.message);
-        res.status(500).json({ error: 'Failed to fetch exercise types' });
     }
 });
 
