@@ -1,0 +1,9 @@
+# FitStream Landing - Welcome crawlers!
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://fitstream.health/sitemap.xml
+
+# Canonical host
+Host: https://fitstream.health

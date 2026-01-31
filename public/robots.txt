@@ -1,0 +1,6 @@
+# FitStream App - Discourage indexing (use landing at fitstream.health instead)
+User-agent: *
+Disallow: /
+
+# Point crawlers to the main landing page
+Host: https://fitstream.health

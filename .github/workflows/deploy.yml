@@ -1,7 +1,7 @@
-# FitStream Deploy to AWS
-# Deploys frontend to S3 + CloudFront
+# FitStream App Deploy to AWS
+# Deploys React app to S3 + CloudFront on app.fitstream.health
 
-name: Deploy
+name: Deploy App
 
 on:
   workflow_dispatch:
@@ -72,9 +72,9 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 App Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://fitstream.health" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** https://app.fitstream.health" >> $GITHUB_STEP_SUMMARY
           echo "**S3 Bucket:** ${{ env.S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
           echo "**CloudFront:** ${{ env.CLOUDFRONT_DISTRIBUTION_ID }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
