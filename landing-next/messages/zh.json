@@ -299,10 +299,22 @@
       "subtitle": "仅在使用AI时付费",
       "priceLabel": "AI操作价格：",
       "prices": [
-        { "action": "食物扫描", "price": "$0.02" },
-        { "action": "菜单分析", "price": "$0.04" },
-        { "action": "冰箱扫描", "price": "$0.02" },
-        { "action": "食谱推荐", "price": "$0.06" }
+        {
+          "action": "食物扫描",
+          "price": "$0.02"
+        },
+        {
+          "action": "菜单分析",
+          "price": "$0.04"
+        },
+        {
+          "action": "冰箱扫描",
+          "price": "$0.02"
+        },
+        {
+          "action": "食谱推荐",
+          "price": "$0.06"
+        }
       ],
       "noSubscription": "无月费。按需付费。",
       "cta": "开始使用"
@@ -310,10 +322,23 @@
     "topUp": {
       "name": "充值套餐",
       "subtitle": "大套餐更省钱",
+      "simple": "应用内$5起充值",
       "packages": [
-        { "amount": "$5", "discount": "", "price": "$5.00" },
-        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
-        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
+        {
+          "amount": "$5",
+          "discount": "",
+          "price": "$5.00"
+        },
+        {
+          "amount": "$10",
+          "discount": "-10%",
+          "price": "$9.00"
+        },
+        {
+          "amount": "$25",
+          "discount": "-20%",
+          "price": "$20.00"
+        }
       ],
       "paypal": "通过PayPal安全支付",
       "cta": "充值余额"
@@ -344,7 +369,177 @@
     "premium": "Premium"
   },
   "legal": {
-    "terms": { "title": "Terms of Service", "description": "Terms for FitStream AI", "lastUpdated": "Last updated", "acceptance": "Acceptance", "acceptanceText": "By using FitStream AI, you agree to these terms.", "descriptionText": "FitStream AI is a fitness app.", "accounts": "Accounts", "accountsText": "Use without account or sign in with Google.", "subscription": "Pricing", "subscriptionText": "Free and PRO tiers available:", "subscriptionFree": "Free: workouts, AI scanning", "subscriptionPro": "PRO: unlimited AI, voice assistant", "content": "Content", "contentText": "You own your content.", "prohibited": "Prohibited", "prohibitedText": "Do not:", "prohibited1": "Use illegally", "prohibited2": "Hack systems", "prohibited3": "Share credentials", "prohibited4": "Upload harmful content", "disclaimer": "Disclaimer", "disclaimerText": "For info only.", "limitation": "Liability", "limitationText": "Provided as is.", "changes": "Changes", "changesText": "Terms may update.", "contact": "Contact", "contactText": "Via Telegram:" },
-    "privacy": { "title": "Privacy Policy", "description": "Data handling", "lastUpdated": "Last updated", "intro": "Intro", "introText": "We respect privacy.", "dataCollected": "Data Collected", "dataCollectedText": "We collect:", "dataHealth": "Health", "dataHealthText": "Workouts, weight", "dataPhotos": "Photos", "dataPhotosText": "Food photos", "dataAccount": "Account", "dataAccountText": "Email", "dataUsage": "Usage", "dataUsageText": "Stats", "howWeUse": "Use", "howWeUseText": "For:", "use1": "Tracking", "use2": "Sync", "use3": "Recommendations", "use4": "Improvements", "storage": "Storage", "storageText": "Local storage.", "thirdParty": "Third Parties", "thirdPartyText": "Integrations:", "thirdPartyGemini": "AI analysis", "thirdPartyHealth": "Health sync", "security": "Security", "securityText": "Standard security.", "rights": "Rights", "rightsText": "You can:", "rights1": "Access", "rights2": "Delete", "rights3": "Export", "rights4": "Opt out", "children": "Children", "childrenText": "Not for under 13.", "changes": "Changes", "changesText": "Policy may update.", "contact": "Contact", "contactText": "Via Telegram:" }
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms for FitStream AI",
+      "lastUpdated": "Last updated",
+      "acceptance": "Acceptance",
+      "acceptanceText": "By using FitStream AI, you agree to these terms.",
+      "descriptionText": "FitStream AI is a fitness app.",
+      "accounts": "Accounts",
+      "accountsText": "Use without account or sign in with Google.",
+      "subscription": "Pricing",
+      "subscriptionText": "Free and PRO tiers available:",
+      "subscriptionFree": "Free: workouts, AI scanning",
+      "subscriptionPro": "PRO: unlimited AI, voice assistant",
+      "content": "Content",
+      "contentText": "You own your content.",
+      "prohibited": "Prohibited",
+      "prohibitedText": "Do not:",
+      "prohibited1": "Use illegally",
+      "prohibited2": "Hack systems",
+      "prohibited3": "Share credentials",
+      "prohibited4": "Upload harmful content",
+      "disclaimer": "Disclaimer",
+      "disclaimerText": "For info only.",
+      "limitation": "Liability",
+      "limitationText": "Provided as is.",
+      "changes": "Changes",
+      "changesText": "Terms may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Data handling",
+      "lastUpdated": "Last updated",
+      "intro": "Intro",
+      "introText": "We respect privacy.",
+      "dataCollected": "Data Collected",
+      "dataCollectedText": "We collect:",
+      "dataHealth": "Health",
+      "dataHealthText": "Workouts, weight",
+      "dataPhotos": "Photos",
+      "dataPhotosText": "Food photos",
+      "dataAccount": "Account",
+      "dataAccountText": "Email",
+      "dataUsage": "Usage",
+      "dataUsageText": "Stats",
+      "howWeUse": "Use",
+      "howWeUseText": "For:",
+      "use1": "Tracking",
+      "use2": "Sync",
+      "use3": "Recommendations",
+      "use4": "Improvements",
+      "storage": "Storage",
+      "storageText": "Local storage.",
+      "thirdParty": "Third Parties",
+      "thirdPartyText": "Integrations:",
+      "thirdPartyGemini": "AI analysis",
+      "thirdPartyHealth": "Health sync",
+      "security": "Security",
+      "securityText": "Standard security.",
+      "rights": "Rights",
+      "rightsText": "You can:",
+      "rights1": "Access",
+      "rights2": "Delete",
+      "rights3": "Export",
+      "rights4": "Opt out",
+      "children": "Children",
+      "childrenText": "Not for under 13.",
+      "changes": "Changes",
+      "changesText": "Policy may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    }
+  },
+  "howItWorks": {
+    "title": "使用方法",
+    "subtitle": "3个简单步骤开始您的健身之旅",
+    "download": {
+      "title": "下载应用",
+      "description": "在iOS、Android或网页上免费获取FitStream。无需注册即可开始。"
+    },
+    "scan": {
+      "title": "扫描与追踪",
+      "description": "将相机对准食物、菜单或体重秤。AI即时识别并记录一切。"
+    },
+    "track": {
+      "title": "实现目标",
+      "description": "通过精美图表追踪进度。获取AI教练的个性化建议和激励。"
+    }
+  },
+  "stickyCta": {
+    "cta": "免费开始",
+    "freeTrialNote": "3天免费试用 - 无需信用卡"
+  },
+  "trustBadges": {
+    "gdpr": "符合GDPR标准",
+    "secure": "银行级安全",
+    "appStore": "App Store推荐",
+    "award": "2024最佳健身应用",
+    "comingSoon": "认证进行中"
+  },
+  "faq": {
+    "title": "常见问题",
+    "subtitle": "关于FitStream您需要知道的一切",
+    "items": [
+      {
+        "question": "AI食物扫描器有多准确?",
+        "answer": "我们的AI食物扫描器使用Google Gemini分析食物照片，配合参考物体(如银行卡)来确定份量大小。卡路里和营养素的准确度通常在10-15%以内。对于包装食品，条形码扫描可提供精确的营养数据。"
+      },
+      {
+        "question": "FitStream可以离线使用吗?",
+        "answer": "可以!FitStream支持离线优先。所有的锻炼记录、饮食历史和厨房库存都可以在没有网络的情况下使用。AI功能(食物扫描、菜单分析)需要网络连接，但操作会在重新连接时自动同步。"
+      },
+      {
+        "question": "姿态追踪支持哪些运动?",
+        "answer": "FitStream支持15种AI姿态检测运动:深蹲、俯卧撑、弓步、平板支撑、开合跳、波比跳、仰卧起坐、卷腹、登山者、高抬腿、抬腿、二头弯举、肩推、三头撑、靠墙静蹲。定期添加更多运动。"
+      },
+      {
+        "question": "按次付费是如何运作的?",
+        "answer": "3天免费试用后，您只需为AI功能付费:食物扫描$0.02，菜单分析$0.04，冰箱扫描$0.02，食谱建议$0.06。充值套餐:$5，$9(得$10)，$20(得$25)。无需订阅。"
+      },
+      {
+        "question": "我可以将FitStream连接到其他健康应用吗?",
+        "answer": "可以!FitStream与Google Fit、Apple Health和Samsung Health集成。您可以双向同步锻炼、体重测量和卡路里数据。在设置>健康集成中启用同步。"
+      },
+      {
+        "question": "我的数据安全吗?",
+        "answer": "绝对安全。FitStream默认将数据存储在您的设备本地。云同步是可选的(需要Google登录)。发送到AI的照片是实时处理的，不会被存储。我们从不出售您的数据。详情请参阅隐私政策。"
+      },
+      {
+        "question": "FitStream在哪些平台上可用?",
+        "answer": "FitStream在iOS(iPhone)、Android上可用，也可作为渐进式网页应用(PWA)在任何浏览器中使用。如果您使用Google登录，所有平台都会同步。app.fitstream.health的网页应用可在任何设备上使用。"
+      },
+      {
+        "question": "AI教练可以用不同的声音说话吗?",
+        "answer": "可以!AI教练有多种声音角色，具有不同的教练风格——从鼓励温和到激烈激励。您可以在设置中切换声音。提供男性和女性声音选项。"
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "健身爱好者的信赖之选",
+    "subtitle": "看看用户们对他们的转变怎么说",
+    "testimonial1": {
+      "quote": "FitStream改变了我追踪营养的方式。食物扫描器非常精准，为我节省了大量时间！",
+      "name": "李美华",
+      "role": "健身教练"
+    },
+    "testimonial2": {
+      "quote": "终于有一款能正确计数的应用了！AI姿态追踪让我在家训练时保持诚实。",
+      "name": "陈明",
+      "role": "居家健身爱好者"
+    },
+    "testimonial3": {
+      "quote": "智能厨房功能完全消除了我家的食物浪费。我总是知道什么需要优先使用。",
+      "name": "田中惠美",
+      "role": "三孩妈妈"
+    },
+    "testimonial4": {
+      "quote": "作为营养师，我向所有客户推荐FitStream。按次付费模式公平合理，准确度令人印象深刻。",
+      "name": "王博士",
+      "role": "运动营养师"
+    },
+    "testimonial5": {
+      "quote": "用FitStream减掉了15公斤！即使我想偷懒，AI教练也会激励我继续锻炼。",
+      "name": "张大卫",
+      "role": "减重之旅"
+    },
+    "testimonial6": {
+      "quote": "烹饪模式的分步指导帮助我学会了做健康餐。这是个颠覆性的功能！",
+      "name": "刘婷婷",
+      "role": "烹饪新手"
+    }
   }
 }

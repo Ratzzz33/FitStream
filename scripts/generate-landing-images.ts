@@ -71,6 +71,23 @@ const coverPrompts: Record<string, string> = {
   charts: `Minimalist 3D illustration of floating analytics charts: line graph trending up, bar chart, pie chart for body composition. Cyan-blue gradient background. Data visualization aesthetic. No text.`,
 };
 
+// Avatar prompts for Testimonials (1:1)
+const avatarPrompts: Record<string, string> = {
+  'avatar-1': `Professional headshot portrait of a fit athletic woman in her 30s with short brown hair, confident smile, natural lighting, soft neutral background, high quality photo realistic style.`,
+  'avatar-2': `Professional headshot portrait of a muscular man in his 40s with gray beard, friendly expression, gym setting blurred background, natural lighting, high quality photo realistic style.`,
+  'avatar-3': `Professional headshot portrait of a young Asian woman in her 20s with long black hair, warm smile, outdoor park blurred background, natural lighting, high quality photo realistic style.`,
+  'avatar-4': `Professional headshot portrait of a fit middle-aged man in his 50s with salt and pepper hair, professional look, office blurred background, natural lighting, high quality photo realistic style.`,
+  'avatar-5': `Professional headshot portrait of a young athletic man in his 20s with curly dark hair, energetic smile, gym blurred background, natural lighting, high quality photo realistic style.`,
+  'avatar-6': `Professional headshot portrait of a fit woman in her 40s with blonde hair, warm motherly smile, kitchen blurred background, natural lighting, high quality photo realistic style.`,
+};
+
+// Step prompts for HowItWorks section (16:9)
+const stepPrompts: Record<string, string> = {
+  'step-download': `Minimalist 3D illustration of a smartphone with app store download button glowing. App icon with fitness dumbbell floating above. Blue to cyan gradient background. Modern clean aesthetic. No text.`,
+  'step-scan': `Minimalist 3D illustration of smartphone camera scanning a plate of healthy food. AI scanning beam with floating calorie and macro numbers. Orange to amber gradient background. Modern health tech aesthetic. No text.`,
+  'step-track': `Minimalist 3D illustration of dashboard with fitness charts, weight graph trending down, and calendar with streak. Floating achievement badges. Emerald to teal gradient background. Progress visualization aesthetic. No text.`,
+};
+
 // Tile prompts for each feature (1:1)
 const tilePrompts: Record<string, Record<string, string>> = {
   poseTracking: {
@@ -214,6 +231,44 @@ async function generateCovers(features?: string[]) {
   }
 }
 
+async function generateSteps() {
+  const outputDir = path.join(__dirname, '../landing-next/public/covers/steps');
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  for (const [stepName, prompt] of Object.entries(stepPrompts)) {
+    console.log(`🎨 Generating step: ${stepName}...`);
+    const imageBuffer = await generateImage(prompt, '16:9');
+
+    if (imageBuffer) {
+      const outputPath = path.join(outputDir, `${stepName}.png`);
+      fs.writeFileSync(outputPath, imageBuffer);
+      console.log(`✅ Saved: ${outputPath}`);
+    }
+
+    // Rate limiting
+    await new Promise(r => setTimeout(r, 7000)); // 10 req/min limit
+  }
+}
+
+async function generateAvatars() {
+  const outputDir = path.join(__dirname, '../landing-next/public/covers/avatars');
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  for (const [avatarName, prompt] of Object.entries(avatarPrompts)) {
+    console.log(`🎨 Generating avatar: ${avatarName}...`);
+    const imageBuffer = await generateImage(prompt, '1:1');
+
+    if (imageBuffer) {
+      const outputPath = path.join(outputDir, `${avatarName}.png`);
+      fs.writeFileSync(outputPath, imageBuffer);
+      console.log(`✅ Saved: ${outputPath}`);
+    }
+
+    // Rate limiting
+    await new Promise(r => setTimeout(r, 7000)); // 10 req/min limit
+  }
+}
+
 async function generateTiles(features?: string[]) {
   const outputDir = path.join(__dirname, '../landing/covers/tiles');
   fs.mkdirSync(outputDir, { recursive: true });
@@ -246,22 +301,35 @@ async function generateTiles(features?: string[]) {
 // CLI
 async function main() {
   const args = process.argv.slice(2);
-  const generateCoversFlag = args.includes('--covers') || args.length === 0;
-  const generateTilesFlag = args.includes('--tiles') || args.length === 0;
+  const generateCoversFlag = args.includes('--covers');
+  const generateTilesFlag = args.includes('--tiles');
+  const generateStepsFlag = args.includes('--steps');
+  const generateAvatarsFlag = args.includes('--avatars');
+  const generateAll = args.length === 0;
 
   const featureArg = args.find(a => a.startsWith('--feature='));
   const specificFeature = featureArg ? [featureArg.split('=')[1]] : undefined;
 
   console.log('🚀 FitStream Landing Image Generator\n');
 
-  if (generateCoversFlag) {
+  if (generateCoversFlag || generateAll) {
     console.log('📸 Generating cover images...\n');
     await generateCovers(specificFeature);
   }
 
-  if (generateTilesFlag) {
+  if (generateTilesFlag || generateAll) {
     console.log('\n📸 Generating tile images...\n');
     await generateTiles(specificFeature);
+  }
+
+  if (generateStepsFlag || generateAll) {
+    console.log('\n📸 Generating step images...\n');
+    await generateSteps();
+  }
+
+  if (generateAvatarsFlag || generateAll) {
+    console.log('\n📸 Generating avatar images...\n');
+    await generateAvatars();
   }
 
   console.log('\n✨ Done!');

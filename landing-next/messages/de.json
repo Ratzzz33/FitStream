@@ -299,10 +299,22 @@
       "subtitle": "Bezahle nur bei KI-Nutzung",
       "priceLabel": "KI-Aktionspreise:",
       "prices": [
-        { "action": "Essen-Scan", "price": "$0.02" },
-        { "action": "Menü-Analyse", "price": "$0.04" },
-        { "action": "Kühlschrank-Scan", "price": "$0.02" },
-        { "action": "Rezeptvorschlag", "price": "$0.06" }
+        {
+          "action": "Essen-Scan",
+          "price": "$0.02"
+        },
+        {
+          "action": "Menü-Analyse",
+          "price": "$0.04"
+        },
+        {
+          "action": "Kühlschrank-Scan",
+          "price": "$0.02"
+        },
+        {
+          "action": "Rezeptvorschlag",
+          "price": "$0.06"
+        }
       ],
       "noSubscription": "Keine monatlichen Gebühren. Pay as you go.",
       "cta": "Jetzt starten"
@@ -310,10 +322,23 @@
     "topUp": {
       "name": "Aufladen",
       "subtitle": "Spare mehr mit größeren Paketen",
+      "simple": "Aufladen ab 5$ in der App",
       "packages": [
-        { "amount": "$5", "discount": "", "price": "$5.00" },
-        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
-        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
+        {
+          "amount": "$5",
+          "discount": "",
+          "price": "$5.00"
+        },
+        {
+          "amount": "$10",
+          "discount": "-10%",
+          "price": "$9.00"
+        },
+        {
+          "amount": "$25",
+          "discount": "-20%",
+          "price": "$20.00"
+        }
       ],
       "paypal": "Sichere Zahlung über PayPal",
       "cta": "Guthaben aufladen"
@@ -416,6 +441,105 @@
       "changesText": "We may update this policy.",
       "contact": "Contact",
       "contactText": "Contact us via Telegram:"
+    }
+  },
+  "howItWorks": {
+    "title": "So funktioniert es",
+    "subtitle": "Starten Sie Ihre Fitnessreise in 3 einfachen Schritten",
+    "download": {
+      "title": "App herunterladen",
+      "description": "FitStream kostenlos für iOS, Android oder Web. Kein Konto zum Starten erforderlich."
+    },
+    "scan": {
+      "title": "Scannen & Verfolgen",
+      "description": "Richten Sie die Kamera auf Essen, Menüs oder Waage. KI erkennt und protokolliert alles sofort."
+    },
+    "track": {
+      "title": "Ziele erreichen",
+      "description": "Verfolgen Sie Fortschritte mit schönen Diagrammen. Erhalten Sie personalisierte Tipps vom KI-Coach."
+    }
+  },
+  "stickyCta": {
+    "cta": "Kostenlos starten",
+    "freeTrialNote": "3 Tage kostenlos - Keine Kreditkarte nötig"
+  },
+  "trustBadges": {
+    "gdpr": "DSGVO-konform",
+    "secure": "Banksicherheit",
+    "appStore": "App Store Empfohlen",
+    "award": "Beste Fitness-App 2024",
+    "comingSoon": "Zertifizierungen in Arbeit"
+  },
+  "faq": {
+    "title": "Häufig gestellte Fragen",
+    "subtitle": "Alles, was Sie über FitStream wissen müssen",
+    "items": [
+      {
+        "question": "Wie genau ist der KI-Food-Scanner?",
+        "answer": "Unser KI-Food-Scanner nutzt Google Gemini zur Analyse von Essensfotos mit einem Referenzobjekt (z.B. Kreditkarte) für die Portionsbestimmung. Die Genauigkeit liegt typischerweise bei 10-15% für Kalorien und Makros. Für verpackte Lebensmittel liefert der Barcode-Scan exakte Nährwertdaten."
+      },
+      {
+        "question": "Funktioniert FitStream offline?",
+        "answer": "Ja! FitStream ist offline-first. Alle Workouts, Ernährungsprotokolle und Kücheninventar funktionieren ohne Internet. KI-Funktionen (Food-Scan, Menü-Analyse) benötigen Internet, aber Aktionen werden automatisch synchronisiert, wenn Sie wieder online sind."
+      },
+      {
+        "question": "Welche Übungen unterstützt die Pose-Erkennung?",
+        "answer": "FitStream unterstützt 15 Übungen mit KI-Pose-Erkennung: Kniebeugen, Liegestütze, Ausfallschritte, Planks, Hampelmänner, Burpees, Sit-ups, Crunches, Bergsteiger, High Knees, Beinheben, Bizeps-Curls, Schulterdrücken, Trizeps-Dips und Wandsitzen. Neue Übungen werden regelmäßig hinzugefügt."
+      },
+      {
+        "question": "Wie funktioniert die Pay-per-Use-Preisgestaltung?",
+        "answer": "Nach Ihrer 3-tägigen kostenlosen Testphase zahlen Sie nur für KI-Funktionen: 0,02$ für Food-Scans, 0,04$ für Menü-Analyse, 0,02$ für Kühlschrank-Scans, 0,06$ für Rezeptvorschläge. Aufladen: 5$, 9$ (für 10$) oder 20$ (für 25$). Kein Abo nötig."
+      },
+      {
+        "question": "Kann ich FitStream mit anderen Gesundheits-Apps verbinden?",
+        "answer": "Ja! FitStream integriert sich mit Google Fit, Apple Health und Samsung Health. Sie können Workouts, Gewichtsmessungen und Kaloriendaten bidirektional synchronisieren. Aktivieren Sie die Sync in Einstellungen > Gesundheits-Integrationen."
+      },
+      {
+        "question": "Sind meine Daten privat und sicher?",
+        "answer": "Absolut. FitStream speichert Daten standardmäßig lokal auf Ihrem Gerät. Cloud-Sync ist optional (erfordert Google-Anmeldung). Fotos für KI werden in Echtzeit verarbeitet und nicht gespeichert. Wir verkaufen niemals Ihre Daten. Details in unserer Datenschutzerklärung."
+      },
+      {
+        "question": "Auf welchen Plattformen ist FitStream verfügbar?",
+        "answer": "FitStream ist auf iOS (iPhone), Android und als Progressive Web App (PWA) für jeden Browser verfügbar. Alle Plattformen synchronisieren sich, wenn Sie sich mit Google anmelden. Die Web-App unter app.fitstream.health funktioniert auf jedem Gerät."
+      },
+      {
+        "question": "Kann der KI-Coach in verschiedenen Stimmen sprechen?",
+        "answer": "Ja! Der KI-Coach hat mehrere Stimm-Personas mit verschiedenen Coaching-Stilen - von ermutigend und sanft bis intensiv und motivierend. Wechseln Sie Stimmen in den Einstellungen. Männliche und weibliche Stimmoptionen sind verfügbar."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Von Fitness-Enthusiasten geliebt",
+    "subtitle": "Sehen Sie, was unsere Nutzer über ihre Transformation sagen",
+    "testimonial1": {
+      "quote": "FitStream hat meine Ernährungsüberwachung verändert. Der Food-Scanner ist unglaublich genau und spart mir so viel Zeit!",
+      "name": "Sarah Müller",
+      "role": "Fitness-Trainerin"
+    },
+    "testimonial2": {
+      "quote": "Endlich eine App, die meine Wiederholungen richtig zählt! Das KI-Pose-Tracking hält mich beim Heimtraining ehrlich.",
+      "name": "Michael Weber",
+      "role": "Heimtraining-Enthusiast"
+    },
+    "testimonial3": {
+      "quote": "Die Smart-Kitchen-Funktion hat die Lebensmittelverschwendung in unserem Haushalt komplett beseitigt.",
+      "name": "Emily Schmidt",
+      "role": "Beschäftigte Mutter von 3"
+    },
+    "testimonial4": {
+      "quote": "Als Ernährungsberater empfehle ich FitStream all meinen Klienten. Das Pay-per-Use-Modell ist fair und die Genauigkeit beeindruckend.",
+      "name": "Dr. Thomas Fischer",
+      "role": "Sport-Ernährungsberater"
+    },
+    "testimonial5": {
+      "quote": "15 kg mit FitStream verloren! Der KI-Coach motiviert mich auch wenn ich Trainings auslassen möchte.",
+      "name": "David Martinez",
+      "role": "Abnehm-Reise"
+    },
+    "testimonial6": {
+      "quote": "Der Kochmodus mit Schritt-für-Schritt-Anleitung hat mir geholfen, gesunde Mahlzeiten zu kochen. Ein Gamechanger!",
+      "name": "Jennifer Bauer",
+      "role": "Koch-Anfängerin"
     }
   }
 }
