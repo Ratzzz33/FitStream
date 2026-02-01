@@ -109,11 +109,15 @@ jobs:
             pm2 stop fitstream-backend 2>/dev/null || true
             pm2 delete fitstream-backend 2>/dev/null || true
 
-            echo "Cleaning node cache..."
-            cd backend
-            rm -rf node_modules/.cache 2>/dev/null || true
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
 
-            echo "Reinstalling dependencies..."
+            echo "Cleaning node_modules completely..."
+            cd backend
+            rm -rf node_modules
+
+            echo "Reinstalling dependencies from scratch..."
             npm ci --production
 
             echo "Starting fresh..."
