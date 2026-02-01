@@ -14,7 +14,7 @@ import { GoalSettings } from './components/GoalSettings';
 import { AvatarSelector } from './components/AvatarSelector';
 import { HealthConnect } from './components/HealthConnect';
 import { DeviceSettings } from './components/DeviceSettings';
-import { ProUpgradeModal } from './components/ProUpgradeModal';
+// ProUpgradeModal removed - replaced with BillingBanner and TopUpModal
 import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
@@ -29,7 +29,7 @@ import { getCurrencyList, CurrencyCode } from './services/currencyService';
 import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
 import { BUILD_CONFIG } from './buildConfig';
 import { BillingProvider } from './contexts/BillingContext';
-import { BalanceIndicator, TopUpModal, TrialBanner } from './components/Billing';
+import { BalanceIndicator, TopUpModal, TrialBanner, BillingBanner } from './components/Billing';
 import { initTimerService } from './services/timerService';
 import { UpdateBanner } from './components/UpdateBanner';
 
@@ -54,7 +54,7 @@ const App = () => {
   const [showGoalSettings, setShowGoalSettings] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showProModal, setShowProModal] = useState(false);
+  // showProModal removed - replaced with billing system
   const [showRefScanner, setShowRefScanner] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
@@ -592,12 +592,7 @@ const App = () => {
       setActiveTab(AppTab.NUTRITION);
   };
 
-  const handleMockUpgrade = () => {
-      const newSettings = { ...settings, isPro: true };
-      setSettings(newSettings);
-      StorageService.saveSettings(newSettings);
-      setShowProModal(false);
-  };
+  // handleMockUpgrade removed - using billing system instead
 
   const addWater = (amount: number) => {
       if (isTelegramApp) {
@@ -951,23 +946,8 @@ const App = () => {
                 </button>
             </div>
 
-            {!settings.isPro && (
-                <div 
-                    onClick={() => setShowProModal(true)}
-                    className="cursor-pointer bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-center justify-between"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg text-white">
-                            <Crown size={20} fill="white" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{t('upgradeToPro')}</p>
-                            <p className="text-xs text-gray-500">{t('removeLimits')}</p>
-                        </div>
-                    </div>
-                    <ArrowDown className="text-yellow-500 -rotate-90" size={20} />
-                </div>
-            )}
+            {/* Billing Status Banner */}
+            <BillingBanner onTopUp={() => setShowTopUpModal(true)} variant="dashboard" />
 
             {/* History Section (Collapsible) */}
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
@@ -997,14 +977,14 @@ const App = () => {
         
         {activeTab === AppTab.NUTRITION && (
             <NutritionTracker
-                onRequestPro={() => setShowProModal(true)}
+                onRequestPro={() => setShowTopUpModal(true)}
                 openCameraOnMount={openFoodCameraOnMount}
                 onCameraOpened={() => setOpenFoodCameraOnMount(false)}
                 initialToolSheet={initialToolSheet}
             />
         )}
 
-        {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowProModal(true)} />}
+        {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowTopUpModal(true)} />}
 
         {activeTab === AppTab.SOCIAL && (
             <div className="px-4 space-y-4 pb-20">
@@ -1077,30 +1057,8 @@ const App = () => {
                     </button>
                 </div>
 
-                {/* Pro Banner */}
-                <div className="space-y-4">
-                    {!settings.isPro && (
-                        <div 
-                            onClick={() => setShowProModal(true)}
-                            className="bg-gradient-to-r from-yellow-500 to-orange-600 p-4 rounded-xl text-white shadow-lg cursor-pointer transform transition hover:scale-[1.02]"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-full">
-                                        <Crown size={24} fill="white" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-lg">FitStream PRO</p>
-                                        <p className="text-xs text-white/80">{t('unlockAllFeatures')}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-xs font-bold">
-                                    {t('upgrade')}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                {/* Billing Status Banner */}
+                <BillingBanner onTopUp={() => setShowTopUpModal(true)} variant="settings" />
 
                 {/* Account Section - Hide in Telegram Mini App */}
                 {!isTelegramApp && (
@@ -1588,12 +1546,7 @@ const App = () => {
           />
       )}
 
-      {showProModal && (
-          <ProUpgradeModal 
-            onClose={() => setShowProModal(false)}
-            onUpgradeMock={handleMockUpgrade}
-          />
-      )}
+      {/* ProUpgradeModal removed - using TopUpModal instead */}
 
       {showGoalSettings && (
           <GoalSettings 

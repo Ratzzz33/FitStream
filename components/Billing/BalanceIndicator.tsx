@@ -11,11 +11,24 @@ interface BalanceIndicatorProps {
 export const BalanceIndicator: React.FC<BalanceIndicatorProps> = ({ onTopUp }) => {
   const { balance, loading } = useBilling();
 
-  if (loading || !balance) {
+  if (loading) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse">
         <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded" />
       </div>
+    );
+  }
+
+  // Error loading balance - show clickable button
+  if (!balance) {
+    return (
+      <button
+        onClick={onTopUp}
+        className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm font-medium"
+      >
+        <Wallet size={16} />
+        <span>Баланс</span>
+      </button>
     );
   }
 
