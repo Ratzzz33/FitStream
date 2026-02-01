@@ -37,7 +37,8 @@ test.describe('Dashboard', () => {
     expect(hasGreeting || hasContent).toBeTruthy();
   });
 
-  test('displays streak counter', async ({ authenticatedPage }) => {
+  // Streak counter temporarily removed from header - see feat/minimal-header-billing-banner
+  test.skip('displays streak counter', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
     // Look for streak indicator
