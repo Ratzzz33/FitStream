@@ -11,15 +11,19 @@ interface TopUpModalProps {
   onClose: () => void;
 }
 
+// Discount model: pay less, get full value
+// $5 → pay $5, get $5 tokens
+// $10 → pay $9 (10% off), get $10 tokens
+// $25 → pay $20 (20% off), get $25 tokens
 const PACKAGES = [
-  { amount: 5, label: '$5', scans: '~100', discount: 0 },
-  { amount: 10, label: '$10', scans: '~220', discount: 10, popular: true },
-  { amount: 25, label: '$25', scans: '~600', discount: 20 },
+  { price: 5, value: 5, label: '$5', tokens: '~100', discount: 0 },
+  { price: 9, value: 10, label: '$10', tokens: '~200', discount: 10, popular: true },
+  { price: 20, value: 25, label: '$25', tokens: '~500', discount: 20 },
 ];
 
 export const TopUpModal: React.FC<TopUpModalProps> = ({ isOpen, onClose }) => {
   const { balance, refreshBalance } = useBilling();
-  const [selectedAmount, setSelectedAmount] = useState<number>(10);
+  const [selectedIndex, setSelectedIndex] = useState<number>(1); // Default to $10 package
   const [customAmount, setCustomAmount] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -27,7 +31,8 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const finalAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
+  const selectedPackage = PACKAGES[selectedIndex];
+  const finalAmount = customAmount ? parseFloat(customAmount) : selectedPackage.price;
 
   const handlePayPal = async () => {
     if (finalAmount < 1) {
@@ -100,12 +105,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ isOpen, onClose }) => {
 
           {/* Packages */}
           <div className="grid grid-cols-3 gap-3">
-            {PACKAGES.map((pkg) => (
+            {PACKAGES.map((pkg, index) => (
               <button
-                key={pkg.amount}
-                onClick={() => { setSelectedAmount(pkg.amount); setCustomAmount(''); }}
+                key={pkg.price}
+                onClick={() => { setSelectedIndex(index); setCustomAmount(''); }}
                 className={`relative p-3 rounded-xl border-2 transition flex flex-col items-center gap-1
-                  ${selectedAmount === pkg.amount && !customAmount
+                  ${selectedIndex === index && !customAmount
                     ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                   }`}
@@ -117,9 +122,9 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ isOpen, onClose }) => {
                 )}
                 <span className="text-lg font-bold text-gray-900 dark:text-white">{pkg.label}</span>
                 {pkg.discount > 0 && (
-                  <span className="text-xs text-emerald-600 font-medium">-{pkg.discount}%</span>
+                  <span className="text-xs text-emerald-600 font-medium">-{pkg.discount}% (${pkg.price})</span>
                 )}
-                <span className="text-xs text-gray-500">{pkg.scans} сканов</span>
+                <span className="text-xs text-gray-500">{pkg.tokens} токенов</span>
               </button>
             ))}
           </div>

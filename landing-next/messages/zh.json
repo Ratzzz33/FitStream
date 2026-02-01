@@ -294,15 +294,15 @@
       "cta": "免费开始"
     },
     "payPerUse": {
-      "name": "按扫描付费",
+      "name": "按AI代币付费",
       "badge": "最佳价值",
       "subtitle": "仅在使用AI时付费",
       "priceLabel": "AI操作价格：",
       "prices": [
         { "action": "食物扫描", "price": "$0.02" },
         { "action": "菜单分析", "price": "$0.04" },
-        { "action": "体重秤读取", "price": "$0.02" },
-        { "action": "AI教练建议", "price": "$0.06" }
+        { "action": "冰箱扫描", "price": "$0.02" },
+        { "action": "食谱推荐", "price": "$0.06" }
       ],
       "noSubscription": "无月费。按需付费。",
       "cta": "开始使用"
@@ -311,9 +311,9 @@
       "name": "充值套餐",
       "subtitle": "大套餐更省钱",
       "packages": [
-        { "amount": "$5", "bonus": "", "price": "$5.00" },
-        { "amount": "$10", "bonus": "+10% 奖励", "price": "$10.00" },
-        { "amount": "$25", "bonus": "+20% 奖励", "price": "$25.00" }
+        { "amount": "$5", "discount": "", "price": "$5.00" },
+        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
+        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
       ],
       "paypal": "通过PayPal安全支付",
       "cta": "充值余额"
