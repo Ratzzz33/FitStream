@@ -258,6 +258,23 @@ app.get('/api/paypal-client-id', (req, res) => {
     res.json({ clientId: PAYPAL_CLIENT_ID });
 });
 
+// Get latest app version
+const LATEST_APP_VERSION = '1.3.0';
+const LATEST_APK_URL = 'https://fitstream.health/downloads/fitstream-1.3.0.apk';
+
+app.get('/api/version', (req, res) => {
+    res.json({
+        version: LATEST_APP_VERSION,
+        apkUrl: LATEST_APK_URL,
+        releaseNotes: [
+            'New discount pricing model (10-20% off)',
+            'Improved PayPal checkout',
+            'Fridge scan and recipe suggestions',
+            'Bug fixes and performance improvements'
+        ]
+    });
+});
+
 
 // --- 5. PHONE DATABASE SEED ---
 const SEED_PHONES = [

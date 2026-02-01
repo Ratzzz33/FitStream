@@ -31,6 +31,7 @@ import { BUILD_CONFIG } from './buildConfig';
 import { BillingProvider } from './contexts/BillingContext';
 import { BalanceIndicator, TopUpModal, TrialBanner } from './components/Billing';
 import { initTimerService } from './services/timerService';
+import { UpdateBanner } from './components/UpdateBanner';
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -769,6 +770,7 @@ const App = () => {
 
   return (
     <BillingProvider>
+    <UpdateBanner />
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
       {/* Header */}
       <header className="px-6 pt-8 pb-4">
@@ -1103,7 +1105,7 @@ const App = () => {
                 {/* Account Section - Hide in Telegram Mini App */}
                 {!isTelegramApp && (
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    {!settings.email ? (
+                    {!settings.email && !settings.googleId ? (
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
                                 <svg className="w-6 h-6 text-white" viewBox="0 0 24 24">
@@ -1118,7 +1120,18 @@ const App = () => {
                                 <p className="text-gray-500 dark:text-gray-400 text-xs">{t('syncProgress')}</p>
                             </div>
                             <button
-                                onClick={googleAuthService.isNative() ? handleNativeGoogleSignIn : () => (window as any).google?.accounts?.id?.prompt()}
+                                onClick={async () => {
+                                    console.log('[Auth] Sign-in clicked, isNative:', googleAuthService.isNative());
+                                    if (googleAuthService.isNative()) {
+                                        handleNativeGoogleSignIn();
+                                    } else if ((window as any).google?.accounts?.id) {
+                                        (window as any).google.accounts.id.prompt();
+                                    } else {
+                                        // Fallback: try native anyway (WebView in APK)
+                                        console.log('[Auth] Fallback to native sign-in');
+                                        handleNativeGoogleSignIn();
+                                    }
+                                }}
                                 disabled={isLoggingIn}
                                 className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all disabled:opacity-50"
                             >
@@ -1143,7 +1156,7 @@ const App = () => {
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{settings.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{settings.email}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{settings.email || t('synced')}</p>
                             </div>
                             <button onClick={handleGoogleLogout} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-lg transition">
                                 <LogOut size={18} />
