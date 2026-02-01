@@ -294,15 +294,15 @@
       "cta": "Kostenlos starten"
     },
     "payPerUse": {
-      "name": "Pro Scan bezahlen",
+      "name": "Pro KI-Token bezahlen",
       "badge": "BESTER WERT",
       "subtitle": "Bezahle nur bei KI-Nutzung",
       "priceLabel": "KI-Aktionspreise:",
       "prices": [
         { "action": "Essen-Scan", "price": "$0.02" },
         { "action": "Menü-Analyse", "price": "$0.04" },
-        { "action": "Waage ablesen", "price": "$0.02" },
-        { "action": "KI-Coach Tipp", "price": "$0.06" }
+        { "action": "Kühlschrank-Scan", "price": "$0.02" },
+        { "action": "Rezeptvorschlag", "price": "$0.06" }
       ],
       "noSubscription": "Keine monatlichen Gebühren. Pay as you go.",
       "cta": "Jetzt starten"
@@ -311,9 +311,9 @@
       "name": "Aufladen",
       "subtitle": "Spare mehr mit größeren Paketen",
       "packages": [
-        { "amount": "$5", "bonus": "", "price": "$5.00" },
-        { "amount": "$10", "bonus": "+10% Bonus", "price": "$10.00" },
-        { "amount": "$25", "bonus": "+20% Bonus", "price": "$25.00" }
+        { "amount": "$5", "discount": "", "price": "$5.00" },
+        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
+        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
       ],
       "paypal": "Sichere Zahlung über PayPal",
       "cta": "Guthaben aufladen"

@@ -294,15 +294,15 @@
       "cta": "Start Free Trial"
     },
     "payPerUse": {
-      "name": "Pay Per Scan",
+      "name": "Pay Per AI Token",
       "badge": "BEST VALUE",
       "subtitle": "Pay only when you use AI",
       "priceLabel": "AI action prices:",
       "prices": [
         { "action": "Food scan", "price": "$0.02" },
         { "action": "Menu analysis", "price": "$0.04" },
-        { "action": "Scale reading", "price": "$0.02" },
-        { "action": "AI Coach tip", "price": "$0.06" }
+        { "action": "Fridge scan", "price": "$0.02" },
+        { "action": "Recipe suggestion", "price": "$0.06" }
       ],
       "noSubscription": "No monthly fees. Pay as you go.",
       "cta": "Get Started"
@@ -311,9 +311,9 @@
       "name": "Top Up Packages",
       "subtitle": "Save more with bigger packages",
       "packages": [
-        { "amount": "$5", "bonus": "", "price": "$5.00" },
-        { "amount": "$10", "bonus": "+10% bonus", "price": "$10.00" },
-        { "amount": "$25", "bonus": "+20% bonus", "price": "$25.00" }
+        { "amount": "$5", "discount": "", "price": "$5.00" },
+        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
+        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
       ],
       "paypal": "Secure payment via PayPal",
       "cta": "Top Up Balance"
@@ -356,7 +356,7 @@
       "subscription": "Pricing Model",
       "subscriptionText": "FitStream uses a pay-per-use model:",
       "subscriptionFree": "3-day free trial: Full access to all AI features with no credit card required",
-      "subscriptionPro": "Pay-per-scan: $0.02-$0.06 per AI action. Top-up packages: $5, $10 (+10% bonus), $25 (+20% bonus)",
+      "subscriptionPro": "Pay-per-token: $0.02-$0.06 per AI action. Top-up packages: $5, $9 for $10 (10% off), $20 for $25 (20% off)",
       "content": "User Content",
       "contentText": "You retain ownership of any content you upload (photos, data). By using our AI features, you grant us permission to process this content to provide the service. We do not sell your data.",
       "prohibited": "Prohibited Uses",

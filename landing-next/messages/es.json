@@ -294,15 +294,15 @@
       "cta": "Empezar Gratis"
     },
     "payPerUse": {
-      "name": "Pago por Escaneo",
+      "name": "Pago por Token IA",
       "badge": "MEJOR VALOR",
       "subtitle": "Paga solo cuando uses IA",
       "priceLabel": "Precios de acciones IA:",
       "prices": [
         { "action": "Escaneo comida", "price": "$0.02" },
         { "action": "Análisis menú", "price": "$0.04" },
-        { "action": "Lectura báscula", "price": "$0.02" },
-        { "action": "Consejo IA Coach", "price": "$0.06" }
+        { "action": "Escaneo nevera", "price": "$0.02" },
+        { "action": "Sugerencia receta", "price": "$0.06" }
       ],
       "noSubscription": "Sin cuotas mensuales. Paga según uses.",
       "cta": "Comenzar"
@@ -311,9 +311,9 @@
       "name": "Paquetes de Recarga",
       "subtitle": "Ahorra más con paquetes grandes",
       "packages": [
-        { "amount": "$5", "bonus": "", "price": "$5.00" },
-        { "amount": "$10", "bonus": "+10% bonus", "price": "$10.00" },
-        { "amount": "$25", "bonus": "+20% bonus", "price": "$25.00" }
+        { "amount": "$5", "discount": "", "price": "$5.00" },
+        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
+        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
       ],
       "paypal": "Pago seguro vía PayPal",
       "cta": "Recargar Saldo"
