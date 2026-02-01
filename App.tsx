@@ -770,8 +770,8 @@ const App = () => {
 
   return (
     <BillingProvider>
-    <UpdateBanner />
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 overflow-hidden">
+      <UpdateBanner />
       {/* Header */}
       <header className="px-6 pt-8 pb-4">
         <div className="flex justify-between items-center mb-4">

@@ -17,10 +17,10 @@ export function DownloadCTA() {
         'bg-gradient-to-r from-blue-600 to-emerald-600 text-white hover:from-blue-500 hover:to-emerald-500',
     },
     {
-      href: 'https://github.com/Ratzzz33/FitStream/releases/download/v1.0.0-beta/FitStream-debug.apk',
+      href: '/downloads/fitstream-1.3.0.apk',
       icon: Download,
       label1: t('get'),
-      label2: 'Android APK',
+      label2: 'Android APK v1.3.0',
       className: 'bg-emerald-600 text-white hover:bg-emerald-500',
     },
     {
