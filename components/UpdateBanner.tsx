@@ -9,6 +9,7 @@ interface UpdateBannerProps {
 
 export const UpdateBanner: React.FC<UpdateBannerProps> = ({ onDismiss }) => {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [apkUrl, setApkUrl] = useState<string>('https://fitstream.health/downloads/fitstream-1.3.0.apk');
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -22,6 +23,9 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({ onDismiss }) => {
           const dismissedVersion = localStorage.getItem('dismissedUpdateVersion');
           if (dismissedVersion !== data.version) {
             setLatestVersion(data.version);
+            if (data.apkUrl) {
+              setApkUrl(data.apkUrl);
+            }
           }
         }
       } catch (e) {
@@ -41,7 +45,7 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({ onDismiss }) => {
   };
 
   const handleUpdate = () => {
-    window.open('https://fitstream.health/ru#download', '_blank');
+    window.open(apkUrl, '_blank');
   };
 
   if (!latestVersion || dismissed) {
