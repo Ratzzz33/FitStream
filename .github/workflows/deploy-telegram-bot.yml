@@ -109,6 +109,10 @@ jobs:
             pm2 stop fitstream-backend 2>/dev/null || true
             pm2 delete fitstream-backend 2>/dev/null || true
 
+            echo "Killing any process on port 8080..."
+            fuser -k 8080/tcp 2>/dev/null || true
+            sleep 2
+
             echo "Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
