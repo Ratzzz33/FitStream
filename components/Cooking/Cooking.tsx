@@ -8,6 +8,7 @@ import { RecipeCarousel } from './RecipeCarousel';
 import { RecipeCardExpanded } from './RecipeCardExpanded';
 import { CookingMode } from './CookingMode';
 import { RecipeFilters } from './RecipeFilters';
+import { RecipeDialogInput } from './RecipeDialogInput';
 import { DietaryPreferences, RecipeCategory } from '../../types';
 
 // Custom Fridge Icon
@@ -75,7 +76,7 @@ interface CookingProps {
   onOpenShopping?: () => void;
 }
 
-type ViewState = 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
+type ViewState = 'dialog' | 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
 
 const MAX_RECIPES = 3; // Total recipe slots to show
 
@@ -87,7 +88,8 @@ export const Cooking: React.FC<CookingProps> = ({
   onOpenManualAdd,
   onOpenShopping
 }) => {
-  const [state, setState] = useState<ViewState>('loading');
+  const [state, setState] = useState<ViewState>('dialog');
+  const [currentQuery, setCurrentQuery] = useState<string | undefined>();
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [selectedRecipeIndex, setSelectedRecipeIndex] = useState<number | undefined>();
   const [recipeImages, setRecipeImages] = useState<Record<number, string>>({});
@@ -145,8 +147,8 @@ export const Cooking: React.FC<CookingProps> = ({
     const newPrefs = { ...dietaryPreferences, [key]: value };
     setDietaryPreferences(newPrefs);
     StorageService.saveSettings({ ...settings, dietaryPreferences: newPrefs });
-    // Reload recipes with new preferences
-    loadRecipes(true);
+    // Reload recipes with new preferences (preserve query)
+    loadRecipes(true, currentQuery);
   };
 
   // Determine time of day for meal type
@@ -206,17 +208,29 @@ export const Cooking: React.FC<CookingProps> = ({
     return { meals, macros };
   };
 
-  // Cache key for recipes
-  const getCacheKey = () => {
+  // Simple hash function for query strings
+  const hashString = (str: string): string => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  };
+
+  // Cache key for recipes (includes query hash for different results)
+  const getCacheKey = (query?: string) => {
     const today = new Date().toISOString().split('T')[0];
     const timeOfDay = getTimeOfDay();
-    return `fitstream_recipes_${today}_${timeOfDay}`;
+    const queryHash = query ? `_${hashString(query)}` : '';
+    return `fitstream_recipes_${today}_${timeOfDay}${queryHash}`;
   };
 
   // Load cached recipes
-  const loadCachedRecipes = (): GeneratedRecipe[] | null => {
+  const loadCachedRecipes = (query?: string): GeneratedRecipe[] | null => {
     try {
-      const cached = localStorage.getItem(getCacheKey());
+      const cached = localStorage.getItem(getCacheKey(query));
       if (cached) {
         const { recipes, timestamp } = JSON.parse(cached);
         // Cache valid for 2 hours
@@ -231,9 +245,9 @@ export const Cooking: React.FC<CookingProps> = ({
   };
 
   // Save recipes to cache
-  const cacheRecipes = (recipes: GeneratedRecipe[]) => {
+  const cacheRecipes = (recipes: GeneratedRecipe[], query?: string) => {
     try {
-      localStorage.setItem(getCacheKey(), JSON.stringify({
+      localStorage.setItem(getCacheKey(query), JSON.stringify({
         recipes,
         timestamp: Date.now()
       }));
@@ -242,10 +256,7 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
-  // Load recipes on mount
-  useEffect(() => {
-    loadRecipes();
-  }, []);
+  // No auto-load on mount - user starts in dialog mode
 
   // Generate image for a recipe (parallel)
   const generateImageForRecipe = async (recipe: GeneratedRecipe, index: number) => {
@@ -268,13 +279,14 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
-  const loadRecipes = async (forceRefresh = false) => {
+  const loadRecipes = async (forceRefresh = false, query?: string) => {
     setError('');
     setSelectedRecipeIndex(undefined);
     setIsOfflineMode(false);
     setMissingIngredients([]);
     setGeneratingSlots([]);
     setIsGeneratingMore(false);
+    setCurrentQuery(query);
 
     // Clear image cache on force refresh to get new images
     if (forceRefresh) {
@@ -291,7 +303,7 @@ export const Cooking: React.FC<CookingProps> = ({
 
     // 1. Check cache first (instant load)
     if (!forceRefresh) {
-      const cached = loadCachedRecipes();
+      const cached = loadCachedRecipes(query);
       if (cached && cached.length > 0) {
         setRecipes(cached);
         setRecipeImages({});
@@ -366,7 +378,9 @@ export const Cooking: React.FC<CookingProps> = ({
         // Add dietary filters
         vegetarian: dietaryPreferences.vegetarian,
         diabetic: dietaryPreferences.diabetic,
-        onlyAvailable: onlyAvailable
+        onlyAvailable: onlyAvailable,
+        // User query from dialog
+        userQuery: query
       };
 
       const aiRecipes = await generateRecipes(inventory, context);
@@ -383,7 +397,7 @@ export const Cooking: React.FC<CookingProps> = ({
       setState('menu');
 
       // Cache the result
-      cacheRecipes(finalRecipes);
+      cacheRecipes(finalRecipes, query);
 
       // Generate images for new AI recipes
       newAiRecipes.forEach((recipe, index) => {
@@ -398,7 +412,7 @@ export const Cooking: React.FC<CookingProps> = ({
       // If we have offline recipes, that's fine
       if (offlineRecipes.length > 0) {
         setIsOfflineMode(true);
-        cacheRecipes(offlineRecipes);
+        cacheRecipes(offlineRecipes, query);
       } else {
         setError('Не удалось подобрать рецепты. Проверьте подключение к интернету.');
         setState('error');
@@ -433,11 +447,38 @@ export const Cooking: React.FC<CookingProps> = ({
     setState('menu');
   };
 
+  // Dialog handlers
+  const handleDialogSubmit = (query: string) => {
+    setState('loading');
+    loadRecipes(true, query);
+  };
+
+  const handleSurpriseMe = () => {
+    setState('loading');
+    loadRecipes(true); // No query = AI decides
+  };
+
+  const handleBackToDialog = () => {
+    setState('dialog');
+    setCurrentQuery(undefined);
+  };
+
   const selectedRecipe = selectedRecipeIndex !== undefined ? recipes[selectedRecipeIndex] : null;
   const { meals: todayMeals } = getTodayMealsContext();
 
   return (
     <div className="flex flex-col h-full">
+      {/* Dialog state - user describes what they want */}
+      {state === 'dialog' && (
+        <RecipeDialogInput
+          mealEmoji={getMealEmoji()}
+          mealName={getMealName()}
+          onSubmitQuery={handleDialogSubmit}
+          onSurpriseMe={handleSurpriseMe}
+          isLoading={false}
+        />
+      )}
+
       {/* Loading state - shows skeleton cards */}
       {state === 'loading' && (
         <div className="flex-1 flex flex-col">
@@ -558,7 +599,7 @@ export const Cooking: React.FC<CookingProps> = ({
                   <SlidersHorizontal className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => loadRecipes(true)}
+                  onClick={() => loadRecipes(true, currentQuery)}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <RefreshCw className="w-5 h-5" />
@@ -566,9 +607,25 @@ export const Cooking: React.FC<CookingProps> = ({
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Выберите блюдо • {recipes.length} варианта
-              </p>
+              <div className="flex-1">
+                {currentQuery ? (
+                  <button
+                    onClick={handleBackToDialog}
+                    className="text-sm text-orange-500 hover:text-orange-600 flex items-center gap-1"
+                  >
+                    <span>🎯</span>
+                    <span className="truncate max-w-[200px]">{currentQuery}</span>
+                    <span className="text-gray-400">✕</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBackToDialog}
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-orange-500"
+                  >
+                    Выберите блюдо • {recipes.length} варианта
+                  </button>
+                )}
+              </div>
               {/* Recommended calories hint */}
               <p className="text-xs text-gray-400 dark:text-gray-500">
                 Рекомендуемо: {getRecommendedCalories().min}-{getRecommendedCalories().max} ккал
@@ -589,7 +646,7 @@ export const Cooking: React.FC<CookingProps> = ({
                 onDietaryChange={handleDietaryChange}
                 onOnlyAvailableChange={(val) => {
                   setOnlyAvailable(val);
-                  loadRecipes(true);
+                  loadRecipes(true, currentQuery);
                 }}
                 onCategoryChange={setSelectedCategory}
                 onClose={() => setShowFilters(false)}

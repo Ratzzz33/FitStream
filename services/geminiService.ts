@@ -796,6 +796,8 @@ export interface RecipeGenerationContext {
         carbs: number;
         fat: number;
     };
+    // User query from dialog (e.g., "Хочу пасту с курицей")
+    userQuery?: string;
 }
 
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard';
@@ -929,6 +931,9 @@ ${context.dietaryPreferences?.length ? `- Диета: ${context.dietaryPreferenc
 ${context.vegetarian ? '- ⚠️ ВЕГЕТАРИАНСКОЕ: БЕЗ мяса, рыбы, морепродуктов! Только растительные продукты + молочные + яйца.' : ''}
 ${context.diabetic ? '- ⚠️ ДЛЯ ДИАБЕТИКОВ: Низкий гликемический индекс! БЕЗ сахара, белого риса, картофеля. Минимум простых углеводов.' : ''}
 ${context.onlyAvailable ? '- ⚠️ ТОЛЬКО ИЗ ИМЕЮЩИХСЯ: Используй ТОЛЬКО продукты из списка выше! Не добавляй никаких других ингредиентов, даже базовых.' : ''}
+${context.userQuery ? `
+🎯 ПОЛЬЗОВАТЕЛЬ ХОЧЕТ: "${context.userQuery}"
+Учти это пожелание при подборе рецептов! Если запрос конкретный — приоритет ему.` : ''}
 
 ОБЯЗАТЕЛЬНЫЕ ПОЛЯ для каждого рецепта:
 1. proteinPerServing, carbsPerServing, fatPerServing — БЖУ на порцию в граммах

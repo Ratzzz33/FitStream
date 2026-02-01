@@ -526,6 +526,12 @@ const translations = {
     recipesAndTips: "Recipes & tips",
     recipes: "Recipes",
     recipesDesc: "Cook with nutrition in mind",
+    // Recipe dialog
+    recipeInputPlaceholder: "I want pasta with chicken...",
+    quickIdeas: "Quick ideas:",
+    surpriseMe: "Surprise me!",
+    listening: "Listening...",
+    searchingRecipes: "Finding recipes...",
     finance: "Finance",
     financeDesc: "Track food expenses"
   },
@@ -1052,6 +1058,12 @@ const translations = {
     recipesAndTips: "Рецепты и советы",
     recipes: "Рецепты",
     recipesDesc: "Готовь с учётом КБЖУ",
+    // Recipe dialog
+    recipeInputPlaceholder: "Хочу пасту с курицей...",
+    quickIdeas: "Быстрые идеи:",
+    surpriseMe: "Удиви меня!",
+    listening: "Слушаю...",
+    searchingRecipes: "Подбираем рецепты...",
     finance: "Финансы",
     financeDesc: "Сколько тратишь на еду"
   },
@@ -1547,6 +1559,12 @@ const translations = {
     recipesAndTips: "Recetas y consejos",
     recipes: "Recetas",
     recipesDesc: "Cocina con nutrición en mente",
+    // Recipe dialog
+    recipeInputPlaceholder: "Quiero pasta con pollo...",
+    quickIdeas: "Ideas rápidas:",
+    surpriseMe: "¡Sorpréndeme!",
+    listening: "Escuchando...",
+    searchingRecipes: "Buscando recetas...",
     finance: "Finanzas",
     financeDesc: "Gastos en comida"
   },
@@ -2042,6 +2060,12 @@ const translations = {
     recipesAndTips: "Recettes et astuces",
     recipes: "Recettes",
     recipesDesc: "Cuisinez avec la nutrition en tête",
+    // Recipe dialog
+    recipeInputPlaceholder: "Je veux des pâtes au poulet...",
+    quickIdeas: "Idées rapides:",
+    surpriseMe: "Surprends-moi!",
+    listening: "J'écoute...",
+    searchingRecipes: "Recherche de recettes...",
     finance: "Finances",
     financeDesc: "Dépenses alimentaires"
   },
@@ -2537,6 +2561,12 @@ const translations = {
     recipesAndTips: "Rezepte & Tipps",
     recipes: "Rezepte",
     recipesDesc: "Mit Nährwerten kochen",
+    // Recipe dialog
+    recipeInputPlaceholder: "Ich möchte Pasta mit Hähnchen...",
+    quickIdeas: "Schnelle Ideen:",
+    surpriseMe: "Überrasch mich!",
+    listening: "Ich höre zu...",
+    searchingRecipes: "Rezepte werden gesucht...",
     finance: "Finanzen",
     financeDesc: "Essensausgaben"
   },
@@ -3032,6 +3062,12 @@ const translations = {
     recipesAndTips: "食谱和技巧",
     recipes: "食谱",
     recipesDesc: "注重营养的烹饪",
+    // Recipe dialog
+    recipeInputPlaceholder: "我想要鸡肉意面...",
+    quickIdeas: "快速建议:",
+    surpriseMe: "给我惊喜!",
+    listening: "正在听...",
+    searchingRecipes: "搜索食谱中...",
     finance: "财务",
     financeDesc: "食物支出"
   }
