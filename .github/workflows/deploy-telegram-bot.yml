@@ -1,0 +1,262 @@
+# FitStream Telegram Bot Deployment
+# Deploys backend with Telegram bot to Hetzner VPS
+
+name: Deploy Telegram Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - deploy
+          - restart
+          - full-restart
+          - logs
+          - status
+        default: 'deploy'
+      password:
+        description: 'Deploy password (required for deploy/restart)'
+        required: false
+        type: string
+
+env:
+  APP_NAME: fitstream-backend
+  APP_DIR: /opt/fitstream-backend
+
+jobs:
+  telegram-bot:
+    name: Telegram Bot
+    runs-on: self-hosted
+    if: ${{ github.event.inputs.password == 'deploy' || github.event.inputs.action == 'logs' || github.event.inputs.action == 'status' }}
+
+    steps:
+      - name: Checkout code
+        if: ${{ github.event.inputs.action == 'deploy' }}
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/hetzner_key
+          chmod 600 ~/.ssh/hetzner_key
+          ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Check Status
+        if: ${{ github.event.inputs.action == 'status' }}
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          echo "### Telegram Bot Status" >> $GITHUB_STEP_SUMMARY
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'STATUS'
+            echo "=== PM2 Status ==="
+            pm2 status || echo "PM2 not running"
+
+            echo ""
+            echo "=== Bot Process ==="
+            pm2 describe fitstream-backend 2>/dev/null | head -30 || echo "Not found"
+
+            echo ""
+            echo "=== Environment ==="
+            [ -f /opt/fitstream-backend/backend/.env ] && echo "✅ .env exists" || echo "❌ .env missing"
+            [ -f /opt/fitstream-backend/backend/assets/welcome-image.png ] && echo "✅ Welcome image exists" || echo "❌ Welcome image missing"
+
+            echo ""
+            echo "=== Recent Logs ==="
+            pm2 logs fitstream-backend --lines 20 --nostream 2>/dev/null || echo "No logs"
+          STATUS
+
+      - name: View Logs
+        if: ${{ github.event.inputs.action == 'logs' }}
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          echo "### Recent Bot Logs" >> $GITHUB_STEP_SUMMARY
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'LOGS'
+            pm2 logs fitstream-backend --lines 100 --nostream 2>/dev/null || echo "No logs available"
+          LOGS
+
+      - name: Simple Restart
+        if: ${{ github.event.inputs.action == 'restart' }}
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          echo "### Restarting Bot..." >> $GITHUB_STEP_SUMMARY
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'RESTART'
+            set -e
+            echo "Restarting fitstream-backend..."
+            pm2 restart fitstream-backend
+            sleep 3
+            pm2 status fitstream-backend
+            echo "✅ Restart complete"
+          RESTART
+
+      - name: Full Restart (Clean)
+        if: ${{ github.event.inputs.action == 'full-restart' }}
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          echo "### Full Restart (Clean)" >> $GITHUB_STEP_SUMMARY
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'FULL_RESTART'
+            set -e
+            cd /opt/fitstream-backend
+
+            echo "Stopping all processes..."
+            pm2 stop fitstream-backend 2>/dev/null || true
+            pm2 delete fitstream-backend 2>/dev/null || true
+
+            echo "Cleaning node cache..."
+            cd backend
+            rm -rf node_modules/.cache 2>/dev/null || true
+
+            echo "Reinstalling dependencies..."
+            npm ci --production
+
+            echo "Starting fresh..."
+            pm2 start server.js --name fitstream-backend \
+              --max-memory-restart 500M \
+              --exp-backoff-restart-delay=100
+
+            pm2 save
+            sleep 5
+
+            echo "=== Status after restart ==="
+            pm2 status fitstream-backend
+
+            echo ""
+            echo "=== Testing bot initialization ==="
+            pm2 logs fitstream-backend --lines 20 --nostream | grep -i telegram || echo "Check logs for Telegram init"
+
+            echo "✅ Full restart complete"
+          FULL_RESTART
+
+      - name: Deploy Backend + Bot
+        if: ${{ github.event.inputs.action == 'deploy' }}
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          TELEGRAM_WEBAPP_URL: ${{ secrets.TELEGRAM_WEBAPP_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
+          PAYPAL_PLAN_ID: ${{ secrets.PAYPAL_PLAN_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "### Deploying Backend + Telegram Bot" >> $GITHUB_STEP_SUMMARY
+
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'DEPLOY'
+            set -e
+
+            # Create directory if not exists
+            if [ ! -d "/opt/fitstream-backend" ]; then
+              echo "Creating backend directory..."
+              mkdir -p /opt/fitstream-backend
+              cd /opt/fitstream-backend
+              git clone https://github.com/Ratzzz33/FitStream.git .
+            fi
+
+            cd /opt/fitstream-backend
+
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "Installing dependencies..."
+            cd backend
+            npm ci --production
+
+            # Create assets directory
+            mkdir -p assets
+          DEPLOY
+
+          # Upload welcome image if exists
+          if [ -f "backend/assets/welcome-image.png" ]; then
+            echo "Uploading welcome image..."
+            scp -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no \
+              backend/assets/welcome-image.png \
+              root@$SSH_HOST:/opt/fitstream-backend/backend/assets/
+          fi
+
+          # Create .env file with secrets
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << ENV_SCRIPT
+            cat > /opt/fitstream-backend/backend/.env << 'ENVFILE'
+          NODE_ENV=production
+          PORT=8080
+          DATABASE_URL=${DATABASE_URL}
+          TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+          TELEGRAM_ADMIN_CHAT_ID=${TELEGRAM_ADMIN_CHAT_ID}
+          TELEGRAM_WEBAPP_URL=${TELEGRAM_WEBAPP_URL:-https://fitstream.health}
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+          PAYPAL_SECRET=${PAYPAL_SECRET}
+          PAYPAL_PLAN_ID=${PAYPAL_PLAN_ID}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          ENVFILE
+            chmod 600 /opt/fitstream-backend/backend/.env
+          ENV_SCRIPT
+
+          # Start/restart the service
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no root@$SSH_HOST << 'START'
+            cd /opt/fitstream-backend/backend
+
+            echo "Starting backend with PM2..."
+
+            # Stop existing if running
+            pm2 stop fitstream-backend 2>/dev/null || true
+            pm2 delete fitstream-backend 2>/dev/null || true
+
+            # Start fresh
+            pm2 start server.js --name fitstream-backend \
+              --max-memory-restart 500M \
+              --exp-backoff-restart-delay=100
+
+            pm2 save
+
+            # Wait for startup
+            sleep 5
+
+            echo "=== Deployment Status ==="
+            pm2 status fitstream-backend
+
+            echo ""
+            echo "=== Checking Telegram Bot Init ==="
+            pm2 logs fitstream-backend --lines 30 --nostream | grep -E "(Telegram|bot|TELEGRAM)" || echo "Check full logs"
+
+            echo "✅ Deployment complete!"
+          START
+
+      - name: Health Check
+        if: ${{ github.event.inputs.action == 'deploy' }}
+        run: |
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.fitstream.health/health 2>/dev/null || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $STATUS)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Health check returned HTTP $STATUS" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/hetzner_key
+
+      - name: Summary
+        if: ${{ github.event.inputs.action == 'deploy' }}
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bot URL:** @FitStreamAIBot" >> $GITHUB_STEP_SUMMARY
+          echo "- **API:** https://api.fitstream.health" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Actions:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`restart\` - Quick restart PM2 process" >> $GITHUB_STEP_SUMMARY
+          echo "- \`full-restart\` - Clean restart (reinstall deps)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`logs\` - View recent logs" >> $GITHUB_STEP_SUMMARY
+          echo "- \`status\` - Check bot status" >> $GITHUB_STEP_SUMMARY
