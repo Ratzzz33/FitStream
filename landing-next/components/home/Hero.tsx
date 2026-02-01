@@ -103,8 +103,8 @@ export function Hero() {
             </Link>
           </div>
 
-          {/* Progress dots */}
-          <div className="mt-8 flex justify-center gap-2 lg:justify-start">
+          {/* Progress dots - desktop only */}
+          <div className="mt-8 hidden gap-2 lg:flex lg:justify-start">
             {heroScreens.map((_, idx) => (
               <button
                 key={idx}
@@ -181,6 +181,22 @@ export function Hero() {
 
             {/* Home indicator */}
             <div className="mx-auto mt-1.5 h-1 w-24 rounded-full bg-gray-600" />
+          </div>
+
+          {/* Progress dots - mobile only, under phone */}
+          <div className="mt-6 flex justify-center gap-2 lg:hidden">
+            {heroScreens.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveIndex(idx)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  idx === activeIndex
+                    ? 'w-8 bg-blue-600'
+                    : 'w-2 bg-[var(--border)] hover:bg-blue-400'
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
           </div>
         </motion.div>
       </div>
