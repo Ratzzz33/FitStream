@@ -29,7 +29,7 @@ import { getCurrencyList, CurrencyCode } from './services/currencyService';
 import { APP_VERSION, BUILD_CODE, BUILD_DATE } from './version';
 import { BUILD_CONFIG } from './buildConfig';
 import { BillingProvider } from './contexts/BillingContext';
-import { BalanceIndicator, TopUpModal, TrialBanner, BillingBanner } from './components/Billing';
+import { BalanceIndicator, TopUpModal, TrialBanner, BillingBanner, BalanceMini } from './components/Billing';
 import { initTimerService } from './services/timerService';
 import { UpdateBanner } from './components/UpdateBanner';
 
@@ -777,23 +777,7 @@ const App = () => {
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
             </div>
-            <div className="flex items-center gap-3">
-                <BalanceIndicator onTopUp={() => setShowTopUpModal(true)} />
-                <div className="flex flex-col items-end">
-                    <span className="text-xs text-orange-500 font-bold tracking-wider uppercase">{t('streak')}</span>
-                    <span className="text-xl font-bold text-gray-800 dark:text-white">{settings.streak} 🔥</span>
-                </div>
-                <div className="relative">
-                    {settings.isPro && (
-                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10 transform -rotate-12">
-                                <Crown size={14} className="text-yellow-400 fill-yellow-400 drop-shadow-sm filter" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))' }} />
-                        </div>
-                    )}
-                    <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 border-2 overflow-hidden ${settings.isPro ? 'border-yellow-400 dark:border-yellow-500' : 'border-gray-300 dark:border-gray-700'}`}>
-                        <img src={settings.avatar} alt="Profile" className="w-full h-full object-cover" />
-                    </div>
-                </div>
-            </div>
+            <BalanceMini onTopUp={() => setShowTopUpModal(true)} />
         </div>
       </header>
 
