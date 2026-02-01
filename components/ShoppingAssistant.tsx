@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     ShoppingCart, ChefHat, Users, Clock, Loader2, Camera, Check, X,
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
-    RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus
+    RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus, Refrigerator
 } from 'lucide-react';
 import { t, tf } from '../services/i18n';
 import { formatCurrency, getCurrencySymbol, CurrencyCode } from '../services/currencyService';
@@ -15,7 +15,8 @@ import {
     CookingTime,
     ShoppingCategory,
     InventoryItem,
-    ProductVerification
+    ProductVerification,
+    StorageType
 } from '../types';
 import {
     generateMealPlanForShopping,
@@ -25,7 +26,12 @@ import {
     checkDuplicateInInventory,
     generateMealAlternatives,
     MealAlternative,
-    ShelfScanResult
+    ShelfScanResult,
+    scanStoragePhoto,
+    detectStorageType,
+    deduplicateProducts,
+    ProductWithPhotoId,
+    ScannedProduct
 } from '../services/geminiService';
 import { StorageService } from '../services/storageService';
 
@@ -117,9 +123,16 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [shelfResult, setShelfResult] = useState<ShelfScanResult | null>(null);
     const [shelfImage, setShelfImage] = useState<string | null>(null);
 
+    // Multi-photo inventory scan state
+    const [isInventoryScanning, setIsInventoryScanning] = useState(false);
+    const [inventoryScanProgress, setInventoryScanProgress] = useState<string>('');
+    const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+    const [showMultiPhotoModal, setShowMultiPhotoModal] = useState(false);
+
     // File input refs (photo only, no live video)
     const verifyInputRef = useRef<HTMLInputElement>(null);
     const shelfInputRef = useRef<HTMLInputElement>(null);
+    const inventoryInputRef = useRef<HTMLInputElement>(null);
 
     // Expanded meal days
     const [expandedDays, setExpandedDays] = useState<number[]>([1]);
@@ -152,6 +165,209 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         };
         reader.readAsDataURL(file);
         e.target.value = ''; // Reset input
+    };
+
+    // Multi-photo inventory scan - handles multiple files
+    const handleInventoryPhotosSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const photos: string[] = [];
+
+        // Read all files
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = (reader.result as string).split(',')[1];
+                    resolve(result);
+                };
+                reader.readAsDataURL(file);
+            });
+            photos.push(base64);
+        }
+
+        e.target.value = ''; // Reset input
+
+        if (photos.length === 1) {
+            // Single photo - process immediately
+            await processInventoryPhoto(photos[0]);
+        } else {
+            // Multiple photos - show confirmation and process
+            setPendingPhotos(photos);
+            setShowMultiPhotoModal(true);
+        }
+    };
+
+    // Process a single inventory photo with auto storage detection
+    const processInventoryPhoto = async (base64: string) => {
+        setIsInventoryScanning(true);
+        setInventoryScanProgress('Определяем место хранения...');
+
+        try {
+            // Auto-detect storage type
+            const detectedType = await detectStorageType(base64);
+            setInventoryScanProgress(`Найден: ${getStorageName(detectedType)}. Сканируем продукты...`);
+
+            // Add photo to storage
+            const photoId = StorageService.addStoragePhoto(detectedType, `data:image/jpeg;base64,${base64}`);
+
+            // Scan products
+            const scannedProducts = await scanStoragePhoto(base64, detectedType);
+            const newProducts: ProductWithPhotoId[] = scannedProducts.map((p: ScannedProduct) => ({
+                ...p,
+                photoId
+            }));
+
+            // Get all photos for this storage
+            const allPhotos = StorageService.getStoragePhotos(detectedType);
+
+            if (allPhotos.length > 1) {
+                // Multi-photo mode - deduplicate
+                setInventoryScanProgress('Объединяем продукты...');
+
+                const existingInventory = StorageService.getInventoryByStorage(detectedType)
+                    .filter((i: InventoryItem) => i.source === 'photo');
+
+                const existingProducts: ProductWithPhotoId[] = existingInventory.flatMap((item: InventoryItem) => {
+                    const positions = item.mergedFromPhotoIds?.length
+                        ? item.mergedFromPhotoIds.map(pid => ({ photoId: pid, x: 0, y: 0 }))
+                        : item.photoId
+                            ? [{ photoId: item.photoId, x: item.position?.x || 0, y: item.position?.y || 0 }]
+                            : [];
+
+                    return positions.map(pos => ({
+                        name: item.name,
+                        emoji: item.emoji || '',
+                        quantity: item.quantity,
+                        unit: item.unit,
+                        expiresInDays: item.expiresAt
+                            ? Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                            : null,
+                        caloriesPer100: item.caloriesPer100,
+                        positionX: pos.x,
+                        positionY: pos.y,
+                        photoId: pos.photoId
+                    }));
+                });
+
+                const allProducts = [...existingProducts, ...newProducts];
+                const deduplicated = await deduplicateProducts(allProducts);
+
+                // Remove old photo items for this storage
+                const nonPhotoItems = StorageService.getInventory().filter(
+                    (i: InventoryItem) => i.storageId !== detectedType || i.source !== 'photo'
+                );
+
+                // Create new items from deduplicated
+                const newItems: InventoryItem[] = deduplicated.map(p => {
+                    const primaryPosition = p.positions[0];
+                    return {
+                        id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        name: p.name,
+                        emoji: p.emoji,
+                        quantity: p.quantity,
+                        unit: p.unit,
+                        storageId: detectedType,
+                        expiresAt: p.expiresInDays
+                            ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+                            : undefined,
+                        addedAt: new Date().toISOString(),
+                        source: 'photo' as const,
+                        position: { x: primaryPosition.x, y: primaryPosition.y },
+                        photoId: primaryPosition.photoId,
+                        mergedFromPhotoIds: p.photoIds.length > 1 ? p.photoIds : undefined,
+                        caloriesPer100: p.caloriesPer100,
+                        price: p.price
+                    };
+                });
+
+                localStorage.setItem('fitstream_inventory', JSON.stringify([...nonPhotoItems, ...newItems]));
+            } else {
+                // First photo - add without deduplication
+                const newItems: InventoryItem[] = newProducts.map((p: ProductWithPhotoId) => ({
+                    id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    name: p.name,
+                    emoji: p.emoji,
+                    quantity: p.quantity,
+                    unit: p.unit,
+                    storageId: detectedType,
+                    expiresAt: p.expiresInDays
+                        ? new Date(Date.now() + p.expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+                        : undefined,
+                    addedAt: new Date().toISOString(),
+                    source: 'photo' as const,
+                    position: { x: p.positionX, y: p.positionY },
+                    photoId: p.photoId,
+                    caloriesPer100: p.caloriesPer100,
+                    price: p.price
+                }));
+
+                StorageService.saveInventoryBulk(newItems);
+            }
+
+            setIsInventoryScanning(false);
+            setInventoryScanProgress('');
+            return { success: true, storageType: detectedType, count: newProducts.length };
+        } catch (error: any) {
+            console.error('Error scanning inventory:', error);
+            setIsInventoryScanning(false);
+            setInventoryScanProgress('');
+            throw error;
+        }
+    };
+
+    // Process multiple photos in batch
+    const processMultiplePhotos = async () => {
+        setShowMultiPhotoModal(false);
+        setIsInventoryScanning(true);
+
+        const results: { storageType: StorageType; count: number }[] = [];
+
+        for (let i = 0; i < pendingPhotos.length; i++) {
+            setInventoryScanProgress(`Фото ${i + 1} из ${pendingPhotos.length}...`);
+            try {
+                const result = await processInventoryPhoto(pendingPhotos[i]);
+                if (result) results.push(result);
+            } catch (e) {
+                console.error(`Error processing photo ${i + 1}:`, e);
+            }
+        }
+
+        setPendingPhotos([]);
+        setIsInventoryScanning(false);
+        setInventoryScanProgress('');
+
+        // Show summary
+        if (results.length > 0) {
+            const summary = results.reduce((acc, r) => {
+                acc[r.storageType] = (acc[r.storageType] || 0) + r.count;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const summaryText = Object.entries(summary)
+                .map(([type, count]) => `${getStorageName(type as StorageType)}: ${count}`)
+                .join(', ');
+
+            alert(`Добавлено: ${summaryText}`);
+        }
+    };
+
+    // Helper to get storage name
+    const getStorageName = (type: StorageType): string => {
+        const names: Record<StorageType, string> = {
+            fridge: 'Холодильник',
+            freezer: 'Морозилка',
+            cabinet: 'Шкаф',
+            appliances: 'Техника'
+        };
+        return names[type] || type;
+    };
+
+    // Open inventory scan
+    const handleOpenInventoryScan = () => {
+        inventoryInputRef.current?.click();
     };
 
     // Generate meal plan with progress stages
@@ -580,13 +796,71 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             )}
 
-            {/* Empty state when no inventory */}
-            {activeInventory.length === 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 text-center border border-dashed border-gray-300 dark:border-gray-600">
-                    <span className="text-4xl mb-2 block">📷</span>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        Сфоткай запасы, чтобы обновить сведения
-                    </p>
+            {/* Hidden input for multi-photo selection */}
+            <input
+                ref={inventoryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                capture="environment"
+                className="hidden"
+                onChange={handleInventoryPhotosSelect}
+            />
+
+            {/* Scan inventory button - always visible */}
+            <button
+                onClick={handleOpenInventoryScan}
+                disabled={isInventoryScanning}
+                className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 text-center border border-dashed border-gray-300 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isInventoryScanning ? (
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 size={32} className="animate-spin text-emerald-500" />
+                        <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                            {inventoryScanProgress}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <Refrigerator size={32} className="mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                            {activeInventory.length === 0
+                                ? 'Сфоткай запасы, чтобы обновить сведения'
+                                : 'Добавить ещё фото запасов'
+                            }
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            Можно несколько фото сразу
+                        </p>
+                    </>
+                )}
+            </button>
+
+            {/* Multi-photo confirmation modal */}
+            {showMultiPhotoModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                            Обработать {pendingPhotos.length} фото?
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                            Каждое фото будет проанализировано и продукты автоматически разнесены по местам хранения
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowMultiPhotoModal(false); setPendingPhotos([]); }}
+                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl font-medium text-gray-700 dark:text-gray-300"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={processMultiplePhotos}
+                                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold"
+                            >
+                                Обработать
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
