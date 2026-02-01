@@ -1156,7 +1156,7 @@ const App = () => {
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{settings.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{settings.email || t('synced')}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{settings.email || 'Google'}</p>
                             </div>
                             <button onClick={handleGoogleLogout} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-lg transition">
                                 <LogOut size={18} />
