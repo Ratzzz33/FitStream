@@ -15,9 +15,9 @@ export function Header() {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '#features', label: t('features') },
-    { href: '#pricing', label: t('pricing') },
-    { href: '#download', label: t('download') },
+    { href: `/${locale}#features`, label: t('features') },
+    { href: `/${locale}#pricing`, label: t('pricing') },
+    { href: `/${locale}#download`, label: t('download') },
   ];
 
   return (
@@ -90,7 +90,7 @@ export function Header() {
 
         {/* CTA Button */}
         <Link
-          href="#download"
+          href={`/${locale}#download`}
           className="hidden rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-2 text-sm font-semibold text-white transition hover:from-blue-500 hover:to-blue-400 md:block"
         >
           {t('getStarted')}
@@ -150,7 +150,7 @@ export function Header() {
               </select>
             </div>
             <Link
-              href="#download"
+              href={`/${locale}#download`}
               onClick={() => setMobileMenuOpen(false)}
               className="mt-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-3 text-center font-semibold text-white"
             >

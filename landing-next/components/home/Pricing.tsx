@@ -157,10 +157,24 @@ export function Pricing() {
             <button
               onClick={async () => {
                 setLoading(true);
-                // PayPal integration - redirect to app with pre-selected package
-                const price = PACKAGE_PRICES[selectedPackage];
-                const value = PACKAGE_VALUES[selectedPackage];
-                window.open(`https://fitstream.app?topup=${price}&value=${value}`, '_blank');
+                try {
+                  // Create PayPal order via backend
+                  const price = PACKAGE_PRICES[selectedPackage];
+                  const response = await fetch('https://fitstream-server.fly.dev/api/billing/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amountDollars: price }),
+                  });
+                  const data = await response.json();
+                  if (data.orderId) {
+                    // Redirect to PayPal checkout
+                    window.open(`https://www.paypal.com/checkoutnow?token=${data.orderId}`, '_blank');
+                  } else {
+                    alert('Payment error. Please try in the app.');
+                  }
+                } catch (e) {
+                  alert('Payment error. Please try in the app.');
+                }
                 setLoading(false);
               }}
               disabled={loading}

@@ -65,8 +65,8 @@ export const metadata: Metadata = {
     images: ['/og/default.png'],
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
+    icon: '/icon.svg',
+    shortcut: '/icon-192.png',
     apple: '/apple-touch-icon.png',
   },
   manifest: '/site.webmanifest',
