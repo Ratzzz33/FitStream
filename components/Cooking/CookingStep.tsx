@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Clock, Flame, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, HelpCircle } from 'lucide-react';
+import { Clock, Flame, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, HelpCircle, Play } from 'lucide-react';
 import { t } from '../../services/i18n';
+import { findTechniqueForInstruction, getVideoForTechnique, getYouTubeWatchUrl, getYouTubeThumbnail } from '../../data/cookingTechniques';
 
 interface StepData {
   order: number;
@@ -46,6 +47,10 @@ export const CookingStep: React.FC<CookingStepProps> = ({
 }) => {
   const [showTip, setShowTip] = useState(false);
   const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+
+  // Find matching cooking technique video for this step
+  const technique = findTechniqueForInstruction(step.instruction);
+  const videoInfo = technique ? getVideoForTechnique(technique, 'ru') : null;
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -208,6 +213,33 @@ export const CookingStep: React.FC<CookingStepProps> = ({
               <div className="text-sm text-blue-600 dark:text-blue-400">{step.technique}</div>
             </div>
           </div>
+        )}
+
+        {/* YouTube cooking technique video */}
+        {videoInfo && (
+          <a
+            href={getYouTubeWatchUrl(videoInfo.id, videoInfo.timestamp)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-xl overflow-hidden mb-4 relative group"
+          >
+            <img
+              src={getYouTubeThumbnail(videoInfo.id)}
+              alt={videoInfo.title}
+              className="w-full h-32 object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/50 transition">
+              <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                <Play className="w-6 h-6 text-white ml-1" />
+              </div>
+            </div>
+            <div className="absolute bottom-2 left-2 right-2">
+              <span className="text-white text-sm font-medium drop-shadow-lg">{videoInfo.title}</span>
+              {videoInfo.isFallback && (
+                <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded">EN</span>
+              )}
+            </div>
+          </a>
         )}
       </div>
 

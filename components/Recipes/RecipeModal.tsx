@@ -26,7 +26,7 @@ export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, settings, onCl
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className={`relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-t-3xl sm:rounded-3xl ${settings.theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden rounded-none sm:rounded-3xl flex flex-col ${settings.theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
                 <div className="relative h-56">
                     {recipe.image_url ? <img src={recipe.image_url} alt={name} className="w-full h-full object-cover" /> : (
                         <div className={`w-full h-full flex items-center justify-center ${settings.theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}><ChefHat size={64} className="text-gray-400" /></div>
@@ -37,7 +37,7 @@ export const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, settings, onCl
                         {recipe.is_vegetarian && <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-500 text-white">{isRussian ? 'Вегетарианское' : 'Vegetarian'}</span>}
                     </div>
                 </div>
-                <div className="overflow-y-auto max-h-[calc(90vh-14rem)] p-6">
+                <div className="overflow-y-auto flex-1 p-6">
                     <h2 className={`text-2xl font-bold mb-4 ${settings.theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{name}</h2>
                     <div className="flex flex-wrap gap-4 mb-6">
                         {recipe.cooking_time && <div className="flex items-center gap-2"><Clock size={20} className="text-gray-400" /><span className={settings.theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>{recipe.cooking_time} {isRussian ? 'мин' : 'min'}</span></div>}
