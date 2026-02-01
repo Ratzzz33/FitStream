@@ -299,10 +299,22 @@
       "subtitle": "Payez uniquement quand vous utilisez l'IA",
       "priceLabel": "Prix des actions IA:",
       "prices": [
-        { "action": "Scan nourriture", "price": "$0.02" },
-        { "action": "Analyse menu", "price": "$0.04" },
-        { "action": "Scan réfrigérateur", "price": "$0.02" },
-        { "action": "Suggestion recette", "price": "$0.06" }
+        {
+          "action": "Scan nourriture",
+          "price": "$0.02"
+        },
+        {
+          "action": "Analyse menu",
+          "price": "$0.04"
+        },
+        {
+          "action": "Scan réfrigérateur",
+          "price": "$0.02"
+        },
+        {
+          "action": "Suggestion recette",
+          "price": "$0.06"
+        }
       ],
       "noSubscription": "Pas de frais mensuels. Payez à l'usage.",
       "cta": "Commencer"
@@ -310,10 +322,23 @@
     "topUp": {
       "name": "Forfaits Recharge",
       "subtitle": "Économisez plus avec les gros forfaits",
+      "simple": "Recharge dès 5$ dans l'app",
       "packages": [
-        { "amount": "$5", "discount": "", "price": "$5.00" },
-        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
-        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
+        {
+          "amount": "$5",
+          "discount": "",
+          "price": "$5.00"
+        },
+        {
+          "amount": "$10",
+          "discount": "-10%",
+          "price": "$9.00"
+        },
+        {
+          "amount": "$25",
+          "discount": "-20%",
+          "price": "$20.00"
+        }
       ],
       "paypal": "Paiement sécurisé via PayPal",
       "cta": "Recharger le Solde"
@@ -344,7 +369,177 @@
     "premium": "Premium"
   },
   "legal": {
-    "terms": { "title": "Terms of Service", "description": "Terms for FitStream AI", "lastUpdated": "Last updated", "acceptance": "Acceptance", "acceptanceText": "By using FitStream AI, you agree to these terms.", "descriptionText": "FitStream AI is a fitness app.", "accounts": "Accounts", "accountsText": "Use without account or sign in with Google.", "subscription": "Pricing", "subscriptionText": "Free and PRO tiers available:", "subscriptionFree": "Free: workouts, AI scanning", "subscriptionPro": "PRO: unlimited AI, voice assistant", "content": "Content", "contentText": "You own your content.", "prohibited": "Prohibited", "prohibitedText": "Do not:", "prohibited1": "Use illegally", "prohibited2": "Hack systems", "prohibited3": "Share credentials", "prohibited4": "Upload harmful content", "disclaimer": "Disclaimer", "disclaimerText": "For info only.", "limitation": "Liability", "limitationText": "Provided as is.", "changes": "Changes", "changesText": "Terms may update.", "contact": "Contact", "contactText": "Via Telegram:" },
-    "privacy": { "title": "Privacy Policy", "description": "Data handling", "lastUpdated": "Last updated", "intro": "Intro", "introText": "We respect privacy.", "dataCollected": "Data Collected", "dataCollectedText": "We collect:", "dataHealth": "Health", "dataHealthText": "Workouts, weight", "dataPhotos": "Photos", "dataPhotosText": "Food photos", "dataAccount": "Account", "dataAccountText": "Email", "dataUsage": "Usage", "dataUsageText": "Stats", "howWeUse": "Use", "howWeUseText": "For:", "use1": "Tracking", "use2": "Sync", "use3": "Recommendations", "use4": "Improvements", "storage": "Storage", "storageText": "Local storage.", "thirdParty": "Third Parties", "thirdPartyText": "Integrations:", "thirdPartyGemini": "AI analysis", "thirdPartyHealth": "Health sync", "security": "Security", "securityText": "Standard security.", "rights": "Rights", "rightsText": "You can:", "rights1": "Access", "rights2": "Delete", "rights3": "Export", "rights4": "Opt out", "children": "Children", "childrenText": "Not for under 13.", "changes": "Changes", "changesText": "Policy may update.", "contact": "Contact", "contactText": "Via Telegram:" }
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms for FitStream AI",
+      "lastUpdated": "Last updated",
+      "acceptance": "Acceptance",
+      "acceptanceText": "By using FitStream AI, you agree to these terms.",
+      "descriptionText": "FitStream AI is a fitness app.",
+      "accounts": "Accounts",
+      "accountsText": "Use without account or sign in with Google.",
+      "subscription": "Pricing",
+      "subscriptionText": "Free and PRO tiers available:",
+      "subscriptionFree": "Free: workouts, AI scanning",
+      "subscriptionPro": "PRO: unlimited AI, voice assistant",
+      "content": "Content",
+      "contentText": "You own your content.",
+      "prohibited": "Prohibited",
+      "prohibitedText": "Do not:",
+      "prohibited1": "Use illegally",
+      "prohibited2": "Hack systems",
+      "prohibited3": "Share credentials",
+      "prohibited4": "Upload harmful content",
+      "disclaimer": "Disclaimer",
+      "disclaimerText": "For info only.",
+      "limitation": "Liability",
+      "limitationText": "Provided as is.",
+      "changes": "Changes",
+      "changesText": "Terms may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Data handling",
+      "lastUpdated": "Last updated",
+      "intro": "Intro",
+      "introText": "We respect privacy.",
+      "dataCollected": "Data Collected",
+      "dataCollectedText": "We collect:",
+      "dataHealth": "Health",
+      "dataHealthText": "Workouts, weight",
+      "dataPhotos": "Photos",
+      "dataPhotosText": "Food photos",
+      "dataAccount": "Account",
+      "dataAccountText": "Email",
+      "dataUsage": "Usage",
+      "dataUsageText": "Stats",
+      "howWeUse": "Use",
+      "howWeUseText": "For:",
+      "use1": "Tracking",
+      "use2": "Sync",
+      "use3": "Recommendations",
+      "use4": "Improvements",
+      "storage": "Storage",
+      "storageText": "Local storage.",
+      "thirdParty": "Third Parties",
+      "thirdPartyText": "Integrations:",
+      "thirdPartyGemini": "AI analysis",
+      "thirdPartyHealth": "Health sync",
+      "security": "Security",
+      "securityText": "Standard security.",
+      "rights": "Rights",
+      "rightsText": "You can:",
+      "rights1": "Access",
+      "rights2": "Delete",
+      "rights3": "Export",
+      "rights4": "Opt out",
+      "children": "Children",
+      "childrenText": "Not for under 13.",
+      "changes": "Changes",
+      "changesText": "Policy may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    }
+  },
+  "howItWorks": {
+    "title": "Comment ça marche",
+    "subtitle": "Commencez votre parcours fitness en 3 étapes simples",
+    "download": {
+      "title": "Téléchargez l'app",
+      "description": "FitStream gratuit sur iOS, Android ou web. Pas de compte requis pour commencer."
+    },
+    "scan": {
+      "title": "Scannez et Suivez",
+      "description": "Pointez votre caméra vers la nourriture, menus ou balance. L'IA reconnaît et enregistre tout instantanément."
+    },
+    "track": {
+      "title": "Atteignez vos Objectifs",
+      "description": "Suivez vos progrès avec de beaux graphiques. Recevez des conseils personnalisés du coach IA."
+    }
+  },
+  "stickyCta": {
+    "cta": "Commencer Gratuit",
+    "freeTrialNote": "3 jours gratuits - Sans carte bancaire"
+  },
+  "trustBadges": {
+    "gdpr": "Conforme RGPD",
+    "secure": "Sécurité Bancaire",
+    "appStore": "Recommandé App Store",
+    "award": "Meilleure App Fitness 2024",
+    "comingSoon": "Certifications en cours"
+  },
+  "faq": {
+    "title": "Questions Fréquentes",
+    "subtitle": "Tout ce que vous devez savoir sur FitStream",
+    "items": [
+      {
+        "question": "Quelle est la précision du scanner alimentaire IA?",
+        "answer": "Notre scanner IA utilise Google Gemini pour analyser les photos de nourriture avec un objet de référence (comme une carte bancaire) pour la taille des portions. La précision est typiquement de 10-15% pour les calories et macros. Pour les aliments emballés, le scan de code-barres fournit des données nutritionnelles exactes."
+      },
+      {
+        "question": "FitStream fonctionne-t-il hors ligne?",
+        "answer": "Oui! FitStream fonctionne hors ligne. Tous vos entraînements, historique alimentaire et inventaire de cuisine fonctionnent sans internet. Les fonctionnalités IA (scan alimentaire, analyse de menu) nécessitent internet mais les actions se synchronisent automatiquement à la reconnexion."
+      },
+      {
+        "question": "Quels exercices le suivi de posture supporte-t-il?",
+        "answer": "FitStream supporte 15 exercices avec détection de posture IA: squats, pompes, fentes, planches, jumping jacks, burpees, sit-ups, crunches, mountain climbers, high knees, levées de jambes, curl biceps, développé épaules, dips triceps et chaise. De nouveaux exercices sont ajoutés régulièrement."
+      },
+      {
+        "question": "Comment fonctionne la tarification à l'usage?",
+        "answer": "Après vos 3 jours d'essai gratuit, vous ne payez que pour les fonctionnalités IA: 0,02$ par scan alimentaire, 0,04$ par analyse de menu, 0,02$ par scan de frigo, 0,06$ par suggestion de recette. Recharge: 5$, 9$ (pour 10$), ou 20$ (pour 25$). Sans abonnement."
+      },
+      {
+        "question": "Puis-je connecter FitStream à d'autres apps de santé?",
+        "answer": "Oui! FitStream s'intègre avec Google Fit, Apple Health et Samsung Health. Vous pouvez synchroniser vos entraînements, mesures de poids et données de calories de façon bidirectionnelle. Activez la sync dans Paramètres > Intégrations Santé."
+      },
+      {
+        "question": "Mes données sont-elles privées et sécurisées?",
+        "answer": "Absolument. FitStream stocke les données localement sur votre appareil par défaut. La synchronisation cloud est optionnelle (nécessite connexion Google). Les photos envoyées à l'IA sont traitées en temps réel et non stockées. Nous ne vendons jamais vos données. Voir notre Politique de Confidentialité."
+      },
+      {
+        "question": "Sur quelles plateformes FitStream est-il disponible?",
+        "answer": "FitStream est disponible sur iOS (iPhone), Android et comme Progressive Web App (PWA) pour tout navigateur. Toutes les plateformes se synchronisent si vous vous connectez avec Google. L'app web à app.fitstream.health fonctionne sur tout appareil."
+      },
+      {
+        "question": "Le coach IA peut-il parler avec différentes voix?",
+        "answer": "Oui! Le coach IA a plusieurs personnalités vocales avec différents styles de coaching - de encourageant et doux à intense et motivant. Changez les voix dans les Paramètres. Des options de voix masculine et féminine sont disponibles."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Adoré par les Passionnés de Fitness",
+    "subtitle": "Découvrez ce que nos utilisateurs disent de leur transformation",
+    "testimonial1": {
+      "quote": "FitStream a changé ma façon de suivre ma nutrition. Le scanner alimentaire est incroyablement précis et me fait gagner tellement de temps!",
+      "name": "Sophie Martin",
+      "role": "Coach Fitness"
+    },
+    "testimonial2": {
+      "quote": "Enfin une app qui compte mes répétitions correctement! Le suivi de posture par IA me garde honnête à la maison.",
+      "name": "Michel Dubois",
+      "role": "Passionné d'Entraînement à Domicile"
+    },
+    "testimonial3": {
+      "quote": "La fonction cuisine intelligente a complètement éliminé le gaspillage alimentaire dans ma maison.",
+      "name": "Émilie Tanaka",
+      "role": "Maman Occupée de 3"
+    },
+    "testimonial4": {
+      "quote": "En tant que nutritionniste, je recommande FitStream à tous mes clients. Le modèle pay-per-use est équitable et la précision impressionnante.",
+      "name": "Dr. Jacques Wilson",
+      "role": "Nutritionniste Sportif"
+    },
+    "testimonial5": {
+      "quote": "J'ai perdu 15 kg avec FitStream! Le coach IA me motive même quand je veux sauter des séances.",
+      "name": "David Rodriguez",
+      "role": "Parcours Perte de Poids"
+    },
+    "testimonial6": {
+      "quote": "Le mode cuisine avec guidance pas-à-pas m'a aidée à apprendre à préparer des repas sains. Un game changer!",
+      "name": "Jennifer Bernard",
+      "role": "Débutante en Cuisine"
+    }
   }
 }

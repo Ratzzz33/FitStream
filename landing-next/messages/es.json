@@ -299,10 +299,22 @@
       "subtitle": "Paga solo cuando uses IA",
       "priceLabel": "Precios de acciones IA:",
       "prices": [
-        { "action": "Escaneo comida", "price": "$0.02" },
-        { "action": "Análisis menú", "price": "$0.04" },
-        { "action": "Escaneo nevera", "price": "$0.02" },
-        { "action": "Sugerencia receta", "price": "$0.06" }
+        {
+          "action": "Escaneo comida",
+          "price": "$0.02"
+        },
+        {
+          "action": "Análisis menú",
+          "price": "$0.04"
+        },
+        {
+          "action": "Escaneo nevera",
+          "price": "$0.02"
+        },
+        {
+          "action": "Sugerencia receta",
+          "price": "$0.06"
+        }
       ],
       "noSubscription": "Sin cuotas mensuales. Paga según uses.",
       "cta": "Comenzar"
@@ -310,10 +322,23 @@
     "topUp": {
       "name": "Paquetes de Recarga",
       "subtitle": "Ahorra más con paquetes grandes",
+      "simple": "Recarga desde $5 en la app",
       "packages": [
-        { "amount": "$5", "discount": "", "price": "$5.00" },
-        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
-        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
+        {
+          "amount": "$5",
+          "discount": "",
+          "price": "$5.00"
+        },
+        {
+          "amount": "$10",
+          "discount": "-10%",
+          "price": "$9.00"
+        },
+        {
+          "amount": "$25",
+          "discount": "-20%",
+          "price": "$20.00"
+        }
       ],
       "paypal": "Pago seguro vía PayPal",
       "cta": "Recargar Saldo"
@@ -344,7 +369,177 @@
     "premium": "Premium"
   },
   "legal": {
-    "terms": { "title": "Terms of Service", "description": "Terms for FitStream AI", "lastUpdated": "Last updated", "acceptance": "Acceptance", "acceptanceText": "By using FitStream AI, you agree to these terms.", "descriptionText": "FitStream AI is a fitness app.", "accounts": "Accounts", "accountsText": "Use without account or sign in with Google.", "subscription": "Pricing", "subscriptionText": "Free and PRO tiers available:", "subscriptionFree": "Free: workouts, AI scanning", "subscriptionPro": "PRO: unlimited AI, voice assistant", "content": "Content", "contentText": "You own your content.", "prohibited": "Prohibited", "prohibitedText": "Do not:", "prohibited1": "Use illegally", "prohibited2": "Hack systems", "prohibited3": "Share credentials", "prohibited4": "Upload harmful content", "disclaimer": "Disclaimer", "disclaimerText": "For info only.", "limitation": "Liability", "limitationText": "Provided as is.", "changes": "Changes", "changesText": "Terms may update.", "contact": "Contact", "contactText": "Via Telegram:" },
-    "privacy": { "title": "Privacy Policy", "description": "Data handling", "lastUpdated": "Last updated", "intro": "Intro", "introText": "We respect privacy.", "dataCollected": "Data Collected", "dataCollectedText": "We collect:", "dataHealth": "Health", "dataHealthText": "Workouts, weight", "dataPhotos": "Photos", "dataPhotosText": "Food photos", "dataAccount": "Account", "dataAccountText": "Email", "dataUsage": "Usage", "dataUsageText": "Stats", "howWeUse": "Use", "howWeUseText": "For:", "use1": "Tracking", "use2": "Sync", "use3": "Recommendations", "use4": "Improvements", "storage": "Storage", "storageText": "Local storage.", "thirdParty": "Third Parties", "thirdPartyText": "Integrations:", "thirdPartyGemini": "AI analysis", "thirdPartyHealth": "Health sync", "security": "Security", "securityText": "Standard security.", "rights": "Rights", "rightsText": "You can:", "rights1": "Access", "rights2": "Delete", "rights3": "Export", "rights4": "Opt out", "children": "Children", "childrenText": "Not for under 13.", "changes": "Changes", "changesText": "Policy may update.", "contact": "Contact", "contactText": "Via Telegram:" }
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Terms for FitStream AI",
+      "lastUpdated": "Last updated",
+      "acceptance": "Acceptance",
+      "acceptanceText": "By using FitStream AI, you agree to these terms.",
+      "descriptionText": "FitStream AI is a fitness app.",
+      "accounts": "Accounts",
+      "accountsText": "Use without account or sign in with Google.",
+      "subscription": "Pricing",
+      "subscriptionText": "Free and PRO tiers available:",
+      "subscriptionFree": "Free: workouts, AI scanning",
+      "subscriptionPro": "PRO: unlimited AI, voice assistant",
+      "content": "Content",
+      "contentText": "You own your content.",
+      "prohibited": "Prohibited",
+      "prohibitedText": "Do not:",
+      "prohibited1": "Use illegally",
+      "prohibited2": "Hack systems",
+      "prohibited3": "Share credentials",
+      "prohibited4": "Upload harmful content",
+      "disclaimer": "Disclaimer",
+      "disclaimerText": "For info only.",
+      "limitation": "Liability",
+      "limitationText": "Provided as is.",
+      "changes": "Changes",
+      "changesText": "Terms may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Data handling",
+      "lastUpdated": "Last updated",
+      "intro": "Intro",
+      "introText": "We respect privacy.",
+      "dataCollected": "Data Collected",
+      "dataCollectedText": "We collect:",
+      "dataHealth": "Health",
+      "dataHealthText": "Workouts, weight",
+      "dataPhotos": "Photos",
+      "dataPhotosText": "Food photos",
+      "dataAccount": "Account",
+      "dataAccountText": "Email",
+      "dataUsage": "Usage",
+      "dataUsageText": "Stats",
+      "howWeUse": "Use",
+      "howWeUseText": "For:",
+      "use1": "Tracking",
+      "use2": "Sync",
+      "use3": "Recommendations",
+      "use4": "Improvements",
+      "storage": "Storage",
+      "storageText": "Local storage.",
+      "thirdParty": "Third Parties",
+      "thirdPartyText": "Integrations:",
+      "thirdPartyGemini": "AI analysis",
+      "thirdPartyHealth": "Health sync",
+      "security": "Security",
+      "securityText": "Standard security.",
+      "rights": "Rights",
+      "rightsText": "You can:",
+      "rights1": "Access",
+      "rights2": "Delete",
+      "rights3": "Export",
+      "rights4": "Opt out",
+      "children": "Children",
+      "childrenText": "Not for under 13.",
+      "changes": "Changes",
+      "changesText": "Policy may update.",
+      "contact": "Contact",
+      "contactText": "Via Telegram:"
+    }
+  },
+  "howItWorks": {
+    "title": "Cómo Funciona",
+    "subtitle": "Comienza tu viaje fitness en 3 simples pasos",
+    "download": {
+      "title": "Descarga la App",
+      "description": "FitStream gratis en iOS, Android o web. Sin cuenta necesaria para empezar."
+    },
+    "scan": {
+      "title": "Escanea y Registra",
+      "description": "Apunta tu cámara a comida, menús o báscula. La IA reconoce y registra todo al instante."
+    },
+    "track": {
+      "title": "Alcanza tus Metas",
+      "description": "Sigue tu progreso con gráficos hermosos. Recibe consejos personalizados del coach IA."
+    }
+  },
+  "stickyCta": {
+    "cta": "Empezar Gratis",
+    "freeTrialNote": "3 días gratis - Sin tarjeta requerida"
+  },
+  "trustBadges": {
+    "gdpr": "Cumple con GDPR",
+    "secure": "Seguridad Bancaria",
+    "appStore": "Destacado en App Store",
+    "award": "Mejor App Fitness 2024",
+    "comingSoon": "Certificaciones en proceso"
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "subtitle": "Todo lo que necesitas saber sobre FitStream",
+    "items": [
+      {
+        "question": "Qué tan preciso es el escáner de comida con IA?",
+        "answer": "Nuestro escáner usa Google Gemini para analizar fotos de comida con un objeto de referencia (como una tarjeta) para el tamaño de las porciones. La precisión típica es del 10-15% para calorías y macros. Para alimentos empaquetados, el escaneo de código de barras proporciona datos nutricionales exactos."
+      },
+      {
+        "question": "FitStream funciona sin conexión?",
+        "answer": "Sí! FitStream funciona offline. Todos tus entrenamientos, historial de comidas e inventario de cocina funcionan sin internet. Las funciones de IA (escaneo de comida, análisis de menú) requieren internet pero las acciones se sincronizan automáticamente al reconectarte."
+      },
+      {
+        "question": "Qué ejercicios soporta el tracking de poses?",
+        "answer": "FitStream soporta 15 ejercicios con detección de poses por IA: sentadillas, flexiones, zancadas, plancha, saltos, burpees, abdominales, crunches, escalador, rodillas altas, elevación de piernas, curl de bíceps, press de hombros, fondos de tríceps y sentadilla de pared. Se añaden más regularmente."
+      },
+      {
+        "question": "Cómo funciona el precio por uso?",
+        "answer": "Después de tu prueba gratis de 3 días, solo pagas por funciones de IA: $0.02 por escaneo de comida, $0.04 por análisis de menú, $0.02 por escaneo de nevera, $0.06 por sugerencias de recetas. Recarga: $5, $9 (por $10), o $20 (por $25). Sin suscripción."
+      },
+      {
+        "question": "Puedo conectar FitStream con otras apps de salud?",
+        "answer": "Sí! FitStream se integra con Google Fit, Apple Health y Samsung Health. Puedes sincronizar entrenamientos, mediciones de peso y datos de calorías bidireccionalmente. Habilita la sincronización en Configuración > Integraciones de Salud."
+      },
+      {
+        "question": "Mis datos están seguros?",
+        "answer": "Absolutamente. FitStream almacena datos localmente en tu dispositivo por defecto. La sincronización en la nube es opcional (requiere inicio de sesión con Google). Las fotos enviadas a IA se procesan en tiempo real y no se almacenan. Nunca vendemos tus datos. Ver Política de Privacidad."
+      },
+      {
+        "question": "En qué plataformas está disponible FitStream?",
+        "answer": "FitStream está disponible en iOS (iPhone), Android y como Progressive Web App (PWA) para cualquier navegador. Todas las plataformas se sincronizan si inicias sesión con Google. La web app en app.fitstream.health funciona en cualquier dispositivo."
+      },
+      {
+        "question": "El coach de IA puede hablar con diferentes voces?",
+        "answer": "Sí! El coach de IA tiene múltiples personas de voz con diferentes estilos de coaching - desde alentador y gentil hasta intenso y motivador. Puedes cambiar las voces en Configuración. Hay opciones de voz masculina y femenina."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Amado por Entusiastas del Fitness",
+    "subtitle": "Mira lo que dicen nuestros usuarios sobre su transformación",
+    "testimonial1": {
+      "quote": "FitStream cambió cómo registro mi nutrición. El escáner de comida es increíblemente preciso y me ahorra mucho tiempo!",
+      "name": "María García",
+      "role": "Entrenadora de Fitness"
+    },
+    "testimonial2": {
+      "quote": "Finalmente una app que cuenta mis repeticiones correctamente! El tracking de poses con IA me mantiene honesto en casa.",
+      "name": "Carlos Rodríguez",
+      "role": "Entusiasta del Entreno en Casa"
+    },
+    "testimonial3": {
+      "quote": "La función de cocina inteligente ha eliminado completamente el desperdicio de comida en mi casa.",
+      "name": "Elena Torres",
+      "role": "Mamá Ocupada de 3"
+    },
+    "testimonial4": {
+      "quote": "Como nutricionista, recomiendo FitStream a todos mis clientes. El modelo de pago por uso es justo y la precisión impresionante.",
+      "name": "Dr. Javier Moreno",
+      "role": "Nutricionista Deportivo"
+    },
+    "testimonial5": {
+      "quote": "Perdí 15 kilos usando FitStream! El coach IA me mantiene motivado incluso cuando quiero saltarme entrenamientos.",
+      "name": "David López",
+      "role": "Viaje de Pérdida de Peso"
+    },
+    "testimonial6": {
+      "quote": "El modo cocina con guía paso a paso me ayudó a aprender a cocinar comidas saludables. Un cambio total!",
+      "name": "Ana Martínez",
+      "role": "Principiante en Cocina"
+    }
   }
 }

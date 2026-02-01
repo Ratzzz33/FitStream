@@ -1,5 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
 import { Hero } from '@/components/home/Hero';
+import { TrustBadges } from '@/components/home/TrustBadges';
+import { HowItWorks } from '@/components/home/HowItWorks';
+import { Testimonials } from '@/components/home/Testimonials';
+import { FAQ } from '@/components/home/FAQ';
+import { StickyCTA } from '@/components/home/StickyCTA';
 // import { SocialProof } from '@/components/home/SocialProof'; // Hidden until real data
 import { BentoGrid } from '@/components/home/BentoGrid';
 import { Pricing } from '@/components/home/Pricing';
@@ -16,10 +21,15 @@ export default async function HomePage({ params }: HomePageProps) {
   return (
     <>
       <Hero />
+      <TrustBadges />
+      <HowItWorks />
       {/* <SocialProof /> - Hidden until real data available */}
       <BentoGrid />
+      <Testimonials />
       <Pricing />
+      <FAQ />
       <DownloadCTA />
+      <StickyCTA />
 
       {/* JSON-LD Structured Data */}
       <script

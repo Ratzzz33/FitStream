@@ -299,10 +299,22 @@
       "subtitle": "Pay only when you use AI",
       "priceLabel": "AI action prices:",
       "prices": [
-        { "action": "Food scan", "price": "$0.02" },
-        { "action": "Menu analysis", "price": "$0.04" },
-        { "action": "Fridge scan", "price": "$0.02" },
-        { "action": "Recipe suggestion", "price": "$0.06" }
+        {
+          "action": "Food scan",
+          "price": "$0.02"
+        },
+        {
+          "action": "Menu analysis",
+          "price": "$0.04"
+        },
+        {
+          "action": "Fridge scan",
+          "price": "$0.02"
+        },
+        {
+          "action": "Recipe suggestion",
+          "price": "$0.06"
+        }
       ],
       "noSubscription": "No monthly fees. Pay as you go.",
       "cta": "Get Started"
@@ -310,10 +322,23 @@
     "topUp": {
       "name": "Top Up Packages",
       "subtitle": "Save more with bigger packages",
+      "simple": "Top up from $5 in-app",
       "packages": [
-        { "amount": "$5", "discount": "", "price": "$5.00" },
-        { "amount": "$10", "discount": "-10%", "price": "$9.00" },
-        { "amount": "$25", "discount": "-20%", "price": "$20.00" }
+        {
+          "amount": "$5",
+          "discount": "",
+          "price": "$5.00"
+        },
+        {
+          "amount": "$10",
+          "discount": "-10%",
+          "price": "$9.00"
+        },
+        {
+          "amount": "$25",
+          "discount": "-20%",
+          "price": "$20.00"
+        }
       ],
       "paypal": "Secure payment via PayPal",
       "cta": "Top Up Balance"
@@ -416,6 +441,105 @@
       "changesText": "We may update this policy periodically. We will notify users of significant changes through the app.",
       "contact": "Contact",
       "contactText": "For privacy-related questions, contact us via Telegram:"
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Start your fitness journey in 3 simple steps",
+    "download": {
+      "title": "Download the App",
+      "description": "Get FitStream free on iOS, Android, or use our web app. No account required to start."
+    },
+    "scan": {
+      "title": "Scan & Track",
+      "description": "Point your camera at food, menus, or your scale. AI instantly recognizes and logs everything."
+    },
+    "track": {
+      "title": "Achieve Your Goals",
+      "description": "Track progress with beautiful charts. Get personalized insights and motivation from AI coach."
+    }
+  },
+  "stickyCta": {
+    "cta": "Get Started Free",
+    "freeTrialNote": "3-day free trial - No credit card required"
+  },
+  "trustBadges": {
+    "gdpr": "GDPR Compliant",
+    "secure": "Bank-Level Security",
+    "appStore": "App Store Featured",
+    "award": "Best Fitness App 2024",
+    "comingSoon": "Certifications in progress"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about FitStream",
+    "items": [
+      {
+        "question": "How accurate is the AI food scanner?",
+        "answer": "Our AI food scanner uses Google Gemini to analyze food photos with a reference object (like a credit card) for portion sizing. It's typically accurate within 10-15% for calories and macros. For packaged foods, barcode scanning provides exact nutritional data."
+      },
+      {
+        "question": "Does FitStream work offline?",
+        "answer": "Yes! FitStream is offline-first. All your workout tracking, food logging history, and kitchen inventory work without internet. AI features (food scanning, menu analysis) require internet connection but queued actions sync automatically when you reconnect."
+      },
+      {
+        "question": "What exercises does the pose tracking support?",
+        "answer": "FitStream supports 15 exercises with AI pose detection: squats, push-ups, lunges, planks, jumping jacks, burpees, sit-ups, crunches, mountain climbers, high knees, leg raises, bicep curls, shoulder press, tricep dips, and wall sits. More exercises are added regularly."
+      },
+      {
+        "question": "How does the pay-per-use pricing work?",
+        "answer": "After your 3-day free trial, you only pay when you use AI features: $0.02 for food scans, $0.04 for menu analysis, $0.02 for fridge scans, $0.06 for recipe suggestions. You can top up balance in packages of $5, $9 (for $10), or $20 (for $25). No subscription required."
+      },
+      {
+        "question": "Can I connect FitStream to other health apps?",
+        "answer": "Yes! FitStream integrates with Google Fit, Apple Health, and Samsung Health. You can sync your workouts, weight measurements, and calorie data bidirectionally. Enable syncing in Settings > Health Integrations."
+      },
+      {
+        "question": "Is my data private and secure?",
+        "answer": "Absolutely. FitStream stores data locally on your device by default. Cloud sync is optional (requires Google Sign-In). Photos sent to AI are processed in real-time and not stored. We never sell your data. See our Privacy Policy for details."
+      },
+      {
+        "question": "What platforms is FitStream available on?",
+        "answer": "FitStream is available on iOS (iPhone), Android, and as a Progressive Web App (PWA) for any browser. All platforms sync together if you sign in with Google. The web app at app.fitstream.health works on any device."
+      },
+      {
+        "question": "Can the AI coach speak in different voices?",
+        "answer": "Yes! The AI coach has multiple voice personas with different coaching styles - from encouraging and gentle to intense and motivating. You can switch voices in Settings. Both male and female voice options are available."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Loved by Fitness Enthusiasts",
+    "subtitle": "See what our users say about their transformation",
+    "testimonial1": {
+      "quote": "FitStream changed how I track my nutrition. The food scanner is incredibly accurate and saves me so much time!",
+      "name": "Sarah Mitchell",
+      "role": "Fitness Coach"
+    },
+    "testimonial2": {
+      "quote": "Finally an app that counts my reps correctly! The AI pose tracking keeps me honest during home workouts.",
+      "name": "Michael Chen",
+      "role": "Home Workout Enthusiast"
+    },
+    "testimonial3": {
+      "quote": "The smart kitchen feature has completely eliminated food waste in my house. I always know what needs to be used.",
+      "name": "Emily Tanaka",
+      "role": "Busy Mom of 3"
+    },
+    "testimonial4": {
+      "quote": "As a nutritionist, I recommend FitStream to all my clients. The pay-per-use model is fair and the accuracy is impressive.",
+      "name": "Dr. James Wilson",
+      "role": "Sports Nutritionist"
+    },
+    "testimonial5": {
+      "quote": "Lost 30 pounds using FitStream! The AI coach keeps me motivated even when I want to skip workouts.",
+      "name": "David Rodriguez",
+      "role": "Weight Loss Journey"
+    },
+    "testimonial6": {
+      "quote": "The cooking mode with step-by-step guidance helped me learn to cook healthy meals. Game changer!",
+      "name": "Jennifer Adams",
+      "role": "Cooking Beginner"
     }
   }
 }
