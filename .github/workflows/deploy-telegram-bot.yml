@@ -29,7 +29,7 @@ env:
 jobs:
   telegram-bot:
     name: Telegram Bot
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ github.event.inputs.password == 'deploy' || github.event.inputs.action == 'logs' || github.event.inputs.action == 'status' }}
 
     steps:
