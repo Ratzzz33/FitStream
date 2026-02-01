@@ -44,6 +44,26 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
     .filter((f) => f.slug !== slug)
     .slice(0, 3);
 
+  // Tile images mapping for "How it works" section
+  const featureTiles: Record<string, string[]> = {
+    poseTracking: ['realtime', 'exercises', 'feedback', 'counting'],
+    smartKitchen: ['scan', 'expiry', 'recipes', 'shopping'],
+    cookingMode: ['steps', 'timers', 'reminders', 'calories'],
+    nutritionScanner: ['photo', 'reference', 'macros', 'history'],
+    menuAnalyzer: ['photo', 'analyze', 'nutrition', 'recommendations'],
+    healthIntegrations: ['googlefit', 'applehealth', 'samsung', 'metrics'],
+    exercises: ['choose', 'demo', 'counting', 'stats'],
+    offlineFirst: ['offline', 'storage', 'sync', 'reliable'],
+    aiCoach: ['motivation', 'voice', 'personas', 'adaptive'],
+    smartShopping: ['planning', 'lists', 'verify', 'scan'],
+    foodFinance: ['expenses', 'compare', 'reports', 'savings'],
+    receiptScanning: ['scan', 'extract', 'prices', 'history'],
+    gamification: ['achievements', 'streaks', 'leaderboard', 'challenges'],
+    charts: ['weight', 'calories', 'workouts', 'export'],
+  };
+
+  const tiles = featureTiles[feature.key] || [];
+
   // Color mapping for backgrounds
   const colorBg: Record<string, string> = {
     violet: 'from-violet-600/20 to-violet-900/5',
@@ -122,19 +142,44 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-2xl font-bold">{t('howItWorks')}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((step) => (
-              <div
-                key={step}
-                className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6"
-              >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
-                  {step}
+            {[1, 2, 3, 4].map((step) => {
+              const tileName = tiles[step - 1];
+              const tileImage = tileName
+                ? `/covers/tiles/${feature.key}-${tileName}.png`
+                : null;
+
+              return (
+                <div
+                  key={step}
+                  className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]"
+                >
+                  {tileImage ? (
+                    <div className="relative h-32 w-full">
+                      <Image
+                        src={tileImage}
+                        alt={`Step ${step}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-lg">
+                        {step}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-32 items-center justify-center bg-[var(--background-subtle)]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white">
+                        {step}
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="text-sm text-[var(--foreground-muted)]">
+                      {t(`${feature.key}.step${step}`)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-[var(--foreground-muted)]">
-                  {t(`${feature.key}.step${step}`)}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
