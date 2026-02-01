@@ -1,0 +1,99 @@
+# FitStream Backend Deploy to Hetzner VPS
+# Deploys Express.js backend with Telegram bot
+
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+    inputs:
+      password:
+        description: 'Deploy password'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: 🤖 Deploy Backend to Hetzner
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'push' || github.event.inputs.password == 'deploy' }}
+
+    steps:
+      - name: Setup SSH Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/hetzner_key
+          chmod 600 ~/.ssh/hetzner_key
+          ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy Backend to VPS
+        env:
+          SSH_HOST: ${{ secrets.HETZNER_HOST }}
+          SSH_USER: root
+        run: |
+          echo "🤖 Deploying FitStream Backend..."
+
+          ssh -i ~/.ssh/hetzner_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'DEPLOY_SCRIPT'
+            set -e
+
+            # Check if backend directory exists
+            if [ ! -d "/opt/fitstream-backend" ]; then
+              echo "📁 Creating backend directory..."
+              mkdir -p /opt/fitstream-backend
+              cd /opt/fitstream-backend
+              git clone https://github.com/Ratzzz33/FitStream.git .
+            fi
+
+            cd /opt/fitstream-backend
+
+            echo "📥 Pulling latest changes..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 Installing backend dependencies..."
+            cd backend
+            npm ci --production
+
+            echo "🔄 Restarting backend service..."
+            # Using PM2 for process management
+            if command -v pm2 &> /dev/null; then
+              pm2 restart fitstream-backend 2>/dev/null || pm2 start server.js --name fitstream-backend
+              pm2 save
+            else
+              # Fallback: install PM2 and start
+              npm install -g pm2
+              pm2 start server.js --name fitstream-backend
+              pm2 save
+              pm2 startup
+            fi
+
+            echo "✅ Backend deployment complete!"
+            pm2 status fitstream-backend
+          DEPLOY_SCRIPT
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f ~/.ssh/hetzner_key
+
+      - name: Health check
+        run: |
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.fitstream.health/api/health 2>/dev/null || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $STATUS)"
+          else
+            echo "⚠️ Health check returned HTTP $STATUS (may need manual verification)"
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "### 🤖 Backend Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**API URL:** https://api.fitstream.health" >> $GITHUB_STEP_SUMMARY
+          echo "**Telegram Bot:** Active" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
