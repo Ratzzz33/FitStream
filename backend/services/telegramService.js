@@ -61,15 +61,10 @@ function initBot(dbPool) {
 
     pool = dbPool;
 
-    // Use webhook mode in production (polling causes 409 conflicts)
-    const usePolling = process.env.NODE_ENV !== 'production';
+    // Always use polling mode (simpler, no webhook setup needed)
     bot = new TelegramBot(token, {
-        polling: usePolling
+        polling: true
     });
-
-    if (!usePolling) {
-        console.log('Telegram bot running in webhook mode');
-    }
 
     // Register command handlers
     bot.onText(/\/start/, handleStart);
