@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
@@ -90,17 +89,17 @@ export function Hero() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
-            <Link href="#download">
+            <a href="#download">
               <Button size="lg" className="w-full sm:w-auto">
                 {t('downloadFree')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-            </Link>
-            <Link href="https://app.fitstream.health">
+            </a>
+            <a href="https://app.fitstream.health">
               <Button variant="secondary" size="lg" className="w-full sm:w-auto">
                 {t('tryWebApp')}
               </Button>
-            </Link>
+            </a>
           </div>
 
           {/* Progress dots - desktop only */}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, X } from 'lucide-react';
@@ -42,12 +41,12 @@ export function StickyCTA() {
           className="fixed bottom-0 inset-x-0 z-50 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent backdrop-blur-md lg:hidden"
         >
           <div className="flex items-center gap-3">
-            <Link href="#download" className="flex-1">
+            <a href="#download" className="flex-1">
               <Button size="lg" className="w-full">
                 {t('cta')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-            </Link>
+            </a>
             <button
               onClick={() => setIsDismissed(true)}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition"
