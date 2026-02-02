@@ -65,11 +65,9 @@ function initBot(dbPool) {
 
     pool = dbPool;
 
-    // Create bot in polling mode for development, webhook for production
-    const isProduction = process.env.NODE_ENV === 'production';
-
+    // Always use polling mode (webhook requires additional setup)
     bot = new TelegramBot(token, {
-        polling: !isProduction
+        polling: true
     });
 
     // Register command handlers
