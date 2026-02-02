@@ -5,9 +5,16 @@ test.describe('Settings', () => {
     await authenticatedPage.goto('/');
     await authenticatedPage.waitForLoadState('networkidle');
 
-    // Navigate to settings tab (usually last)
-    const settingsTab = authenticatedPage.locator('nav button, [role="tab"]').last();
-    await settingsTab.click();
+    // Open burger menu (hamburger icon in header)
+    const burgerMenu = authenticatedPage.locator('header button').filter({
+      has: authenticatedPage.locator('svg')
+    }).last();
+    await burgerMenu.click();
+    await authenticatedPage.waitForTimeout(500);
+
+    // Click "Settings" button in burger menu to go to full Settings page
+    const settingsButton = authenticatedPage.getByText(/settings|настройки/i).first();
+    await settingsButton.click();
     await authenticatedPage.waitForTimeout(500);
   });
 
@@ -34,14 +41,17 @@ test.describe('Settings - Theme', () => {
   test('can toggle dark/light theme', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
-    // Navigate to settings
-    const settingsTab = authenticatedPage.locator('nav button').last();
-    await settingsTab.click();
+    // Open burger menu - theme toggle is available directly in burger menu
+    const burgerMenu = authenticatedPage.locator('header button').filter({
+      has: authenticatedPage.locator('svg')
+    }).last();
+    await burgerMenu.click();
     await authenticatedPage.waitForTimeout(500);
 
-    // Find theme toggle
-    const themeToggle = authenticatedPage.locator('button, [role="switch"]').filter({
-      has: authenticatedPage.locator(':text("Theme"), :text("Dark"), :text("Light"), svg')
+    // Find theme toggle within the burger menu overlay
+    const burgerMenuOverlay = authenticatedPage.locator('.fixed.inset-0.z-50');
+    const themeToggle = burgerMenuOverlay.locator('button').filter({
+      hasText: /Theme|Dark|Light|тема|темная|светлая/i
     }).first();
 
     if (await themeToggle.isVisible()) {
@@ -52,7 +62,7 @@ test.describe('Settings - Theme', () => {
       });
 
       // Click toggle
-      await themeToggle.click();
+      await themeToggle.click({ force: true });
       await authenticatedPage.waitForTimeout(300);
 
       // Theme should change (or UI should update)
@@ -87,9 +97,15 @@ test.describe('Settings - Goals', () => {
   test('can view goal settings', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
-    // Navigate to settings
-    const settingsTab = authenticatedPage.locator('nav button').last();
-    await settingsTab.click();
+    // Open burger menu and go to full settings
+    const burgerMenu = authenticatedPage.locator('header button').filter({
+      has: authenticatedPage.locator('svg')
+    }).last();
+    await burgerMenu.click();
+    await authenticatedPage.waitForTimeout(300);
+
+    const settingsButton = authenticatedPage.getByText(/settings|настройки/i).first();
+    await settingsButton.click();
     await authenticatedPage.waitForTimeout(500);
 
     // Look for goal-related UI

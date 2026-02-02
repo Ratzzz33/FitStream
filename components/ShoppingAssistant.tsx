@@ -893,7 +893,76 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             )}
 
-            {/* Missing essentials - Need to buy */}
+            {/* Hidden inputs */}
+            <input
+                ref={showcaseInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handlePhotoSelect(e, onShowcasePhotoSelected)}
+            />
+            <input
+                ref={inventoryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                capture="environment"
+                className="hidden"
+                onChange={handleInventoryPhotosSelect}
+            />
+
+            {/* 1. Сканировать витрину */}
+            <button
+                onClick={handleOpenShowcaseScan}
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-violet-400 hover:to-purple-400 transition transform active:scale-[0.98]"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2.5 rounded-xl">
+                        <Scan size={24} />
+                    </div>
+                    <div className="text-left">
+                        <p className="font-bold flex items-center gap-1.5"><Camera size={18} /> Сканировать витрину</p>
+                        <p className="text-xs text-white/80">Что полезного на полке?</p>
+                    </div>
+                </div>
+                <ChevronRight size={24} />
+            </button>
+
+            {/* 2. Фоткать запасы */}
+            <button
+                onClick={handleOpenInventoryScan}
+                disabled={isInventoryScanning}
+                className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-dashed border-gray-300 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+            >
+                {isInventoryScanning ? (
+                    <div className="flex items-center gap-3">
+                        <Loader2 size={24} className="animate-spin text-emerald-500" />
+                        <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                            {inventoryScanProgress}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gray-200 dark:bg-gray-700 p-2.5 rounded-xl">
+                                <Refrigerator size={24} className="text-gray-500 dark:text-gray-400" />
+                            </div>
+                            <div className="text-left">
+                                <p className="font-medium text-gray-700 dark:text-gray-300">
+                                    {activeInventory.length === 0 ? 'Сфоткать запасы' : 'Обновить запасы'}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {activeInventory.length > 0 ? `${activeInventory.length} продуктов на полках` : 'Покажи что есть дома'}
+                                </p>
+                            </div>
+                        </div>
+                        <ChevronRight size={20} className="text-gray-400" />
+                    </>
+                )}
+            </button>
+
+            {/* 3. Нужно купить */}
             {missingEssentials.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -924,80 +993,21 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                 </div>
             )}
 
-            {/* In stock from inventory */}
-            {activeInventory.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className="text-green-500">✓</span> На полках
-                        </h3>
-                        <span className="text-xs text-green-600 font-medium bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                            {activeInventory.length} поз.
-                        </span>
+            {/* 4. CTA - Иду в магазин */}
+            <button
+                onClick={() => setView('planning')}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-emerald-400 hover:to-teal-400 transition transform active:scale-[0.98]"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2.5 rounded-xl">
+                        <ShoppingCart size={24} />
                     </div>
-                    <div className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                            {activeInventory.slice(0, 10).map((item, idx) => (
-                                <span
-                                    key={idx}
-                                    className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-full text-sm flex items-center gap-1"
-                                >
-                                    {item.emoji || '📦'} {item.name}
-                                    {item.quantity && (
-                                        <span className="text-green-500 text-xs ml-1">
-                                            {item.quantity}{item.unit}
-                                        </span>
-                                    )}
-                                </span>
-                            ))}
-                            {activeInventory.length > 10 && (
-                                <span className="text-gray-400 text-sm px-2 py-1.5">
-                                    +{activeInventory.length - 10}
-                                </span>
-                            )}
-                        </div>
+                    <div className="text-left">
+                        <p className="font-bold">Спланировать покупки</p>
+                        <p className="text-xs text-white/80">{t('planMeals')}</p>
                     </div>
                 </div>
-            )}
-
-            {/* Hidden input for multi-photo selection */}
-            <input
-                ref={inventoryInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                capture="environment"
-                className="hidden"
-                onChange={handleInventoryPhotosSelect}
-            />
-
-            {/* Scan inventory button - always visible */}
-            <button
-                onClick={handleOpenInventoryScan}
-                disabled={isInventoryScanning}
-                className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 text-center border border-dashed border-gray-300 dark:border-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isInventoryScanning ? (
-                    <div className="flex flex-col items-center gap-2">
-                        <Loader2 size={32} className="animate-spin text-emerald-500" />
-                        <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
-                            {inventoryScanProgress}
-                        </p>
-                    </div>
-                ) : (
-                    <>
-                        <Refrigerator size={32} className="mx-auto mb-2 text-gray-400 dark:text-gray-500" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">
-                            {activeInventory.length === 0
-                                ? 'Сфоткай запасы, чтобы обновить сведения'
-                                : 'Добавить ещё фото запасов'
-                            }
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            Можно несколько фото сразу
-                        </p>
-                    </>
-                )}
+                <ChevronRight size={24} />
             </button>
 
             {/* Multi-photo confirmation modal */}
@@ -1024,68 +1034,6 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                                 Обработать
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Hidden input for showcase scan */}
-            <input
-                ref={showcaseInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handlePhotoSelect(e, onShowcasePhotoSelected)}
-            />
-
-            {/* Quick showcase scan button - NEW FEATURE */}
-            <button
-                onClick={handleOpenShowcaseScan}
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-violet-400 hover:to-purple-400 transition transform active:scale-[0.98]"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2.5 rounded-xl">
-                        <Scan size={24} />
-                    </div>
-                    <div className="text-left">
-                        <p className="font-bold">📸 Сканировать витрину</p>
-                        <p className="text-xs text-white/80">Что полезного на полке?</p>
-                    </div>
-                </div>
-                <ChevronRight size={24} />
-            </button>
-
-            {/* Go shopping button */}
-            <button
-                onClick={() => setView('planning')}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-emerald-400 hover:to-teal-400 transition transform active:scale-[0.98]"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2.5 rounded-xl">
-                        <ChefHat size={24} />
-                    </div>
-                    <div className="text-left">
-                        <p className="font-bold">{t('goShopping')}</p>
-                        <p className="text-xs text-white/80">{t('planMeals')}</p>
-                    </div>
-                </div>
-                <ChevronRight size={24} />
-            </button>
-
-            {/* Quick stats */}
-            {(inStockEssentials.length > 0 || missingEssentials.length > 0) && (
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {inStockEssentials.length}
-                        </p>
-                        <p className="text-xs text-green-600/70 dark:text-green-400/70">базовых есть</p>
-                    </div>
-                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                            {missingEssentials.length}
-                        </p>
-                        <p className="text-xs text-red-600/70 dark:text-red-400/70">нужно купить</p>
                     </div>
                 </div>
             )}
