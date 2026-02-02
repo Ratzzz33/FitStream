@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Flame, ChefHat, Clock, Check, Sparkles, ShoppingCart, Package, Mic, MicOff, Send, Loader2, X } from 'lucide-react';
+import { Flame, ChefHat, Clock, Check, Sparkles, ShoppingCart, Package, Mic, MicOff, Send, Loader2, X, Wifi, WifiOff } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
-import { searchRecipes, matchRecipesWithInventory, getSurpriseRecipe, RecipeMatch, Recipe } from '../../services/recipeDatabase';
+import { searchRecipes, matchRecipesWithInventory, getSurpriseRecipe, aiSearchRecipes, getAllRecipes, RecipeMatch, Recipe } from '../../services/recipeDatabase';
 
 interface CookingProps {
   caloriesRemaining: number;
@@ -26,6 +26,9 @@ export const Cooking: React.FC<CookingProps> = ({
   const [mode, setMode] = useState<'available' | 'shopping'>(inventoryCount > 0 ? 'available' : 'shopping');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [hasAIResults, setHasAIResults] = useState(false);
   const [results, setResults] = useState<RecipeMatch[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeMatch | null>(null);
@@ -125,58 +128,95 @@ export const Cooking: React.FC<CookingProps> = ({
     }
   };
 
-  const handleSearch = (searchQuery?: string, searchMode?: 'available' | 'shopping') => {
+  const handleSearch = async (searchQuery?: string, searchMode?: 'available' | 'shopping') => {
     const q = searchQuery || query;
     const currentMode = searchMode || mode;
 
     if (!q.trim()) return;
 
-    const foundRecipes = searchRecipes(q);
-    const matched = matchRecipesWithInventory(inventoryNames, foundRecipes);
-
-    let filtered = matched;
-    if (currentMode === 'available') {
-      // No inventory = no results in "available" mode
-      if (inventoryCount === 0) {
-        filtered = [];
-      } else {
-        // Show recipes where we have at least 30% of ingredients
-        // NO fallback - if nothing matches, show empty results
-        filtered = matched.filter(m => m.matchPercentage >= 30);
-      }
-    }
-    // In 'shopping' mode - show ALL matching recipes regardless of inventory
-
-    // Sort: in 'available' mode sort by match %, in 'shopping' by relevance (already sorted)
-    if (currentMode === 'available') {
-      filtered.sort((a, b) => b.matchPercentage - a.matchPercentage);
-    }
-
-    setResults(filtered);
+    setIsSearching(true);
     setShowResults(true);
+    setHasAIResults(false);
+    setIsOffline(false);
+
+    try {
+      // Use AI-powered search (min 4 results, generates if needed)
+      const { recipes: foundRecipes, fromAI, offline } = await aiSearchRecipes(q, 4);
+
+      setHasAIResults(fromAI);
+      setIsOffline(offline);
+
+      // Match with inventory
+      const matched = matchRecipesWithInventory(inventoryNames, foundRecipes);
+
+      let filtered = matched;
+      if (currentMode === 'available') {
+        // No inventory = no results in "available" mode
+        if (inventoryCount === 0) {
+          filtered = [];
+        } else {
+          // Show recipes where we have at least 30% of ingredients
+          filtered = matched.filter(m => m.matchPercentage >= 30);
+          // But if AI generated recipes, include them even with 0% match
+          if (filtered.length < 4 && fromAI) {
+            const aiMatches = matched.filter(m => !filtered.includes(m));
+            filtered = [...filtered, ...aiMatches].slice(0, 8);
+          }
+        }
+      }
+      // In 'shopping' mode - show ALL matching recipes regardless of inventory
+
+      // Sort: in 'available' mode sort by match %, in 'shopping' by relevance
+      if (currentMode === 'available') {
+        filtered.sort((a, b) => b.matchPercentage - a.matchPercentage);
+      }
+
+      setResults(filtered);
+    } catch (error) {
+      console.error('Search error:', error);
+      // Fallback to basic local search
+      const foundRecipes = searchRecipes(q);
+      const matched = matchRecipesWithInventory(inventoryNames, foundRecipes);
+      setResults(matched);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   // Mode change handler - re-search with new mode
-  const handleModeChange = (newMode: 'available' | 'shopping') => {
+  const handleModeChange = async (newMode: 'available' | 'shopping') => {
     setMode(newMode);
     if (showResults && query.trim()) {
       // Re-search with new mode
-      handleSearch(query, newMode);
+      await handleSearch(query, newMode);
     }
   };
 
-  const handleSurprise = () => {
-    const surprise = getSurpriseRecipe(inventoryNames);
-    if (surprise) {
-      setResults([surprise]);
-      setShowResults(true);
+  const handleSurprise = async () => {
+    setIsSearching(true);
+    setShowResults(true);
+    try {
+      // Get surprise from AI or local
+      const surprise = getSurpriseRecipe(inventoryNames);
+      if (surprise) {
+        setResults([surprise]);
+      } else {
+        // Try AI for surprise
+        const { recipes } = await aiSearchRecipes('быстрый вкусный рецепт', 4);
+        const matched = matchRecipesWithInventory(inventoryNames, recipes);
+        const randomIndex = Math.floor(Math.random() * matched.length);
+        setResults([matched[randomIndex] || matched[0]].filter(Boolean));
+      }
       setQuery('');
+    } finally {
+      setIsSearching(false);
     }
   };
 
   // Browse all recipes (for "shopping" mode exploration)
   const handleBrowseAll = () => {
-    const allMatched = matchRecipesWithInventory(inventoryNames);
+    const allRecipes = getAllRecipes();
+    const allMatched = matchRecipesWithInventory(inventoryNames, allRecipes);
     setResults(allMatched);
     setShowResults(true);
     setQuery('');
@@ -224,13 +264,19 @@ export const Cooking: React.FC<CookingProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
-        {/* Header with image */}
+        {/* Header with image or emoji fallback */}
         <div className="relative h-48 sm:h-56 overflow-hidden shrink-0">
-          <img
-            src={recipe.photo}
-            alt={recipe.name}
-            className="w-full h-full object-cover"
-          />
+          {recipe.photo ? (
+            <img
+              src={recipe.photo}
+              alt={recipe.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+              <span className="text-8xl">{recipe.emoji}</span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <button
             onClick={() => setSelectedRecipe(null)}
@@ -497,27 +543,75 @@ export const Cooking: React.FC<CookingProps> = ({
       {/* Results */}
       {showResults && (
         <div className="flex-1 overflow-auto p-4 space-y-3">
-          {results.length === 0 ? (
+          {/* Loading state */}
+          {isSearching && (
+            <div className="py-8">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 rounded-full" />
+                  <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <ChefHat className="absolute inset-0 m-auto w-6 h-6 text-blue-500" />
+                </div>
+                <div className="text-center">
+                  <p className="font-medium dark:text-white">Ищем рецепты...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">AI подбирает лучшие варианты</p>
+                </div>
+                {/* Progress bar */}
+                <div className="w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Offline indicator */}
+          {!isSearching && isOffline && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-700 dark:text-yellow-400 text-sm mb-2">
+              <WifiOff className="w-4 h-4" />
+              Офлайн режим — показаны локальные рецепты
+            </div>
+          )}
+
+          {/* AI indicator */}
+          {!isSearching && hasAIResults && !isOffline && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-700 dark:text-purple-400 text-sm mb-2">
+              <Sparkles className="w-4 h-4" />
+              AI нашёл новые рецепты специально для вас
+            </div>
+          )}
+
+          {/* No results */}
+          {!isSearching && results.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <ChefHat className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>Не нашли подходящих рецептов</p>
               <p className="text-sm mt-1">Попробуйте другой запрос</p>
             </div>
-          ) : (
-            results.map((match) => (
-              <button
-                key={match.recipe.id}
-                onClick={() => handleSelectRecipe(match)}
-                className="w-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex border border-gray-100 dark:border-gray-700"
-              >
-                {/* Photo */}
-                <div className="w-28 h-28 shrink-0">
+          )}
+
+          {/* Recipe cards */}
+          {!isSearching && results.map((match) => (
+            <button
+              key={match.recipe.id}
+              onClick={() => handleSelectRecipe(match)}
+              className="w-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex border border-gray-100 dark:border-gray-700"
+            >
+              {/* Photo or Emoji fallback */}
+              <div className="w-28 h-28 shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                {match.recipe.photo ? (
                   <img
                     src={match.recipe.photo}
                     alt={match.recipe.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // If image fails to load, hide it and show emoji
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
-                </div>
+                ) : (
+                  <span className="text-5xl">{match.recipe.emoji}</span>
+                )}
+              </div>
 
                 {/* Info */}
                 <div className="flex-1 p-3 text-left">
@@ -571,20 +665,23 @@ export const Cooking: React.FC<CookingProps> = ({
                   </div>
                 </div>
               </button>
-            ))
-          )}
+          ))}
 
           {/* Back to search */}
-          <button
-            onClick={() => {
-              setShowResults(false);
-              setResults([]);
-              setQuery('');
-            }}
-            className="w-full py-3 text-blue-500 font-medium"
-          >
-            ← Новый поиск
-          </button>
+          {!isSearching && (
+            <button
+              onClick={() => {
+                setShowResults(false);
+                setResults([]);
+                setQuery('');
+                setHasAIResults(false);
+                setIsOffline(false);
+              }}
+              className="w-full py-3 text-blue-500 font-medium"
+            >
+              ← Новый поиск
+            </button>
+          )}
         </div>
       )}
 
