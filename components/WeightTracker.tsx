@@ -23,6 +23,8 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const settings = StorageService.getSettings();
 
   // Offline states
@@ -66,7 +68,13 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
     setError(null);
     setIsCameraOpen(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
@@ -299,9 +307,51 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
           
           <div className="flex flex-col gap-4">
               {isCameraOpen ? (
-                  <div className="relative rounded-xl overflow-hidden aspect-video bg-black shadow-inner">
+                  <div
+                      className="relative rounded-xl overflow-hidden aspect-video bg-black shadow-inner"
+                      onClick={async (e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = ((e.clientX - rect.left) / rect.width) * 100;
+                          const y = ((e.clientY - rect.top) / rect.height) * 100;
+                          setFocusPoint({ x, y });
+
+                          // Apply real camera focus if supported
+                          if (videoRef.current?.srcObject) {
+                              const stream = videoRef.current.srcObject as MediaStream;
+                              const track = stream.getVideoTracks()[0];
+                              const capabilities = track.getCapabilities?.() as any;
+                              if (capabilities?.focusMode?.includes('manual') || capabilities?.focusMode?.includes('single-shot')) {
+                                  try {
+                                      await track.applyConstraints({
+                                          advanced: [{
+                                              focusMode: 'manual',
+                                              pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+                                          }]
+                                      } as any);
+                                  } catch (err) {
+                                      console.log('Focus not supported:', err);
+                                  }
+                              }
+                          }
+
+                          // Hide focus square after 1.5s
+                          if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+                          focusTimeoutRef.current = setTimeout(() => setFocusPoint(null), 1500);
+                      }}
+                  >
                       <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                       <canvas ref={canvasRef} className="hidden" />
+                      {/* Focus indicator */}
+                      {focusPoint && (
+                          <div
+                              className="absolute w-16 h-16 border-2 border-yellow-400 rounded-lg pointer-events-none animate-pulse"
+                              style={{
+                                  left: `${focusPoint.x}%`,
+                                  top: `${focusPoint.y}%`,
+                                  transform: 'translate(-50%, -50%)'
+                              }}
+                          />
+                      )}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-64 h-32 border-2 border-white/50 rounded-lg"></div>
                       </div>

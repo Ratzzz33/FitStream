@@ -107,6 +107,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Tap-to-focus state
+    const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
     // Manual Entry State
     const [showManualEntry, setShowManualEntry] = useState(false);
@@ -796,7 +800,52 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <div className="flex-1 relative overflow-hidden">
                             {!capturedPreview ? (
                                 <>
-                                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                                    {/* Tap-to-focus wrapper */}
+                                    <div
+                                        className="w-full h-full"
+                                        onClick={async (e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const x = ((e.clientX - rect.left) / rect.width) * 100;
+                                            const y = ((e.clientY - rect.top) / rect.height) * 100;
+                                            setFocusPoint({ x, y });
+
+                                            // Apply real camera focus if supported
+                                            if (videoRef.current?.srcObject) {
+                                                const stream = videoRef.current.srcObject as MediaStream;
+                                                const track = stream.getVideoTracks()[0];
+                                                const capabilities = track.getCapabilities?.() as any;
+                                                if (capabilities?.focusMode?.includes('manual') || capabilities?.focusMode?.includes('single-shot')) {
+                                                    try {
+                                                        await track.applyConstraints({
+                                                            advanced: [{
+                                                                focusMode: 'manual',
+                                                                pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+                                                            }]
+                                                        } as any);
+                                                    } catch (err) {
+                                                        console.log('Focus not supported:', err);
+                                                    }
+                                                }
+                                            }
+
+                                            // Hide focus square after 1.5s
+                                            if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+                                            focusTimeoutRef.current = setTimeout(() => setFocusPoint(null), 1500);
+                                        }}
+                                    >
+                                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                                        {/* Focus indicator */}
+                                        {focusPoint && (
+                                            <div
+                                                className="absolute w-16 h-16 border-2 border-yellow-400 rounded-lg pointer-events-none animate-pulse"
+                                                style={{
+                                                    left: `${focusPoint.x}%`,
+                                                    top: `${focusPoint.y}%`,
+                                                    transform: 'translate(-50%, -50%)'
+                                                }}
+                                            />
+                                        )}
+                                    </div>
                                     <canvas ref={canvasRef} className="hidden" />
 
                                     {/* Frame guide */}
