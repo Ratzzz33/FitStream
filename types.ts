@@ -416,7 +416,8 @@ export type BillingActionType =
   | 'storage_scan'
   | 'menu_scan'
   | 'recipe_ai'
-  | 'scale_scan';
+  | 'scale_scan'
+  | 'showcase_scan';
 
 export interface EconomySettings {
   recipeImages: 'ai' | 'database' | 'none';

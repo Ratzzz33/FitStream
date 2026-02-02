@@ -49,6 +49,7 @@ const ACTION_LABELS: Record<BillingActionType, string> = {
   menu_scan: 'Анализ меню',
   recipe_ai: 'AI рецепты',
   scale_scan: 'Чтение весов',
+  showcase_scan: 'Сканирование витрины',
 };
 
 class BillingServiceClass {
