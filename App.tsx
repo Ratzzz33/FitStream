@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk, Flame, Menu, ChefHat } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk, Flame, Menu, ChefHat, UtensilsCrossed } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal, NutritionLog } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -19,6 +19,9 @@ import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
 import { Kitchen } from './components/Kitchen/Kitchen';
+import { KitchenHub } from './components/Kitchen/KitchenHub';
+import { BatchCamera } from './components/Kitchen/BatchCamera';
+import { CookingPrompt } from './components/CookingPrompt';
 import { useStepCounter } from './hooks/useStepCounter';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
 import { t, getLanguageList, getSavedLanguage, setLanguage } from './services/i18n';
@@ -33,6 +36,26 @@ import { BillingProvider } from './contexts/BillingContext';
 import { BalanceIndicator, TopUpModal, TrialBanner, BillingBanner, BalanceMini } from './components/Billing';
 import { initTimerService } from './services/timerService';
 import { UpdateBanner } from './components/UpdateBanner';
+
+// Custom Fridge Icon
+const FridgeIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="9" x2="19" y2="9" />
+    <line x1="15" y1="5" x2="15" y2="7" />
+    <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
 
 // Helper to decode Google JWT
 function parseJwt (token: string) {
@@ -83,7 +106,11 @@ const App = () => {
 
   // Burger menu
   const [showBurgerMenu, setShowBurgerMenu] = useState(false);
-  
+
+  // Kitchen quick actions
+  const [showBatchCamera, setShowBatchCamera] = useState(false);
+  const [showCookingPrompt, setShowCookingPrompt] = useState(false);
+
   // Phone Weight Scan Logic
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showQuickScan, setShowQuickScan] = useState(false);
@@ -859,30 +886,49 @@ const App = () => {
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-4">
-                <button 
+            {/* Quick Actions - 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-3">
+                <button
                     onClick={attemptStartWorkout}
-                    className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white p-5 rounded-2xl shadow-xl shadow-blue-500/20 dark:shadow-blue-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
+                    className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white p-4 rounded-2xl shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95"
                 >
-                    <Dumbbell size={28} />
-                    <span className="font-bold">{t('startWorkout')}</span>
-                    
+                    <Dumbbell size={24} />
+                    <span className="font-bold text-sm">{t('startWorkout')}</span>
+
                     {!settings.isPro && (
-                        <div className="absolute top-2 right-2 bg-black/20 px-2 py-0.5 rounded text-[10px] font-mono">
+                        <div className="absolute top-2 right-2 bg-black/20 px-1.5 py-0.5 rounded text-[9px] font-mono">
                            {StorageService.getWeeklyWorkoutCount()}/3
                         </div>
                     )}
                 </button>
                 <button
                     onClick={handlePhotoFoodClick}
-                    className="bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-5 rounded-2xl shadow-xl shadow-orange-500/20 dark:shadow-orange-900/20 flex flex-col items-center justify-center gap-2 transition transform active:scale-95"
+                    className="bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-4 rounded-2xl shadow-lg shadow-orange-500/20 dark:shadow-orange-900/20 flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95"
                 >
-                    <div className="flex items-center gap-2">
-                        <Utensils size={24} />
-                        <Camera size={24} />
+                    <div className="flex items-center gap-1.5">
+                        <Utensils size={20} />
+                        <Camera size={20} />
                     </div>
-                    <span className="font-bold">{t('photoFood')}</span>
+                    <span className="font-bold text-sm">{t('photoFood')}</span>
+                </button>
+                {/* Fridge Quick Scan */}
+                <button
+                    onClick={() => setShowBatchCamera(true)}
+                    className="bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white p-4 rounded-2xl shadow-lg shadow-cyan-500/20 dark:shadow-cyan-900/20 flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95"
+                >
+                    <div className="flex items-center gap-1.5">
+                        <FridgeIcon size={20} />
+                        <Camera size={20} />
+                    </div>
+                    <span className="font-bold text-sm">{t('inventory') || 'Запасы'}</span>
+                </button>
+                {/* What to Cook */}
+                <button
+                    onClick={() => setShowCookingPrompt(true)}
+                    className="bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white p-4 rounded-2xl shadow-lg shadow-red-500/20 dark:shadow-red-900/20 flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95"
+                >
+                    <UtensilsCrossed size={24} />
+                    <span className="font-bold text-sm">{t('whatToCook') || 'Что готовим'}</span>
                 </button>
             </div>
 
@@ -945,7 +991,12 @@ const App = () => {
 
         {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowTopUpModal(true)} />}
 
-        {activeTab === AppTab.KITCHEN && <Kitchen />}
+        {activeTab === AppTab.KITCHEN && (
+            <KitchenHub
+                onCaloriesLogged={() => {}}
+                caloriesRemaining={2000}
+            />
+        )}
 
         {activeTab === AppTab.SOCIAL && (
             <div className="px-4 space-y-4 pb-4">
@@ -1614,6 +1665,30 @@ const App = () => {
 
       {/* Top Up Modal */}
       <TopUpModal isOpen={showTopUpModal} onClose={() => setShowTopUpModal(false)} />
+
+      {/* Batch Camera for Kitchen Quick Scan */}
+      {showBatchCamera && (
+          <BatchCamera
+              onClose={() => setShowBatchCamera(false)}
+              onComplete={() => {
+                  setShowBatchCamera(false);
+                  // Optionally navigate to kitchen to see results
+              }}
+          />
+      )}
+
+      {/* Cooking Prompt Dialog */}
+      {showCookingPrompt && (
+          <CookingPrompt
+              onClose={() => setShowCookingPrompt(false)}
+              onSubmit={(query, mode) => {
+                  setShowCookingPrompt(false);
+                  // Navigate to cooking with query
+                  setInitialToolSheet('recipes');
+                  setActiveTab(AppTab.NUTRITION);
+              }}
+          />
+      )}
 
       {/* Burger Menu Overlay */}
       {showBurgerMenu && (
