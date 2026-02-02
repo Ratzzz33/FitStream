@@ -12,7 +12,6 @@ import { offlineStorage } from '../services/offlineStorage';
 import { Kitchen } from './Kitchen';
 import { Cooking } from './Cooking';
 import { FoodFinance } from './Finance';
-import { NutritionSegmentControl, NutritionTab } from './NutritionSegmentControl';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
@@ -22,19 +21,12 @@ interface NutritionTrackerProps {
 }
 
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
-
-// Map old tool sheet values to new tab system
-const mapToolSheetToTab = (sheet: 'kitchen' | 'recipes' | 'finance' | null): NutritionTab => {
-    if (sheet === 'kitchen') return 'kitchen';
-    if (sheet === 'recipes') return 'recipes';
-    return 'tracker';
-};
+type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened, initialToolSheet }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
     const [mode, setMode] = useState<ScanMode>('IDLE');
-    const [activeTab, setActiveTab] = useState<NutritionTab>(mapToolSheetToTab(initialToolSheet ?? null));
-    const [showFinance, setShowFinance] = useState(initialToolSheet === 'finance');
+    const [activeToolSheet, setActiveToolSheet] = useState<ToolSheet>(initialToolSheet ?? null);
 
     // Result States
     const [scannedFood, setScannedFood] = useState<NutritionLog | null>(null);
@@ -133,11 +125,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     // Open tool sheet when navigating from dashboard
     useEffect(() => {
         if (initialToolSheet) {
-            if (initialToolSheet === 'finance') {
-                setShowFinance(true);
-            } else {
-                setActiveTab(mapToolSheetToTab(initialToolSheet));
-            }
+            setActiveToolSheet(initialToolSheet);
         }
     }, [initialToolSheet]);
 
@@ -664,11 +652,11 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
     return (
         <div className="flex flex-col h-full">
-            {/* Segment Control - Always visible */}
-            <div className="p-4 pb-2 space-y-3">
+            {/* Top Summary - Always visible */}
+            <div className="p-4 pb-2">
                 {/* Offline / Pending Sync Indicator */}
                 {(!isOnline || pendingCount > 0) && (
-                    <div className={`rounded-xl p-2.5 flex items-center justify-between ${
+                    <div className={`rounded-xl p-3 flex items-center justify-between mb-4 ${
                         !isOnline
                             ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'
                             : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
@@ -676,194 +664,179 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         <div className="flex items-center gap-2">
                             {!isOnline ? (
                                 <>
-                                    <WifiOff size={14} className="text-yellow-600 dark:text-yellow-400" />
-                                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                                        {t('offlineMode') || 'Offline'}
+                                    <WifiOff size={16} className="text-yellow-600 dark:text-yellow-400" />
+                                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                                        {t('offlineMode') || 'Offline Mode'}
                                     </span>
                                 </>
                             ) : (
                                 <>
-                                    <Loader2 size={14} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                    <Loader2 size={16} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                                         {t('syncing') || 'Syncing...'}
                                     </span>
                                 </>
                             )}
                         </div>
                         {pendingCount > 0 && (
-                            <span className="text-xs bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full font-bold text-gray-600 dark:text-gray-300">
-                                {pendingCount}
+                            <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full font-bold text-gray-600 dark:text-gray-300">
+                                {pendingCount} {t('pending') || 'pending'}
                             </span>
                         )}
                     </div>
                 )}
 
-                {/* Segment Control */}
-                <NutritionSegmentControl
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                />
-
-                {/* Compact Stats Bar - Only on tracker tab */}
-                {activeTab === 'tracker' && (
-                    <div className="flex items-center gap-3">
-                        {/* Calories */}
-                        <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                    <Flame size={12} className="text-orange-500" />
-                                </span>
-                                <span className="text-xs font-medium dark:text-white">
-                                    {todayStats.calories}/{dailyNeeds.calories}
-                                </span>
-                            </div>
-                            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${
-                                        todayStats.calories > dailyNeeds.calories
-                                            ? 'bg-red-500'
-                                            : todayStats.calories > dailyNeeds.calories * 0.8
-                                                ? 'bg-amber-500'
-                                                : 'bg-orange-500'
-                                    }`}
-                                    style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Water */}
-                        <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                    <Droplets size={12} className="text-blue-500" />
-                                </span>
-                                <span className="text-xs font-medium dark:text-white">
-                                    {todayStats.water}/{dailyNeeds.water}
-                                </span>
-                            </div>
-                            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full rounded-full bg-blue-500 transition-all duration-500"
-                                    style={{ width: `${Math.min(100, (todayStats.water / dailyNeeds.water) * 100)}%` }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Quick Water Add */}
-                        <button
-                            onClick={() => addWater(250, 'Glass')}
-                            className="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center text-white transition active:scale-95"
-                            title={t('addWater')}
-                        >
-                            <Plus size={20} />
-                        </button>
+                {/* Calories Progress Bar */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('calories')}</span>
+                        <span className="text-sm font-medium dark:text-white">
+                            {todayStats.calories} / {dailyNeeds.calories} {t('unitKcal')}
+                        </span>
                     </div>
-                )}
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                                todayStats.calories > dailyNeeds.calories
+                                    ? 'bg-red-500'
+                                    : todayStats.calories > dailyNeeds.calories * 0.8
+                                        ? 'bg-amber-500'
+                                        : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
+                        />
+                    </div>
+                </div>
             </div>
 
-            {/* Main Content */}
+            {/* Main Content - Diary */}
             <div className="flex-1 overflow-auto">
-                {/* Kitchen Tab */}
-                {activeTab === 'kitchen' && (
-                    <Kitchen />
-                )}
-
-                {/* Recipes Tab */}
-                {activeTab === 'recipes' && (
-                    <Cooking
-                        caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
-                        onCaloriesLogged={handleCaloriesLogged}
-                        onOpenKitchenCamera={() => setActiveTab('kitchen')}
-                        onOpenManualAdd={() => setActiveTab('kitchen')}
-                        onOpenShopping={() => setShowFinance(true)}
+                <div className="p-4 space-y-6 pb-24">
+                        {/* Top Summary */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
+                <div className="flex flex-col items-center">
+                    <AchievementRing
+                        radius={50}
+                        stroke={8}
+                        progress={todayStats.calories}
+                        total={dailyNeeds.calories}
+                        color="#f59e0b" // Amber for Cals
+                        label={t('calories')}
+                        compact
                     />
-                )}
+                    <span className="text-xs text-gray-500 mt-2">{todayStats.calories} / {dailyNeeds.calories}</span>
+                </div>
+                <div className="h-20 w-px bg-gray-200 dark:bg-gray-700"></div>
+                <div className="flex flex-col items-center">
+                    <AchievementRing
+                        radius={50}
+                        stroke={8}
+                        progress={todayStats.water}
+                        total={dailyNeeds.water}
+                        color="#3b82f6" // Blue for Water
+                        label={t('water')}
+                        compact
+                    />
+                    <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
+                </div>
+            </div>
 
-                {/* Tracker Tab */}
-                {activeTab === 'tracker' && (
-                    <div className="p-4 space-y-4 pb-24">
-                        {/* Quick Actions Grid */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {/* Scan Food */}
-                            <button
-                                onClick={handleScanFoodClick}
-                                className="relative bg-gradient-to-br from-orange-500 to-amber-500 text-white p-4 rounded-2xl flex flex-col items-center gap-2 shadow-lg transition active:scale-[0.98]"
-                            >
-                                <Camera size={24} />
-                                <span className="text-xs font-bold">{t('scanFood')}</span>
-                                {!isScannerUnlocked && (
-                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-                                        <Lock size={16} className="text-white" />
+            {/* Water Tracker */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-800">
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                            <Droplets size={20} className="text-blue-500" />
+                            {t('water')}
+                        </h3>
+                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{t('waterGoal')}: {dailyNeeds.water}{t('unitMl')}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    <button onClick={() => addWater(150, 'Glass')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <GlassWater size={20} className="text-blue-400" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('glass')}</span>
+                    </button>
+                    <button onClick={() => addWater(200, 'Cup')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <Coffee size={24} className="text-blue-500" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('cup')}</span>
+                    </button>
+                    <button onClick={() => addWater(500, 'Bottle')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
+                        <Milk size={24} className="text-blue-600" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('bottle')}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Food Tracker Logic Switch */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Utensils size={20} className="text-orange-500" />
+                    {t('nutritionTracker')}
+                </h3>
+
+                {/* --- 1. IDLE STATE: Dual Buttons --- */}
+                {mode === 'IDLE' && (
+                    <div className="grid grid-cols-1 gap-4">
+                        <button
+                            onClick={handleScanFoodClick}
+                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-6 rounded-2xl shadow-lg transition transform active:scale-[0.98] group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col items-start gap-1">
+                                    <h4 className="text-xl font-bold flex items-center gap-2">
+                                        <Camera size={24} /> {t('scanFood')}
+                                    </h4>
+                                    <p className="text-xs text-orange-100 opacity-90">{t('aiNutritionScanDesc')}</p>
+                                </div>
+                                <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
+                            </div>
+
+                            {!isScannerUnlocked && (
+                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
+                                    <div className="bg-black/50 px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
+                                        <Lock size={12} /> {t('upgradeToScan')}
                                     </div>
-                                )}
-                            </button>
+                                </div>
+                            )}
+                        </button>
 
-                            {/* Scan Menu */}
-                            <button
-                                onClick={handleScanMenuClick}
-                                className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-2xl flex flex-col items-center gap-2 transition active:scale-[0.98]"
-                            >
-                                <FileText size={24} className="text-blue-500" />
-                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('analyzeMenu')}</span>
-                                {!isScannerUnlocked && (
-                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-                                        <Lock size={16} className="text-white" />
+                        <button
+                            onClick={handleScanMenuClick}
+                            className="relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition transform active:scale-[0.98] group"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col items-start gap-1 text-gray-800 dark:text-white">
+                                    <h4 className="text-xl font-bold flex items-center gap-2">
+                                        <Camera size={24} className="text-blue-500" /> {t('analyzeMenu')}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('menuRecs')}</p>
+                                </div>
+                                <ChevronRight className="text-gray-400 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1" />
+                            </div>
+
+                            {!isScannerUnlocked && (
+                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+                                    <div className="bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
+                                        <Lock size={12} /> {t('upgradeToScan')}
                                     </div>
-                                )}
-                            </button>
+                                </div>
+                            )}
+                        </button>
 
-                            {/* Manual Entry */}
+                        <div className="flex justify-center pt-2">
                             <button
                                 onClick={() => setShowManualEntry(true)}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-2xl flex flex-col items-center gap-2 transition active:scale-[0.98]"
+                                className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition"
                             >
-                                <PenTool size={24} className="text-gray-500" />
-                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('manualEntry')}</span>
+                                <PenTool size={14} /> {t('manualEntry')}
                             </button>
                         </div>
-
-                        {/* Water Quick Add Row */}
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Droplets size={18} className="text-blue-500" />
-                                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('addWater')}</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => addWater(150, 'Glass')} className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition active:scale-95">
-                                        <GlassWater size={16} className="text-blue-400" />
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">150</span>
-                                    </button>
-                                    <button onClick={() => addWater(250, 'Cup')} className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition active:scale-95">
-                                        <Coffee size={16} className="text-blue-500" />
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">250</span>
-                                    </button>
-                                    <button onClick={() => addWater(500, 'Bottle')} className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition active:scale-95">
-                                        <Milk size={16} className="text-blue-600" />
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">500</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Finance Link */}
-                        <button
-                            onClick={() => setShowFinance(true)}
-                            className="w-full bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 p-3 rounded-xl text-left hover:shadow-md transition-all active:scale-[0.99] flex items-center gap-3"
-                        >
-                            <div className="w-9 h-9 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Wallet size={18} className="text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <span className="font-medium text-gray-900 dark:text-white text-sm">{t('finance') || 'Финансы'}</span>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{t('financeDesc') || 'Сколько тратишь на еду'}</p>
-                            </div>
-                            <ChevronRight size={18} className="text-gray-400" />
-                        </button>
                     </div>
                 )}
 
-                {/* --- FULLSCREEN CAMERA MODAL --- */}
+                {/* --- 2. FULLSCREEN CAMERA MODAL --- */}
                 {(mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') && (
                     <div className="fixed inset-0 bg-black z-[100] flex flex-col">
                         {/* Video / Preview */}
@@ -1667,25 +1640,101 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 </div>
             )}
 
-            {/* Finance Sheet (Fullscreen Overlay) */}
-            {showFinance && (
+            {/* Kitchen & Recipes Section */}
+            <div className="mt-6">
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Kitchen Card */}
+                    <button
+                        onClick={() => setActiveToolSheet('kitchen')}
+                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
+                    >
+                        <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400">
+                                <rect x="5" y="2" width="14" height="20" rx="2" />
+                                <line x1="5" y1="9" x2="19" y2="9" />
+                                <line x1="15" y1="5" x2="15" y2="7" />
+                                <line x1="15" y1="12" x2="15" y2="16" />
+                            </svg>
+                        </div>
+                        <div className="text-center">
+                            <span className="font-bold text-gray-900 dark:text-white">{t('kitchen') || 'Кухня'}</span>
+                            <p className="text-xs text-gray-500">{t('inventory') || 'Инвентарь'}</p>
+                        </div>
+                    </button>
+
+                    {/* Recipes Card */}
+                    <button
+                        onClick={() => setActiveToolSheet('recipes')}
+                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
+                    >
+                        <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
+                                <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
+                                <line x1="4" y1="10" x2="2" y2="10" />
+                                <line x1="14" y1="10" x2="16" y2="10" />
+                                <path d="M6 10V8a3 3 0 016 0v2" />
+                                <ellipse cx="25" cy="16" rx="6" ry="3" />
+                                <line x1="31" y1="15" x2="36" y2="14" />
+                            </svg>
+                        </div>
+                        <div className="text-center">
+                            <span className="font-bold text-gray-900 dark:text-white">{t('recipes') || 'Рецепты'}</span>
+                            <p className="text-xs text-gray-500">{t('cookingDesc') || 'Что приготовить'}</p>
+                        </div>
+                    </button>
+
+                    {/* Finance Card - Full Width */}
+                    <button
+                        onClick={() => setActiveToolSheet('finance')}
+                        className="col-span-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.01] transition-all active:scale-[0.99] group flex items-center gap-4"
+                    >
+                        <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            <Wallet size={20} className="text-white" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5">{t('finance') || 'Финансы'}</h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {t('financeDesc') || 'Сколько тратишь на еду'}
+                            </p>
+                        </div>
+                        <ChevronRight size={20} className="text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </div>
+            </div>
+                    </div>
+            </div>
+
+            {/* Tool Sheets (Fullscreen Overlays) */}
+            {activeToolSheet && (
                 <div className="fixed inset-0 bg-white dark:bg-gray-950 z-[60] flex flex-col animate-in slide-in-from-right duration-200">
                     {/* Sheet Header */}
                     <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10">
                         <button
-                            onClick={() => setShowFinance(false)}
+                            onClick={() => setActiveToolSheet(null)}
                             className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                         >
                             <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
                         </button>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                            {t('finance') || 'Финансы'}
+                            {activeToolSheet === 'kitchen' && (t('kitchen') || 'Кухня')}
+                            {activeToolSheet === 'recipes' && (t('recipes') || 'Рецепты')}
+                            {activeToolSheet === 'finance' && (t('finance') || 'Финансы')}
                         </h2>
                     </div>
 
                     {/* Sheet Content */}
                     <div className="flex-1 overflow-auto">
-                        <FoodFinance />
+                        {activeToolSheet === 'kitchen' && <Kitchen />}
+                        {activeToolSheet === 'recipes' && (
+                            <Cooking
+                                caloriesRemaining={Math.max(0, dailyNeeds.calories - todayStats.calories)}
+                                onCaloriesLogged={handleCaloriesLogged}
+                                onOpenKitchenCamera={() => setActiveToolSheet('kitchen')}
+                                onOpenManualAdd={() => setActiveToolSheet('kitchen')}
+                                onOpenShopping={() => setActiveToolSheet('finance')}
+                            />
+                        )}
+                        {activeToolSheet === 'finance' && <FoodFinance />}
                     </div>
                 </div>
             )}
