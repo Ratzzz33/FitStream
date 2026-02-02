@@ -7,9 +7,15 @@ import { StorageService } from './storageService';
 import { BillingService } from './billingService';
 import { georgiaPrices } from './georgiaPricesService';
 import {
+    findRestaurant,
+    saveRestaurantMenu,
+    getCachedRecommendations,
+    incrementTokensSaved
+} from './menuCacheService';
+import {
     InventoryItem, Recipe, CookingStep, CookingReminder, StorageType,
     ShoppingPreferences, PlannedMeal, ShoppingListItem, ProductVerification, ShoppingCategory,
-    BillingActionType
+    BillingActionType, GeoLocation, CachedMenuItem, CachedRestaurant
 } from '../types';
 
 // Helper to get API Key (Vite env)
@@ -497,6 +503,146 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
         return [];
     } catch (error) {
         console.error("Error analyzing menu:", error);
+        throw error;
+    }
+};
+
+// 5.1. Extended menu analysis with caching support
+export interface MenuAnalysisResult {
+    recommendations: MenuRecommendation[];
+    restaurantName?: string;
+    allItems?: CachedMenuItem[];
+    fromCache: boolean;
+    cachedRestaurant?: CachedRestaurant;
+}
+
+export interface MenuAnalysisOptions {
+    restaurantName?: string;
+    location?: GeoLocation;
+    city?: string;
+    country?: string;
+    forceRefresh?: boolean;
+}
+
+/**
+ * Analyze menu with caching - saves tokens on repeat visits
+ */
+export const analyzeMenuWithCache = async (
+    base64Image: string,
+    options?: MenuAnalysisOptions
+): Promise<MenuAnalysisResult> => {
+    // Check cache first (unless force refresh)
+    if (!options?.forceRefresh) {
+        const cached = findRestaurant(options?.restaurantName, options?.location);
+        if (cached && cached.menuItems.length > 0) {
+            const recommendations = getCachedRecommendations(cached.id)
+                .slice(0, 3)
+                .map(item => ({
+                    dishName: item.name,
+                    calories: item.calories,
+                    protein: item.protein,
+                    category: item.category === 'REGULAR' ? 'LESSER_OF_EVILS' as const : item.category,
+                    reasoning: item.description || `Health: ${item.healthScore === 1 ? '🟢' : item.healthScore === 2 ? '🟡' : '🔴'}`
+                }));
+
+            incrementTokensSaved(500); // ~500 tokens per scan
+
+            return {
+                recommendations,
+                restaurantName: cached.name,
+                fromCache: true,
+                cachedRestaurant: cached
+            };
+        }
+    }
+
+    // No cache hit - call AI
+    const billing = await checkAndCharge('menu_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        {
+                            text: `Analyze menu. Extract:
+1. Restaurant name (if visible)
+2. ALL items with calories, protein, healthScore (1=best, 2=ok, 3=avoid)
+3. Top 3 recommendations
+
+JSON response. Language: ${lang}.`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        restaurantName: { type: Type.STRING, nullable: true },
+                        allItems: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    calories: { type: Type.NUMBER },
+                                    protein: { type: Type.NUMBER },
+                                    healthScore: { type: Type.NUMBER },
+                                    category: { type: Type.STRING, enum: ['BEST_CHOICE', 'HIGH_PROTEIN', 'LESSER_OF_EVILS', 'REGULAR'] }
+                                },
+                                required: ["name", "calories", "protein", "healthScore", "category"]
+                            }
+                        },
+                        recommendations: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    dishName: { type: Type.STRING },
+                                    calories: { type: Type.NUMBER },
+                                    protein: { type: Type.NUMBER },
+                                    category: { type: Type.STRING, enum: ['BEST_CHOICE', 'HIGH_PROTEIN', 'LESSER_OF_EVILS'] },
+                                    reasoning: { type: Type.STRING }
+                                },
+                                required: ["dishName", "calories", "protein", "category", "reasoning"]
+                            }
+                        }
+                    },
+                    required: ["recommendations", "allItems"]
+                }
+            }
+        });
+
+        if (!response.text) return { recommendations: [], fromCache: false };
+
+        const result = JSON.parse(response.text);
+
+        // Save to cache if location provided
+        if (options?.location && options?.city && options?.country) {
+            const name = result.restaurantName || options.restaurantName || 'Unknown';
+            saveRestaurantMenu(name, options.location, options.city, options.country, result.allItems || []);
+        }
+
+        return {
+            recommendations: result.recommendations || [],
+            restaurantName: result.restaurantName,
+            allItems: result.allItems,
+            fromCache: false
+        };
+    } catch (error) {
+        console.error("Error analyzing menu with cache:", error);
         throw error;
     }
 };

@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check, QrCode, ImagePlus, MapPin } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost, detectPhotoType, PhotoContentType } from '../services/geminiService';
-import { NutritionLog } from '../types';
+import { analyzeFood, analyzeMenuWithCache, MenuAnalysisResult, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost, detectPhotoType, PhotoContentType } from '../services/geminiService';
+import { findRestaurant, getCacheStats } from '../services/menuCacheService';
+import { NutritionLog, GeoLocation, CachedRestaurant } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
 import { syncQueue } from '../services/syncQueue';
@@ -24,59 +25,9 @@ interface NutritionTrackerProps {
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'CAMERA_UNIVERSAL' | 'ANALYZING' | 'DETECTING_TYPE' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
 type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
-// Menu cache by geolocation
-interface CachedMenu {
-    id: string;
-    lat: number;
-    lng: number;
-    recommendations: MenuRecommendation[];
-    timestamp: number;
-    photoBase64?: string;
-}
-
-const MENU_CACHE_KEY = 'fitstream_menu_cache';
-const MENU_CACHE_RADIUS_METERS = 50; // Match menus within 50m
-const MENU_CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-// Haversine distance calculation
-const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371000; // Earth radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-// Menu cache helpers
-const getMenuCache = (): CachedMenu[] => {
-    try {
-        const data = localStorage.getItem(MENU_CACHE_KEY);
-        if (!data) return [];
-        const cache: CachedMenu[] = JSON.parse(data);
-        // Filter out expired entries
-        const now = Date.now();
-        return cache.filter(m => now - m.timestamp < MENU_CACHE_EXPIRY_MS);
-    } catch {
-        return [];
-    }
-};
-
-const saveMenuToCache = (menu: CachedMenu) => {
-    const cache = getMenuCache();
-    cache.push(menu);
-    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(cache));
-};
-
-const findCachedMenu = (lat: number, lng: number): CachedMenu | null => {
-    const cache = getMenuCache();
-    for (const menu of cache) {
-        const distance = getDistanceMeters(lat, lng, menu.lat, menu.lng);
-        if (distance <= MENU_CACHE_RADIUS_METERS) {
-            return menu;
-        }
-    }
-    return null;
-};
+// Default city/country for Georgia (can be detected later)
+const DEFAULT_CITY = 'Tbilisi';
+const DEFAULT_COUNTRY = 'GE';
 
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened, initialToolSheet }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
@@ -102,8 +53,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [qrUrl, setQrUrl] = useState<string | null>(null);
 
     // Geolocation for menu cache
-    const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const [cachedMenuFound, setCachedMenuFound] = useState<CachedMenu | null>(null);
+    const [currentLocation, setCurrentLocation] = useState<GeoLocation | null>(null);
+    const [cachedMenuFound, setCachedMenuFound] = useState<CachedRestaurant | null>(null);
+    const [menuFromCache, setMenuFromCache] = useState(false);
+    const [tokensSavedTotal, setTokensSavedTotal] = useState(0);
 
     // UI Logic
     const [showRefWarning, setShowRefWarning] = useState(false);
@@ -291,12 +244,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    const loc: GeoLocation = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    };
                     setCurrentLocation(loc);
-                    // Check for cached menu at this location
-                    const cached = findCachedMenu(loc.lat, loc.lng);
+                    // Check for cached menu at this location using menuCacheService
+                    const cached = findRestaurant(undefined, loc);
                     if (cached) {
                         setCachedMenuFound(cached);
+                        // Update tokens saved stats
+                        const stats = getCacheStats();
+                        setTokensSavedTotal(stats.tokensSaved);
                     }
                 },
                 () => setCurrentLocation(null),
@@ -359,20 +319,20 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         setMode('ANALYZING');
 
         try {
-            // Analyze first page (or combine if needed)
-            const menuResult = await analyzeMenu(allPages[0]);
-            setMenuRecommendations(menuResult);
+            // Analyze with caching - automatically saves to cache if location provided
+            const result = await analyzeMenuWithCache(allPages[0], {
+                location: currentLocation || undefined,
+                city: DEFAULT_CITY,
+                country: DEFAULT_COUNTRY
+            });
 
-            // Save to cache with geolocation
-            if (currentLocation) {
-                saveMenuToCache({
-                    id: Date.now().toString(),
-                    lat: currentLocation.lat,
-                    lng: currentLocation.lng,
-                    recommendations: menuResult,
-                    timestamp: Date.now(),
-                    photoBase64: allPages[0]
-                });
+            setMenuRecommendations(result.recommendations);
+            setMenuFromCache(result.fromCache);
+
+            // Update tokens saved counter
+            if (result.fromCache) {
+                const stats = getCacheStats();
+                setTokensSavedTotal(stats.tokensSaved);
             }
 
             setMode('RESULT_MENU');
@@ -387,10 +347,22 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     // Use cached menu instead of scanning
     const useCachedMenu = () => {
         if (cachedMenuFound) {
-            setMenuRecommendations(cachedMenuFound.recommendations);
-            if (cachedMenuFound.photoBase64) {
-                setCapturedPhotoBase64(cachedMenuFound.photoBase64);
-            }
+            // Convert cached items to recommendations
+            const recommendations: MenuRecommendation[] = cachedMenuFound.menuItems
+                .filter(item => item.healthScore <= 2)
+                .sort((a, b) => a.healthScore - b.healthScore)
+                .slice(0, 3)
+                .map(item => ({
+                    dishName: item.name,
+                    calories: item.calories,
+                    protein: item.protein,
+                    category: item.category === 'REGULAR' ? 'LESSER_OF_EVILS' as const : item.category,
+                    reasoning: `Health: ${item.healthScore === 1 ? '🟢' : '🟡'}`
+                }));
+
+            setMenuRecommendations(recommendations);
+            setMenuFromCache(true);
+
             // Stop stream
             if (videoRef.current?.srcObject) {
                 const stream = videoRef.current.srcObject as MediaStream;
@@ -398,6 +370,10 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             }
             setMode('RESULT_MENU');
             setCachedMenuFound(null);
+
+            // Update tokens saved
+            const stats = getCacheStats();
+            setTokensSavedTotal(stats.tokensSaved);
         }
     };
 
@@ -523,21 +499,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 }
 
                 if (detection.type === 'MENU') {
-                    // Analyze as menu
+                    // Analyze as menu with caching
                     setMode('ANALYZING');
-                    const menuResult = await analyzeMenu(base64);
-                    setMenuRecommendations(menuResult);
+                    const result = await analyzeMenuWithCache(base64, {
+                        location: currentLocation || undefined,
+                        city: DEFAULT_CITY,
+                        country: DEFAULT_COUNTRY
+                    });
+                    setMenuRecommendations(result.recommendations);
+                    setMenuFromCache(result.fromCache);
 
-                    // Save to cache with geolocation
-                    if (currentLocation) {
-                        saveMenuToCache({
-                            id: Date.now().toString(),
-                            lat: currentLocation.lat,
-                            lng: currentLocation.lng,
-                            recommendations: menuResult,
-                            timestamp: Date.now(),
-                            photoBase64: base64
-                        });
+                    if (result.fromCache) {
+                        const stats = getCacheStats();
+                        setTokensSavedTotal(stats.tokensSaved);
                     }
 
                     setMode('RESULT_MENU');
@@ -593,19 +567,18 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
                 await saveFoodResult(result, base64);
             } else {
-                const menuResult = await analyzeMenu(base64);
-                setMenuRecommendations(menuResult);
+                // Legacy menu mode with caching
+                const result = await analyzeMenuWithCache(base64, {
+                    location: currentLocation || undefined,
+                    city: DEFAULT_CITY,
+                    country: DEFAULT_COUNTRY
+                });
+                setMenuRecommendations(result.recommendations);
+                setMenuFromCache(result.fromCache);
 
-                // Save to cache with geolocation
-                if (currentLocation) {
-                    saveMenuToCache({
-                        id: Date.now().toString(),
-                        lat: currentLocation.lat,
-                        lng: currentLocation.lng,
-                        recommendations: menuResult,
-                        timestamp: Date.now(),
-                        photoBase64: base64
-                    });
+                if (result.fromCache) {
+                    const stats = getCacheStats();
+                    setTokensSavedTotal(stats.tokensSaved);
                 }
 
                 setMode('RESULT_MENU');
@@ -676,8 +649,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 // Reference detected or not configured - proceed normally
                 await saveFoodResult(result, base64);
             } else if (currentMode === 'CAMERA_MENU') {
-                const recs = await analyzeMenu(base64);
-                setMenuRecommendations(recs);
+                const result = await analyzeMenuWithCache(base64, {
+                    location: currentLocation || undefined,
+                    city: DEFAULT_CITY,
+                    country: DEFAULT_COUNTRY
+                });
+                setMenuRecommendations(result.recommendations);
+                setMenuFromCache(result.fromCache);
                 setMode('RESULT_MENU');
             }
         } catch (e) {
@@ -1181,17 +1159,25 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         {/* Cached menu notification */}
                         {cachedMenuFound && mode === 'CAMERA_UNIVERSAL' && !capturedPreview && (
                             <div className="absolute top-32 left-4 right-4">
-                                <div className="bg-green-500/90 backdrop-blur-sm rounded-xl p-3 flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-white">
-                                        <MapPin size={18} />
-                                        <span className="text-sm font-medium">Меню этого места уже сохранено</span>
+                                <div className="bg-green-500/90 backdrop-blur-sm rounded-xl p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-white">
+                                            <MapPin size={18} />
+                                            <div>
+                                                <span className="text-sm font-medium block">{cachedMenuFound.name}</span>
+                                                <span className="text-xs opacity-80">
+                                                    {cachedMenuFound.menuItems.length} блюд • {cachedMenuFound.healthyItemsCount} полезных
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={useCachedMenu}
+                                            className="bg-white text-green-600 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1"
+                                        >
+                                            <Zap size={14} />
+                                            Открыть
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={useCachedMenu}
-                                        className="bg-white text-green-600 px-3 py-1 rounded-lg text-sm font-bold"
-                                    >
-                                        Открыть
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -1594,8 +1580,18 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 {mode === 'RESULT_MENU' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                         <div className="flex justify-between items-center">
-                             <h4 className="font-bold text-gray-900 dark:text-white">{t('menuRecs')}</h4>
-                             <button onClick={() => setMode('IDLE')} className="text-gray-500"><X size={20}/></button>
+                             <div>
+                                 <h4 className="font-bold text-gray-900 dark:text-white">{t('menuRecs')}</h4>
+                                 {menuFromCache && (
+                                     <div className="flex items-center gap-2 mt-1">
+                                         <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                             <Zap size={12} />
+                                             Из кэша • Токенов сэкономлено: {tokensSavedTotal}
+                                         </span>
+                                     </div>
+                                 )}
+                             </div>
+                             <button onClick={() => { setMode('IDLE'); setMenuFromCache(false); }} className="text-gray-500"><X size={20}/></button>
                         </div>
 
                         <div className="grid gap-3">
