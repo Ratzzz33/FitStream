@@ -35,7 +35,7 @@
     "deploy:landing": "npm run cap:build:android && npm run apk:copy"
   },
   "dependencies": {
-    "@capacitor-community/bluetooth-le": "^8.0.1",
+    "@capacitor-community/bluetooth-le": "^8.0.2",
     "@capacitor/android": "^8.0.0",
     "@capacitor/app": "^8.0.0",
     "@capacitor/camera": "^8.0.0",
@@ -48,7 +48,7 @@
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
-    "@google/genai": "^1.30.0",
+    "@google/genai": "^1.39.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/pose": "^0.5.1675469404",
@@ -62,7 +62,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
     "@capacitor/cli": "^8.0.0",
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.0",
@@ -72,7 +72,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "@vitest/coverage-v8": "^4.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.35.0",
