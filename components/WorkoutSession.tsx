@@ -545,18 +545,17 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
   const isDark = settings.theme === 'dark';
 
   // ========== SMART PANEL (MAIN ENTRY) ==========
+  // Note: Uses bottom-[72px] to keep bottom nav visible
   if (mode === 'smart_panel') {
     return (
-      <div className={`fixed inset-0 z-50 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`fixed inset-x-0 top-0 bottom-[72px] z-30 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Header - sticky at top */}
         <div className={`sticky top-0 z-10 flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
             <ArrowLeft size={24} />
           </button>
           <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('workoutTitle')}</h1>
-          <button onClick={onFinish} className={`p-2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
-            <X size={24} />
-          </button>
+          <div className="w-10" /> {/* Spacer for balance */}
         </div>
 
         {/* Scrollable content with bottom padding for fixed button */}
@@ -570,8 +569,8 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
           </div>
         </div>
 
-        {/* Custom workout button - fixed at bottom */}
-        <div className={`fixed bottom-0 left-0 right-0 p-4 border-t ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+        {/* Custom workout button - fixed above bottom nav */}
+        <div className={`absolute bottom-0 left-0 right-0 p-4 border-t ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button
             onClick={() => setMode('local')}
             className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
