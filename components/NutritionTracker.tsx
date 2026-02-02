@@ -1,9 +1,9 @@
 
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, Plus, Droplets, Utensils, X, CheckCircle, Loader2, AlertCircle, GlassWater, Milk, Coffee, Lock, PenTool, Scan, FileText, ChevronRight, AlertTriangle, Wand2, WifiOff, CloudOff, Image, ChefHat, Package, Wallet, ArrowLeft, RefreshCw, Hand, CreditCard, Flame, RotateCcw, Edit3, Clock, DollarSign, Heart, SwitchCamera, Zap, ZapOff, Check, QrCode, ImagePlus, MapPin } from 'lucide-react';
 import { StorageService } from '../services/storageService';
-import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost } from '../services/geminiService';
+import { analyzeFood, analyzeMenu, calculateNutritionFromText, MenuRecommendation, FoodAnalysisResult, FoodAnalysisWithCost, detectPhotoType, PhotoContentType } from '../services/geminiService';
 import { NutritionLog } from '../types';
 import { t } from '../services/i18n';
 import { AchievementRing } from './AchievementRings';
@@ -12,6 +12,7 @@ import { offlineStorage } from '../services/offlineStorage';
 import { Kitchen } from './Kitchen';
 import { Cooking } from './Cooking';
 import { FoodFinance } from './Finance';
+import jsQR from 'jsqr';
 
 interface NutritionTrackerProps {
   onRequestPro: () => void;
@@ -20,8 +21,62 @@ interface NutritionTrackerProps {
   initialToolSheet?: 'kitchen' | 'recipes' | 'finance' | null;
 }
 
-type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'ANALYZING' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
+type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'CAMERA_UNIVERSAL' | 'ANALYZING' | 'DETECTING_TYPE' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
 type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
+
+// Menu cache by geolocation
+interface CachedMenu {
+    id: string;
+    lat: number;
+    lng: number;
+    recommendations: MenuRecommendation[];
+    timestamp: number;
+    photoBase64?: string;
+}
+
+const MENU_CACHE_KEY = 'fitstream_menu_cache';
+const MENU_CACHE_RADIUS_METERS = 50; // Match menus within 50m
+const MENU_CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Haversine distance calculation
+const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// Menu cache helpers
+const getMenuCache = (): CachedMenu[] => {
+    try {
+        const data = localStorage.getItem(MENU_CACHE_KEY);
+        if (!data) return [];
+        const cache: CachedMenu[] = JSON.parse(data);
+        // Filter out expired entries
+        const now = Date.now();
+        return cache.filter(m => now - m.timestamp < MENU_CACHE_EXPIRY_MS);
+    } catch {
+        return [];
+    }
+};
+
+const saveMenuToCache = (menu: CachedMenu) => {
+    const cache = getMenuCache();
+    cache.push(menu);
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(cache));
+};
+
+const findCachedMenu = (lat: number, lng: number): CachedMenu | null => {
+    const cache = getMenuCache();
+    for (const menu of cache) {
+        const distance = getDistanceMeters(lat, lng, menu.lat, menu.lng);
+        if (distance <= MENU_CACHE_RADIUS_METERS) {
+            return menu;
+        }
+    }
+    return null;
+};
 
 export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro, openCameraOnMount, onCameraOpened, initialToolSheet }) => {
     const [needsUpdate, setNeedsUpdate] = useState(0);
@@ -37,6 +92,18 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [pendingCount, setPendingCount] = useState(0);
     const [capturedPhotoBase64, setCapturedPhotoBase64] = useState<string | null>(null);
+
+    // Multi-page menu state
+    const [menuPages, setMenuPages] = useState<string[]>([]);
+    const [isCapturingMenuPages, setIsCapturingMenuPages] = useState(false);
+
+    // Detection state
+    const [detectedType, setDetectedType] = useState<PhotoContentType | null>(null);
+    const [qrUrl, setQrUrl] = useState<string | null>(null);
+
+    // Geolocation for menu cache
+    const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [cachedMenuFound, setCachedMenuFound] = useState<CachedMenu | null>(null);
 
     // UI Logic
     const [showRefWarning, setShowRefWarning] = useState(false);
@@ -175,16 +242,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const isTrialActive = daysSinceInstall < 7;
     const isScannerUnlocked = settings.isPro || isTrialActive;
 
-    // Auto-open camera when triggered from Dashboard
+    // Auto-open camera when triggered from Dashboard - universal mode, no warnings
     useEffect(() => {
         if (openCameraOnMount && isScannerUnlocked) {
             // Small delay to ensure component is mounted
             const timer = setTimeout(() => {
-                if (!settings.referenceObject) {
-                    setShowRefWarning(true);
-                } else {
-                    startCamera('CAMERA_FOOD');
-                }
+                // Use universal camera directly - no reference object warning
+                handleUniversalScanClick();
                 onCameraOpened?.();
             }, 100);
             return () => clearTimeout(timer);
@@ -210,29 +274,131 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
     // --- Interaction Handlers ---
 
-    const handleScanFoodClick = () => {
+    // Universal scan handler - one button for food/menu/QR
+    const handleUniversalScanClick = () => {
         if (!isScannerUnlocked) {
             onRequestPro();
             return;
         }
-        if (!settings.referenceObject) {
-            setShowRefWarning(true);
-        } else {
-            startCamera('CAMERA_FOOD');
+        // Reset multi-page state
+        setMenuPages([]);
+        setIsCapturingMenuPages(false);
+        setDetectedType(null);
+        setQrUrl(null);
+        setCachedMenuFound(null);
+
+        // Get geolocation for menu cache
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    setCurrentLocation(loc);
+                    // Check for cached menu at this location
+                    const cached = findCachedMenu(loc.lat, loc.lng);
+                    if (cached) {
+                        setCachedMenuFound(cached);
+                    }
+                },
+                () => setCurrentLocation(null),
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
         }
+
+        startCamera('CAMERA_UNIVERSAL');
+    };
+
+    // Legacy handlers for backwards compatibility
+    const handleScanFoodClick = () => {
+        handleUniversalScanClick();
     };
 
     const handleScanMenuClick = () => {
-        if (!isScannerUnlocked) {
-            onRequestPro();
-            return;
-        }
-        startCamera('CAMERA_MENU');
+        handleUniversalScanClick();
     };
 
     const confirmRefWarning = () => {
         setShowRefWarning(false);
-        startCamera('CAMERA_FOOD');
+        startCamera('CAMERA_UNIVERSAL');
+    };
+
+    // QR code detection using jsQR
+    const detectQRCode = useCallback((imageData: ImageData): string | null => {
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code && code.data) {
+            return code.data;
+        }
+        return null;
+    }, []);
+
+    // Add more menu pages
+    const addMenuPage = () => {
+        if (capturedPreview) {
+            setMenuPages(prev => [...prev, capturedPreview]);
+            setCapturedPreview(null);
+            // Continue capturing
+        }
+    };
+
+    // Finish menu capture and analyze all pages
+    const finishMenuCapture = async () => {
+        setIsCapturingMenuPages(false);
+        if (menuPages.length === 0 && capturedPreview) {
+            // Single page
+            setMenuPages([capturedPreview]);
+        }
+
+        const allPages = capturedPreview ? [...menuPages, capturedPreview] : menuPages;
+        if (allPages.length === 0) return;
+
+        // Stop stream
+        if (videoRef.current?.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(t => t.stop());
+        }
+        setCapturedPreview(null);
+        setMode('ANALYZING');
+
+        try {
+            // Analyze first page (or combine if needed)
+            const menuResult = await analyzeMenu(allPages[0]);
+            setMenuRecommendations(menuResult);
+
+            // Save to cache with geolocation
+            if (currentLocation) {
+                saveMenuToCache({
+                    id: Date.now().toString(),
+                    lat: currentLocation.lat,
+                    lng: currentLocation.lng,
+                    recommendations: menuResult,
+                    timestamp: Date.now(),
+                    photoBase64: allPages[0]
+                });
+            }
+
+            setMode('RESULT_MENU');
+            setMenuPages([]);
+        } catch (e) {
+            setCapturedPhotoBase64(allPages[0]);
+            setMode('OFFLINE_PHOTO');
+            setMenuPages([]);
+        }
+    };
+
+    // Use cached menu instead of scanning
+    const useCachedMenu = () => {
+        if (cachedMenuFound) {
+            setMenuRecommendations(cachedMenuFound.recommendations);
+            if (cachedMenuFound.photoBase64) {
+                setCapturedPhotoBase64(cachedMenuFound.photoBase64);
+            }
+            // Stop stream
+            if (videoRef.current?.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(t => t.stop());
+            }
+            setMode('RESULT_MENU');
+            setCachedMenuFound(null);
+        }
     };
 
     const startCamera = async (targetMode: ScanMode, facing?: 'user' | 'environment') => {
@@ -267,7 +433,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const switchCamera = () => {
         const newFacing = facingMode === 'environment' ? 'user' : 'environment';
         setFacingMode(newFacing);
-        if (mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') {
+        if (mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU' || mode === 'CAMERA_UNIVERSAL') {
             startCamera(mode, newFacing);
         }
     };
@@ -300,14 +466,21 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const usePhoto = async () => {
         if (!capturedPreview) return;
 
+        const base64 = capturedPreview;
+        const currentMode = mode;
+
+        // For multi-page menu capture - add page and continue
+        if (isCapturingMenuPages) {
+            addMenuPage();
+            return;
+        }
+
         // Stop stream
         if (videoRef.current?.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(t => t.stop());
         }
 
-        const base64 = capturedPreview;
-        const currentMode = mode;
         setCapturedPreview(null);
 
         // If offline, save photo and show manual entry
@@ -317,6 +490,87 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             return;
         }
 
+        // Step 1: Try local QR detection first (saves AI tokens!)
+        if (currentMode === 'CAMERA_UNIVERSAL' && canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+                const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                const qrResult = detectQRCode(imageData);
+                if (qrResult) {
+                    // QR code detected locally!
+                    setQrUrl(qrResult);
+                    setDetectedType('QR_MENU');
+                    setMode('RESULT_MENU');
+                    // Open QR URL in new tab
+                    window.open(qrResult, '_blank');
+                    return;
+                }
+            }
+        }
+
+        // Step 2: For universal mode, detect content type with AI
+        if (currentMode === 'CAMERA_UNIVERSAL') {
+            setMode('DETECTING_TYPE');
+            try {
+                const detection = await detectPhotoType(base64);
+                setDetectedType(detection.type);
+
+                if (detection.type === 'QR_MENU' && detection.qrUrl) {
+                    setQrUrl(detection.qrUrl);
+                    setMode('RESULT_MENU');
+                    window.open(detection.qrUrl, '_blank');
+                    return;
+                }
+
+                if (detection.type === 'MENU') {
+                    // Analyze as menu
+                    setMode('ANALYZING');
+                    const menuResult = await analyzeMenu(base64);
+                    setMenuRecommendations(menuResult);
+
+                    // Save to cache with geolocation
+                    if (currentLocation) {
+                        saveMenuToCache({
+                            id: Date.now().toString(),
+                            lat: currentLocation.lat,
+                            lng: currentLocation.lng,
+                            recommendations: menuResult,
+                            timestamp: Date.now(),
+                            photoBase64: base64
+                        });
+                    }
+
+                    setMode('RESULT_MENU');
+                    return;
+                }
+
+                // Default to food analysis
+                setMode('ANALYZING');
+                const result = await analyzeFood(base64, selectedRefObject || 'Hand');
+
+                if (selectedRefObject && !result.referenceDetected && result.confidenceLevel === 'LOW') {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowRefNotDetected(true);
+                    return;
+                }
+
+                if (checkHomeMadeVerification(result)) {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowHomeMadeDialog(true);
+                    return;
+                }
+
+                await saveFoodResult(result, base64);
+            } catch (e) {
+                setCapturedPhotoBase64(base64);
+                setMode('OFFLINE_PHOTO');
+            }
+            return;
+        }
+
+        // Legacy mode handling (CAMERA_FOOD / CAMERA_MENU)
         setMode('ANALYZING');
 
         try {
@@ -341,6 +595,19 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             } else {
                 const menuResult = await analyzeMenu(base64);
                 setMenuRecommendations(menuResult);
+
+                // Save to cache with geolocation
+                if (currentLocation) {
+                    saveMenuToCache({
+                        id: Date.now().toString(),
+                        lat: currentLocation.lat,
+                        lng: currentLocation.lng,
+                        recommendations: menuResult,
+                        timestamp: Date.now(),
+                        photoBase64: base64
+                    });
+                }
+
                 setMode('RESULT_MENU');
             }
         } catch (e) {
@@ -729,35 +996,28 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     </div>
                 </div>
 
-                {/* Scan Actions - Two compact buttons in a row */}
+                {/* Universal Scan Button - Food/Menu/QR auto-detection */}
                 {mode === 'IDLE' && (
                     <div className="flex-1 flex flex-col gap-3">
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                onClick={handleScanFoodClick}
-                                className="relative bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-4 rounded-xl shadow-lg transition active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                            >
-                                <Camera size={28} />
-                                <span className="text-sm font-bold">{t('scanFood')}</span>
-                                {!isScannerUnlocked && (
-                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
-                                        <Lock size={16} className="text-white/80" />
-                                    </div>
-                                )}
-                            </button>
-                            <button
-                                onClick={handleScanMenuClick}
-                                className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                            >
-                                <FileText size={28} className="text-blue-500" />
-                                <span className="text-sm font-bold text-gray-800 dark:text-white">{t('analyzeMenu')}</span>
-                                {!isScannerUnlocked && (
-                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
-                                        <Lock size={16} className="text-white/80" />
-                                    </div>
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleUniversalScanClick}
+                            className="relative bg-gradient-to-br from-orange-500 via-red-500 to-purple-500 hover:from-orange-400 hover:via-red-400 hover:to-purple-400 text-white p-5 rounded-xl shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Camera size={32} />
+                                <span className="text-xl font-bold">Фото еды/меню</span>
+                            </div>
+                            <div className="flex gap-1 opacity-70">
+                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">🍕 Еда</span>
+                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📋 Меню</span>
+                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📱 QR</span>
+                            </div>
+                            {!isScannerUnlocked && (
+                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                                    <Lock size={20} className="text-white/80" />
+                                </div>
+                            )}
+                        </button>
 
                         {/* Manual entry + Today's log preview */}
                         <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex flex-col">
@@ -794,7 +1054,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 )}
 
                 {/* --- 2. FULLSCREEN CAMERA MODAL --- */}
-                {(mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU') && (
+                {(mode === 'CAMERA_FOOD' || mode === 'CAMERA_MENU' || mode === 'CAMERA_UNIVERSAL') && (
                     <div className="fixed inset-0 bg-black z-[100] flex flex-col">
                         {/* Video / Preview */}
                         <div className="flex-1 relative overflow-hidden">
@@ -910,11 +1170,44 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             )}
                         </div>
 
+                        {/* Small reference hint in corner for universal mode */}
+                        {mode === 'CAMERA_UNIVERSAL' && !capturedPreview && (
+                            <div className="absolute top-20 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2 text-white/80 text-xs">
+                                <CreditCard size={16} />
+                                <span>Положите карту для масштаба</span>
+                            </div>
+                        )}
+
+                        {/* Cached menu notification */}
+                        {cachedMenuFound && mode === 'CAMERA_UNIVERSAL' && !capturedPreview && (
+                            <div className="absolute top-32 left-4 right-4">
+                                <div className="bg-green-500/90 backdrop-blur-sm rounded-xl p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-white">
+                                        <MapPin size={18} />
+                                        <span className="text-sm font-medium">Меню этого места уже сохранено</span>
+                                    </div>
+                                    <button
+                                        onClick={useCachedMenu}
+                                        className="bg-white text-green-600 px-3 py-1 rounded-lg text-sm font-bold"
+                                    >
+                                        Открыть
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Multi-page menu indicator */}
+                        {menuPages.length > 0 && (
+                            <div className="absolute top-20 left-4 bg-purple-500/90 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm">
+                                📄 Страниц: {menuPages.length}
+                            </div>
+                        )}
+
                         {/* Bottom controls */}
                         <div className="absolute bottom-0 left-0 right-0 pb-8 pt-4 bg-gradient-to-t from-black/80 to-transparent">
                             {!capturedPreview ? (
                                 <>
-                                    {/* Reference object selector (food mode only) */}
+                                    {/* Reference object selector (legacy food mode only) */}
                                     {mode === 'CAMERA_FOOD' && (
                                         <div className="px-4 mb-4">
                                             <button
@@ -953,6 +1246,17 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                         </div>
                                     )}
 
+                                    {/* Mode indicator for universal camera */}
+                                    {mode === 'CAMERA_UNIVERSAL' && (
+                                        <div className="flex justify-center mb-4">
+                                            <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 flex gap-3 text-white/80 text-xs">
+                                                <span>🍕 Еда</span>
+                                                <span>📋 Меню</span>
+                                                <span>📱 QR</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Capture button */}
                                     <div className="flex justify-center">
                                         <button
@@ -964,37 +1268,83 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     </div>
                                 </>
                             ) : (
-                                /* Preview actions */
-                                <div className="flex justify-center gap-8 px-4">
-                                    <button
-                                        onClick={retakePreview}
-                                        className="flex flex-col items-center gap-2 text-white"
-                                    >
-                                        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                                            <RotateCcw size={28} />
+                                /* Preview actions - with multi-page support for menus */
+                                <div className="flex flex-col gap-4">
+                                    {/* Multi-page menu controls */}
+                                    {mode === 'CAMERA_UNIVERSAL' && (
+                                        <div className="flex justify-center gap-2 px-4">
+                                            <button
+                                                onClick={() => {
+                                                    setMenuPages(prev => [...prev, capturedPreview!]);
+                                                    setCapturedPreview(null);
+                                                    setIsCapturingMenuPages(true);
+                                                }}
+                                                className="flex items-center gap-2 bg-purple-500/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm"
+                                            >
+                                                <ImagePlus size={18} />
+                                                <span>+ Страница меню</span>
+                                            </button>
+                                            {menuPages.length > 0 && (
+                                                <button
+                                                    onClick={finishMenuCapture}
+                                                    className="flex items-center gap-2 bg-green-500/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm"
+                                                >
+                                                    <Check size={18} />
+                                                    <span>Готово ({menuPages.length + 1})</span>
+                                                </button>
+                                            )}
                                         </div>
-                                        <span className="text-sm">{t('retake') || 'Переснять'}</span>
-                                    </button>
-                                    <button
-                                        onClick={usePhoto}
-                                        className="flex flex-col items-center gap-2 text-white"
-                                    >
-                                        <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
-                                            <Check size={32} />
-                                        </div>
-                                        <span className="text-sm">{t('usePhoto') || 'Использовать'}</span>
-                                    </button>
+                                    )}
+
+                                    <div className="flex justify-center gap-8 px-4">
+                                        <button
+                                            onClick={retakePreview}
+                                            className="flex flex-col items-center gap-2 text-white"
+                                        >
+                                            <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                                                <RotateCcw size={28} />
+                                            </div>
+                                            <span className="text-sm">{t('retake') || 'Переснять'}</span>
+                                        </button>
+                                        <button
+                                            onClick={usePhoto}
+                                            className="flex flex-col items-center gap-2 text-white"
+                                        >
+                                            <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
+                                                <Check size={32} />
+                                            </div>
+                                            <span className="text-sm">{t('usePhoto') || 'Использовать'}</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                {/* --- 3. ANALYZING STATE --- */}
+                {/* --- 3. DETECTING TYPE STATE --- */}
+                {mode === 'DETECTING_TYPE' && (
+                    <div className="h-64 rounded-xl bg-gradient-to-br from-purple-100 to-orange-100 dark:from-purple-900/30 dark:to-orange-900/30 flex flex-col items-center justify-center text-center p-6">
+                        <div className="flex gap-4 mb-4">
+                            <div className="animate-bounce delay-0">🍕</div>
+                            <div className="animate-bounce delay-100">📋</div>
+                            <div className="animate-bounce delay-200">📱</div>
+                        </div>
+                        <Loader2 size={32} className="text-purple-500 animate-spin mb-3" />
+                        <p className="text-gray-600 dark:text-gray-300 font-medium">Определяю тип...</p>
+                        <p className="text-xs text-gray-400 mt-1">Еда, меню или QR-код?</p>
+                    </div>
+                )}
+
+                {/* --- 3.5. ANALYZING STATE --- */}
                 {mode === 'ANALYZING' && (
                     <div className="h-64 rounded-xl bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-center p-6 animate-pulse">
                         <Loader2 size={40} className="text-orange-500 animate-spin mb-4" />
-                        <p className="text-gray-500 font-medium dark:text-gray-300">{t('analyzingFood')}</p>
+                        <p className="text-gray-500 font-medium dark:text-gray-300">
+                            {detectedType === 'FOOD' && '🍕 Анализирую еду...'}
+                            {detectedType === 'MENU' && '📋 Анализирую меню...'}
+                            {!detectedType && t('analyzingFood')}
+                        </p>
                     </div>
                 )}
 

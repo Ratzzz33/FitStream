@@ -36,6 +36,7 @@ import { BillingProvider } from './contexts/BillingContext';
 import { BalanceIndicator, TopUpModal, TrialBanner, BillingBanner, BalanceMini } from './components/Billing';
 import { initTimerService } from './services/timerService';
 import { UpdateBanner } from './components/UpdateBanner';
+import { StreakInsights } from './components/StreakInsights';
 
 // Custom Fridge Icon
 const FridgeIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
@@ -928,7 +929,7 @@ const App = () => {
                     className="bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white p-4 rounded-2xl shadow-lg shadow-red-500/20 dark:shadow-red-900/20 flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95"
                 >
                     <UtensilsCrossed size={24} />
-                    <span className="font-bold text-sm">{t('whatToCook') || 'Что готовим'}</span>
+                    <span className="font-bold text-sm">{t('whatToCook') || 'Что приготовим'}</span>
                 </button>
             </div>
 
@@ -951,8 +952,8 @@ const App = () => {
                 </div>
             </div>
 
-            {/* Billing Status Banner */}
-            <BillingBanner onTopUp={() => setShowTopUpModal(true)} variant="dashboard" />
+            {/* Streak + Daily Tip */}
+            <StreakInsights settings={settings} />
 
             {/* History Section (Collapsible) */}
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
@@ -1392,18 +1393,18 @@ const App = () => {
 
       {/* Bottom Navigation - part of flex layout, always at bottom */}
       <nav className="shrink-0 bg-white dark:bg-slate-950 border-t border-gray-200 dark:border-slate-900 px-2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-end z-40 transition-colors duration-300">
-        <button onClick={() => setActiveTab(AppTab.DASHBOARD)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.DASHBOARD ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setIsWorkoutActive(false); setActiveTab(AppTab.DASHBOARD); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.DASHBOARD && !isWorkoutActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
           <LayoutDashboard size={20} />
           <span className="text-[10px] font-medium">{t('dashboard')}</span>
         </button>
         {/* Workout Button */}
-        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.WORKOUT ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => setIsWorkoutActive(true)} className={`flex flex-col items-center gap-1 flex-1 ${isWorkoutActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
           <Dumbbell size={20} />
           <span className="text-[10px] font-medium">{t('workout')}</span>
         </button>
 
         {/* Main Nutrition Button - выделенная */}
-        <button onClick={() => setActiveTab(AppTab.NUTRITION)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setIsWorkoutActive(false); setActiveTab(AppTab.NUTRITION); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.NUTRITION && !isWorkoutActive ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}>
             <div className="bg-orange-500 text-white p-3 rounded-full -mt-8 shadow-lg shadow-orange-500/30 dark:shadow-orange-900/50 hover:bg-orange-400 transition border-4 border-white dark:border-slate-950">
                 <Utensils size={24} />
             </div>
@@ -1411,13 +1412,13 @@ const App = () => {
         </button>
 
         {/* Shopping Button */}
-        <button onClick={() => setActiveTab(AppTab.SHOPPING)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setIsWorkoutActive(false); setActiveTab(AppTab.SHOPPING); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SHOPPING && !isWorkoutActive ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500'}`}>
           <ShoppingCart size={20} />
           <span className="text-[10px] font-medium">{t('shopping')}</span>
         </button>
 
         {/* Kitchen Button */}
-        <button onClick={() => setActiveTab(AppTab.KITCHEN)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.KITCHEN ? 'text-cyan-500' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setIsWorkoutActive(false); setActiveTab(AppTab.KITCHEN); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.KITCHEN && !isWorkoutActive ? 'text-cyan-500' : 'text-gray-400 dark:text-gray-500'}`}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="5" y="2" width="14" height="20" rx="2" />
             <line x1="5" y1="9" x2="19" y2="9" />
@@ -1681,12 +1682,6 @@ const App = () => {
       {showCookingPrompt && (
           <CookingPrompt
               onClose={() => setShowCookingPrompt(false)}
-              onSubmit={(query, mode) => {
-                  setShowCookingPrompt(false);
-                  // Navigate to cooking with query
-                  setInitialToolSheet('recipes');
-                  setActiveTab(AppTab.NUTRITION);
-              }}
           />
       )}
 

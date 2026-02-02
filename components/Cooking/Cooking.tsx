@@ -1,71 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, Flame, ChefHat, AlertTriangle, Camera, PenLine, Store, WifiOff, SlidersHorizontal } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Flame, ChefHat, Clock, Check, Sparkles, ShoppingCart, Package, Mic, MicOff, Send, Loader2, X } from 'lucide-react';
 import { StorageService } from '../../services/storageService';
-import { generateRecipes, GeneratedRecipe, RecipeGenerationContext, TodayMealContext } from '../../services/geminiService';
-import { generateDishImage, clearImageCache } from '../../services/nanaBananaService';
-import { findMatchingRecipes, convertToGeneratedRecipe } from '../../data/offlineRecipes';
-import { RecipeCarousel } from './RecipeCarousel';
-import { RecipeCardExpanded } from './RecipeCardExpanded';
-import { CookingMode } from './CookingMode';
-import { RecipeFilters } from './RecipeFilters';
-import { RecipeDialogInput } from './RecipeDialogInput';
-import { DietaryPreferences, RecipeCategory } from '../../types';
-
-// Custom Fridge Icon
-const FridgeIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <rect x="5" y="2" width="14" height="20" rx="2" />
-    <line x1="5" y1="9" x2="19" y2="9" />
-    <line x1="15" y1="5" x2="15" y2="7" />
-    <line x1="15" y1="12" x2="15" y2="16" />
-  </svg>
-);
-
-// Skeleton card with shimmer effect (AI generation style)
-const RecipeSkeletonCard: React.FC<{ delay?: number }> = ({ delay = 0 }) => (
-  <div
-    className="relative overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 p-4"
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    {/* Shimmer overlay */}
-    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-
-    <div className="flex gap-4">
-      {/* Image placeholder */}
-      <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-        <ChefHat className="w-8 h-8 text-gray-300 dark:text-gray-600 animate-pulse" />
-      </div>
-
-      {/* Content placeholder */}
-      <div className="flex-1 space-y-3">
-        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-lg w-3/4" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2" />
-        <div className="flex gap-2">
-          <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
-          <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full" />
-        </div>
-      </div>
-    </div>
-
-    {/* Generating text */}
-    <div className="mt-3 flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
-      <span className="flex gap-1">
-        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-      </span>
-      <span>AI генерирует рецепт...</span>
-    </div>
-  </div>
-);
+import { searchRecipes, matchRecipesWithInventory, getSurpriseRecipe, RecipeMatch, Recipe } from '../../services/recipeDatabase';
 
 interface CookingProps {
   caloriesRemaining: number;
@@ -76,707 +12,601 @@ interface CookingProps {
   onOpenShopping?: () => void;
 }
 
-type ViewState = 'dialog' | 'loading' | 'menu' | 'expanded' | 'cooking' | 'error';
-
-const MAX_RECIPES = 3; // Total recipe slots to show
-
 export const Cooking: React.FC<CookingProps> = ({
   caloriesRemaining,
-  servingsNeeded = 2,
   onCaloriesLogged,
   onOpenKitchenCamera,
-  onOpenManualAdd,
   onOpenShopping
 }) => {
-  const [state, setState] = useState<ViewState>('dialog');
-  const [currentQuery, setCurrentQuery] = useState<string | undefined>();
-  const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
-  const [selectedRecipeIndex, setSelectedRecipeIndex] = useState<number | undefined>();
-  const [recipeImages, setRecipeImages] = useState<Record<number, string>>({});
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [missingIngredients, setMissingIngredients] = useState<string[]>([]);
-  const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
-  const [error, setError] = useState<string>('');
-  const [generatingSlots, setGeneratingSlots] = useState<number[]>([]); // Slots being AI-generated
-  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+  const [query, setQuery] = useState('');
+  // Default to 'shopping' if no inventory
+  const inventory = StorageService.getInventory();
+  const inventoryNames = inventory.map(item => item.name);
+  const inventoryCount = inventory.length;
+  const [mode, setMode] = useState<'available' | 'shopping'>(inventoryCount > 0 ? 'available' : 'shopping');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [results, setResults] = useState<RecipeMatch[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeMatch | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filters state
-  const [showFilters, setShowFilters] = useState(false);
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | null>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
-  // Load dietary preferences from settings
-  const settings = StorageService.getSettings();
-  const [dietaryPreferences, setDietaryPreferences] = useState<DietaryPreferences>(
-    settings.dietaryPreferences || { vegetarian: false, diabetic: false }
-  );
-
-  // Get available categories based on time of day
-  const getAvailableCategories = (): RecipeCategory[] => {
-    const timeOfDay = getTimeOfDay();
-    switch (timeOfDay) {
-      case 'breakfast':
-        return ['breakfast', 'dessert', 'drink'];
-      case 'lunch':
-        return ['salad', 'soup', 'main', 'dessert'];
-      case 'snack':
-        return ['snack', 'dessert', 'drink'];
-      case 'dinner':
-        return ['salad', 'soup', 'main', 'side'];
-    }
-  };
-
-  // Get recommended calories for current meal
-  const getRecommendedCalories = (): { min: number; max: number } => {
-    const timeOfDay = getTimeOfDay();
-    const dailyGoal = caloriesRemaining + (2000 - caloriesRemaining); // Approximate total daily goal
-    switch (timeOfDay) {
-      case 'breakfast':
-        return { min: Math.round(dailyGoal * 0.2), max: Math.round(dailyGoal * 0.3) };
-      case 'lunch':
-        return { min: Math.round(dailyGoal * 0.3), max: Math.round(dailyGoal * 0.4) };
-      case 'snack':
-        return { min: Math.round(dailyGoal * 0.1), max: Math.round(dailyGoal * 0.15) };
-      case 'dinner':
-        return { min: Math.round(dailyGoal * 0.25), max: Math.round(dailyGoal * 0.35) };
-    }
-  };
-
-  // Save dietary preferences when changed
-  const handleDietaryChange = (key: keyof DietaryPreferences, value: boolean) => {
-    const newPrefs = { ...dietaryPreferences, [key]: value };
-    setDietaryPreferences(newPrefs);
-    StorageService.saveSettings({ ...settings, dietaryPreferences: newPrefs });
-    // Reload recipes with new preferences (preserve query)
-    loadRecipes(true, currentQuery);
-  };
-
-  // Determine time of day for meal type
-  const getTimeOfDay = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 11) return 'breakfast';
-    if (hour >= 11 && hour < 15) return 'lunch';
-    if (hour >= 15 && hour < 18) return 'snack';
-    return 'dinner';
-  };
-
-  const getCurrentTime = (): string => {
-    return new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getMealEmoji = () => {
-    const timeOfDay = getTimeOfDay();
-    switch (timeOfDay) {
-      case 'breakfast': return '🌅';
-      case 'lunch': return '☀️';
-      case 'snack': return '🍪';
-      case 'dinner': return '🌙';
-    }
-  };
-
-  const getMealName = () => {
-    const timeOfDay = getTimeOfDay();
-    switch (timeOfDay) {
-      case 'breakfast': return 'Завтрак';
-      case 'lunch': return 'Обед';
-      case 'snack': return 'Перекус';
-      case 'dinner': return 'Ужин';
-    }
-  };
-
-  // Get today's meals for context
-  const getTodayMealsContext = (): { meals: TodayMealContext[], macros: { protein: number, carbs: number, fat: number } } => {
-    const today = new Date().toISOString().split('T')[0];
-    const nutritionLogs = StorageService.getNutritionLogs();
-    const todayLogs = nutritionLogs.filter(log => log.date === today && log.type === 'FOOD');
-
-    const meals: TodayMealContext[] = todayLogs.map(log => ({
-      time: new Date(log.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      name: log.name,
-      calories: log.calories,
-      protein: log.protein,
-      carbs: log.carbs,
-      fat: log.fat
-    }));
-
-    const macros = todayLogs.reduce((acc, log) => ({
-      protein: acc.protein + (log.protein || 0),
-      carbs: acc.carbs + (log.carbs || 0),
-      fat: acc.fat + (log.fat || 0)
-    }), { protein: 0, carbs: 0, fat: 0 });
-
-    return { meals, macros };
-  };
-
-  // Simple hash function for query strings
-  const hashString = (str: string): string => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(36);
-  };
-
-  // Cache key for recipes (includes query hash for different results)
-  const getCacheKey = (query?: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const timeOfDay = getTimeOfDay();
-    const queryHash = query ? `_${hashString(query)}` : '';
-    return `fitstream_recipes_${today}_${timeOfDay}${queryHash}`;
-  };
-
-  // Load cached recipes
-  const loadCachedRecipes = (query?: string): GeneratedRecipe[] | null => {
+  const startRecording = async () => {
     try {
-      const cached = localStorage.getItem(getCacheKey(query));
-      if (cached) {
-        const { recipes, timestamp } = JSON.parse(cached);
-        // Cache valid for 2 hours
-        if (Date.now() - timestamp < 2 * 60 * 60 * 1000) {
-          return recipes;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-      }
-    } catch (e) {
-      console.warn('Failed to load cached recipes:', e);
-    }
-    return null;
-  };
-
-  // Save recipes to cache
-  const cacheRecipes = (recipes: GeneratedRecipe[], query?: string) => {
-    try {
-      localStorage.setItem(getCacheKey(query), JSON.stringify({
-        recipes,
-        timestamp: Date.now()
-      }));
-    } catch (e) {
-      console.warn('Failed to cache recipes:', e);
-    }
-  };
-
-  // No auto-load on mount - user starts in dialog mode
-
-  // Generate image for a recipe (parallel)
-  const generateImageForRecipe = async (recipe: GeneratedRecipe, index: number) => {
-    setLoadingImages(prev => new Set(prev).add(index));
-
-    try {
-      const image = await generateDishImage({
-        dishName: recipe.name,
-        ingredients: recipe.ingredients.map(i => i.name)
-      });
-      setRecipeImages(prev => ({ ...prev, [index]: image.url }));
-    } catch (err) {
-      console.error(`Error generating image for recipe ${index}:`, err);
-    } finally {
-      setLoadingImages(prev => {
-        const next = new Set(prev);
-        next.delete(index);
-        return next;
-      });
-    }
-  };
-
-  const loadRecipes = async (forceRefresh = false, query?: string) => {
-    setError('');
-    setSelectedRecipeIndex(undefined);
-    setIsOfflineMode(false);
-    setMissingIngredients([]);
-    setGeneratingSlots([]);
-    setIsGeneratingMore(false);
-    setCurrentQuery(query);
-
-    // Clear image cache on force refresh to get new images
-    if (forceRefresh) {
-      clearImageCache();
-    }
-
-    // Check inventory
-    const inventory = StorageService.getInventory().filter(i => !i.depleted && i.quantity > 0);
-    if (inventory.length === 0) {
-      setError('Добавьте продукты в Кухню, чтобы получить рекомендации рецептов.');
-      setState('error');
-      return;
-    }
-
-    // 1. Check cache first (instant load)
-    if (!forceRefresh) {
-      const cached = loadCachedRecipes(query);
-      if (cached && cached.length > 0) {
-        setRecipes(cached);
-        setRecipeImages({});
-        setState('menu');
-        // Generate images in background
-        cached.forEach((recipe, index) => {
-          generateImageForRecipe(recipe, index);
-        });
-        return;
-      }
-    }
-
-    const ingredientNames = inventory.map(i => i.name);
-    const mealType = getTimeOfDay();
-
-    // 2. Load offline recipes FIRST (fast)
-    const offlineMatches = findMatchingRecipes(ingredientNames, mealType, 2);
-    let offlineRecipes: GeneratedRecipe[] = [];
-
-    if (offlineMatches.length > 0) {
-      // Collect missing ingredients
-      const allMissing = new Set<string>();
-      offlineMatches.slice(0, MAX_RECIPES).forEach(m => m.missing.forEach(i => allMissing.add(i)));
-      setMissingIngredients(Array.from(allMissing));
-
-      offlineRecipes = offlineMatches
-        .slice(0, MAX_RECIPES)
-        .map(match => convertToGeneratedRecipe(match.recipe, ingredientNames));
-    }
-
-    // Show offline recipes immediately
-    if (offlineRecipes.length > 0) {
-      setRecipes(offlineRecipes);
-      setRecipeImages({});
-      setState('menu');
-
-      // Generate images for offline recipes in background
-      offlineRecipes.forEach((recipe, index) => {
-        generateImageForRecipe(recipe, index);
-      });
-
-      // If we have less than MAX_RECIPES, show generating slots
-      if (offlineRecipes.length < MAX_RECIPES) {
-        const slotsToGenerate = Array.from(
-          { length: MAX_RECIPES - offlineRecipes.length },
-          (_, i) => offlineRecipes.length + i
-        );
-        setGeneratingSlots(slotsToGenerate);
-        setIsGeneratingMore(true);
-      }
-    } else {
-      // No offline recipes - show loading with generating effect
-      setState('loading');
-      setGeneratingSlots([0, 1, 2]);
-    }
-
-    // 3. Generate AI recipes in background (for empty slots)
-    try {
-      const { meals, macros } = getTodayMealsContext();
-      const context: RecipeGenerationContext = {
-        timeOfDay: mealType,
-        currentTime: getCurrentTime(),
-        caloriesRemaining,
-        servingsNeeded,
-        maxCookingTime: 45,
-        excludeRecipeIds: [
-          ...StorageService.getRecentRecipeIds(3),
-          ...offlineRecipes.map(r => r.name) // Exclude already shown
-        ],
-        todayMeals: meals.length > 0 ? meals : undefined,
-        todayMacros: (macros.protein > 0 || macros.carbs > 0 || macros.fat > 0) ? macros : undefined,
-        // Add dietary filters
-        vegetarian: dietaryPreferences.vegetarian,
-        diabetic: dietaryPreferences.diabetic,
-        onlyAvailable: onlyAvailable,
-        // User query from dialog
-        userQuery: query
       };
 
-      const aiRecipes = await generateRecipes(inventory, context);
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+      };
 
-      // Merge: keep offline recipes, add AI recipes to fill slots
-      const slotsNeeded = MAX_RECIPES - offlineRecipes.length;
-      const newAiRecipes = aiRecipes.slice(0, slotsNeeded);
+      mediaRecorder.start();
+      setIsRecording(true);
 
-      const finalRecipes = [...offlineRecipes, ...newAiRecipes];
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    } catch (e) {
+      console.error('Microphone access denied:', e);
+      alert('Не удалось получить доступ к микрофону');
+    }
+  };
 
-      setRecipes(finalRecipes);
-      setGeneratingSlots([]);
-      setIsGeneratingMore(false);
-      setState('menu');
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
-      // Cache the result
-      cacheRecipes(finalRecipes, query);
-
-      // Generate images for new AI recipes
-      newAiRecipes.forEach((recipe, index) => {
-        generateImageForRecipe(recipe, offlineRecipes.length + index);
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
       });
+      reader.readAsDataURL(audioBlob);
+      const base64Audio = await base64Promise;
 
-    } catch (aiError) {
-      console.warn('AI recipes failed:', aiError);
-      setGeneratingSlots([]);
-      setIsGeneratingMore(false);
+      const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 
-      // If we have offline recipes, that's fine
-      if (offlineRecipes.length > 0) {
-        setIsOfflineMode(true);
-        cacheRecipes(offlineRecipes, query);
+      if (!apiKey) {
+        throw new Error('API key not configured');
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType: 'audio/webm', data: base64Audio } },
+                { text: 'Transcribe this audio to text. Return ONLY the transcribed text, nothing else. If the audio is in Russian, keep it in Russian.' }
+              ]
+            }]
+          })
+        }
+      );
+
+      const data = await response.json();
+      const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+      if (transcription) {
+        setQuery(transcription);
+        handleSearch(transcription);
+      }
+    } catch (e) {
+      console.error('Transcription error:', e);
+      alert('Не удалось распознать речь');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleSearch = (searchQuery?: string, searchMode?: 'available' | 'shopping') => {
+    const q = searchQuery || query;
+    const currentMode = searchMode || mode;
+
+    if (!q.trim()) return;
+
+    const foundRecipes = searchRecipes(q);
+    const matched = matchRecipesWithInventory(inventoryNames, foundRecipes);
+
+    let filtered = matched;
+    if (currentMode === 'available') {
+      // No inventory = no results in "available" mode
+      if (inventoryCount === 0) {
+        filtered = [];
       } else {
-        setError('Не удалось подобрать рецепты. Проверьте подключение к интернету.');
-        setState('error');
+        // Show recipes where we have at least 30% of ingredients
+        // NO fallback - if nothing matches, show empty results
+        filtered = matched.filter(m => m.matchPercentage >= 30);
       }
     }
+    // In 'shopping' mode - show ALL matching recipes regardless of inventory
+
+    // Sort: in 'available' mode sort by match %, in 'shopping' by relevance (already sorted)
+    if (currentMode === 'available') {
+      filtered.sort((a, b) => b.matchPercentage - a.matchPercentage);
+    }
+
+    setResults(filtered);
+    setShowResults(true);
   };
 
-  const handleSelectRecipe = (index: number) => {
-    setSelectedRecipeIndex(index);
-    setState('expanded');
-  };
-
-  const handleCloseExpanded = () => {
-    setState('menu');
-  };
-
-  const handleStartCooking = () => {
-    if (selectedRecipeIndex !== undefined) {
-      setState('cooking');
+  // Mode change handler - re-search with new mode
+  const handleModeChange = (newMode: 'available' | 'shopping') => {
+    setMode(newMode);
+    if (showResults && query.trim()) {
+      // Re-search with new mode
+      handleSearch(query, newMode);
     }
   };
 
-  const handleCookingComplete = (caloriesEaten: number) => {
-    onCaloriesLogged?.(caloriesEaten);
-    setSelectedRecipeIndex(undefined);
-    setState('menu');
-    loadRecipes(); // Refresh recommendations
+  const handleSurprise = () => {
+    const surprise = getSurpriseRecipe(inventoryNames);
+    if (surprise) {
+      setResults([surprise]);
+      setShowResults(true);
+      setQuery('');
+    }
   };
 
-  const handleCookingCancel = () => {
-    setSelectedRecipeIndex(undefined);
-    setState('menu');
+  // Browse all recipes (for "shopping" mode exploration)
+  const handleBrowseAll = () => {
+    const allMatched = matchRecipesWithInventory(inventoryNames);
+    setResults(allMatched);
+    setShowResults(true);
+    setQuery('');
   };
 
-  // Dialog handlers
-  const handleDialogSubmit = (query: string) => {
-    setState('loading');
-    loadRecipes(true, query);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSearch();
+    }
   };
 
-  const handleSurpriseMe = () => {
-    setState('loading');
-    loadRecipes(true); // No query = AI decides
+  const handleSelectRecipe = (match: RecipeMatch) => {
+    setSelectedRecipe(match);
   };
 
-  const handleBackToDialog = () => {
-    setState('dialog');
-    setCurrentQuery(undefined);
+  const handleLogCalories = () => {
+    if (selectedRecipe) {
+      onCaloriesLogged?.(selectedRecipe.recipe.calories);
+      setSelectedRecipe(null);
+    }
   };
 
-  const selectedRecipe = selectedRecipeIndex !== undefined ? recipes[selectedRecipeIndex] : null;
-  const { meals: todayMeals } = getTodayMealsContext();
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'Легко';
+      case 'medium': return 'Средне';
+      case 'hard': return 'Сложно';
+      default: return difficulty;
+    }
+  };
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Dialog state - user describes what they want */}
-      {state === 'dialog' && (
-        <RecipeDialogInput
-          mealEmoji={getMealEmoji()}
-          mealName={getMealName()}
-          onSubmitQuery={handleDialogSubmit}
-          onSurpriseMe={handleSurpriseMe}
-          isLoading={false}
-        />
-      )}
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'text-green-500';
+      case 'medium': return 'text-yellow-500';
+      case 'hard': return 'text-red-500';
+      default: return 'text-gray-500';
+    }
+  };
 
-      {/* Loading state - shows skeleton cards */}
-      {state === 'loading' && (
-        <div className="flex-1 flex flex-col">
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">{getMealEmoji()}</span>
-              <h2 className="text-xl font-bold dark:text-white">{getMealName()}</h2>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <span className="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              Подбираем рецепты...
-            </p>
-          </div>
+  // Recipe detail view
+  if (selectedRecipe) {
+    const { recipe, availableIngredients, missingIngredients, matchPercentage } = selectedRecipe;
 
-          {/* Skeleton recipe cards */}
-          <div className="flex-1 px-4 space-y-4">
-            {[0, 1, 2].map((idx) => (
-              <RecipeSkeletonCard key={idx} delay={idx * 150} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Error state - empty kitchen */}
-      {state === 'error' && error.includes('Добавьте продукты') && (
-        <div className="flex-1 flex flex-col p-6">
-          {/* Friendly empty state */}
-          <div className="text-center mb-6">
-            <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-              <FridgeIcon className="w-10 h-10 text-orange-300 dark:text-orange-400" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2 dark:text-white">
-              Кухня пуста
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Добавьте продукты, чтобы получить персональные рецепты
-            </p>
-          </div>
-
-          {/* Action buttons */}
-          <div className="space-y-3 max-w-sm mx-auto w-full">
-            {onOpenKitchenCamera && (
-              <button
-                onClick={onOpenKitchenCamera}
-                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-              >
-                <Camera className="w-6 h-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Сфотографировать кухню</div>
-                  <div className="text-xs text-blue-200">AI распознает продукты автоматически</div>
-                </div>
-              </button>
-            )}
-
-            {onOpenManualAdd && (
-              <button
-                onClick={onOpenManualAdd}
-                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <PenLine className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                <div className="text-left">
-                  <div className="font-semibold dark:text-white">Добавить вручную</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Если знаете что есть дома</div>
-                </div>
-              </button>
-            )}
-
-            {onOpenShopping && (
-              <button
-                onClick={onOpenShopping}
-                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <Store className="w-6 h-6 text-green-500" />
-                <div className="text-left">
-                  <div className="font-semibold dark:text-white">В магазин</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Составить список покупок</div>
-                </div>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Error state - other errors */}
-      {state === 'error' && !error.includes('Добавьте продукты') && (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-center mb-4">{error}</p>
+    return (
+      <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+        {/* Header with image */}
+        <div className="relative h-48 sm:h-56 overflow-hidden shrink-0">
+          <img
+            src={recipe.photo}
+            alt={recipe.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <button
-            onClick={loadRecipes}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2"
+            onClick={() => setSelectedRecipe(null)}
+            className="absolute top-4 left-4 p-2 bg-black/50 rounded-full text-white"
           >
-            <RefreshCw className="w-4 h-4" />
-            Попробовать снова
+            <X className="w-5 h-5" />
           </button>
-        </div>
-      )}
-
-      {/* Menu state - Restaurant-style carousel */}
-      {state === 'menu' && recipes.length > 0 && (
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{getMealEmoji()}</span>
-                <h2 className="text-xl font-bold dark:text-white">{getMealName()}</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`p-2 rounded-full transition-colors ${
-                    showFilters || dietaryPreferences.vegetarian || dietaryPreferences.diabetic || onlyAvailable
-                      ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                  }`}
-                >
-                  <SlidersHorizontal className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => loadRecipes(true, currentQuery)}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              </div>
+          <div className="absolute bottom-4 left-4 right-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <span>{recipe.emoji}</span>
+              {recipe.name}
+            </h2>
+            <p className="text-white/90 text-sm mt-1">{recipe.description}</p>
+            <div className="flex items-center gap-4 mt-2 text-white/80 text-sm">
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {recipe.cookingTime} мин
+              </span>
+              <span className={getDifficultyColor(recipe.difficulty)}>
+                {getDifficultyLabel(recipe.difficulty)}
+              </span>
+              <span>{recipe.calories} ккал</span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                {currentQuery ? (
-                  <button
-                    onClick={handleBackToDialog}
-                    className="text-sm text-orange-500 hover:text-orange-600 flex items-center gap-1"
-                  >
-                    <span>🎯</span>
-                    <span className="truncate max-w-[200px]">{currentQuery}</span>
-                    <span className="text-gray-400">✕</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleBackToDialog}
-                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-orange-500"
-                  >
-                    Выберите блюдо • {recipes.length} варианта
-                  </button>
-                )}
-              </div>
-              {/* Recommended calories hint */}
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Рекомендуемо: {getRecommendedCalories().min}-{getRecommendedCalories().max} ккал
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {/* Match indicator */}
+          <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+              matchPercentage >= 70 ? 'bg-green-500' :
+              matchPercentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+            }`}>
+              {matchPercentage}%
+            </div>
+            <div>
+              <p className="font-medium dark:text-white">
+                {matchPercentage >= 70 ? 'Почти всё есть!' :
+                 matchPercentage >= 40 ? 'Нужно докупить немного' : 'Нужна закупка'}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {availableIngredients.length} из {availableIngredients.length + missingIngredients.length} ингредиентов
               </p>
             </div>
           </div>
 
-          {/* Filters panel */}
-          {showFilters && (
-            <div className="px-4">
-              <RecipeFilters
-                mealEmoji={getMealEmoji()}
-                mealName={getMealName()}
-                dietaryPreferences={dietaryPreferences}
-                onlyAvailable={onlyAvailable}
-                selectedCategory={selectedCategory}
-                availableCategories={getAvailableCategories()}
-                onDietaryChange={handleDietaryChange}
-                onOnlyAvailableChange={(val) => {
-                  setOnlyAvailable(val);
-                  loadRecipes(true, currentQuery);
-                }}
-                onCategoryChange={setSelectedCategory}
-                onClose={() => setShowFilters(false)}
-              />
-            </div>
-          )}
+          {/* Ingredients */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <h3 className="font-bold dark:text-white mb-3">Ингредиенты</h3>
+            <div className="space-y-2">
+              {recipe.ingredients.map((ing, i) => {
+                const isAvailable = availableIngredients.includes(ing.name);
+                const isMissing = missingIngredients.includes(ing.name);
 
-          {/* Active filters indicator */}
-          {!showFilters && (dietaryPreferences.vegetarian || dietaryPreferences.diabetic || onlyAvailable) && (
-            <div className="px-4 mb-2">
-              <div className="flex flex-wrap gap-2">
-                {dietaryPreferences.vegetarian && (
-                  <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full flex items-center gap-1">
-                    🌱 Вегетарианское
-                  </span>
-                )}
-                {dietaryPreferences.diabetic && (
-                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full flex items-center gap-1">
-                    💙 Для диабетиков
-                  </span>
-                )}
-                {onlyAvailable && (
-                  <span className="text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full flex items-center gap-1">
-                    📦 Только имеющиеся
-                  </span>
-                )}
-              </div>
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between p-2 rounded-lg ${
+                      isAvailable ? 'bg-green-50 dark:bg-green-900/20' :
+                      isMissing ? 'bg-red-50 dark:bg-red-900/20' :
+                      'bg-gray-50 dark:bg-gray-700/50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {isAvailable && <Check className="w-4 h-4 text-green-500" />}
+                      {isMissing && <ShoppingCart className="w-4 h-4 text-red-500" />}
+                      {!isAvailable && !isMissing && <span className="w-4 h-4" />}
+                      <span className={`${ing.optional ? 'text-gray-400' : 'dark:text-white'}`}>
+                        {ing.name} {ing.optional && '(опц.)'}
+                      </span>
+                    </span>
+                    <span className="text-sm text-gray-500">{ing.amount}</span>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
 
-          {/* Offline mode indicator */}
-          {isOfflineMode && (
-            <div className="px-4 mb-4">
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                    Офлайн-рецепты
-                  </p>
-                </div>
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Показаны рецепты из встроенной базы
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Steps */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <h3 className="font-bold dark:text-white mb-3">Приготовление</h3>
+            <ol className="space-y-3">
+              {recipe.steps.map((step, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
 
-          {/* Missing ingredients */}
+        {/* Action buttons */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex gap-3 shrink-0">
           {missingIngredients.length > 0 && onOpenShopping && (
-            <div className="px-4 mb-4">
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
-                <p className="text-xs text-orange-700 dark:text-orange-300 font-medium mb-2">
-                  🛒 Не хватает базовых продуктов:
-                </p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {missingIngredients.slice(0, 5).map((ing, idx) => (
-                    <span key={idx} className="text-xs bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded">
-                      {ing}
-                    </span>
-                  ))}
-                  {missingIngredients.length > 5 && (
-                    <span className="text-xs text-orange-500">+{missingIngredients.length - 5}</span>
-                  )}
-                </div>
-                <button
-                  onClick={onOpenShopping}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  <Store className="w-4 h-4" />
-                  В магазин за продуктами
-                </button>
-              </div>
+            <button
+              onClick={() => {
+                // Add missing items to shopping and navigate
+                onOpenShopping();
+              }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-500 text-white rounded-xl font-medium"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              В магазин
+            </button>
+          )}
+          <button
+            onClick={handleLogCalories}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-500 text-white rounded-xl font-medium"
+          >
+            <ChefHat className="w-5 h-5" />
+            Готовить! ({recipe.calories} ккал)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Main search view
+  return (
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-semibold dark:text-white mb-1">
+          Что готовим?
+        </h2>
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span className="flex items-center gap-1">
+            <Flame className="w-4 h-4 text-orange-500" />
+            Осталось: {caloriesRemaining} ккал
+          </span>
+          {inventoryCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Package className="w-4 h-4 text-blue-500" />
+              {inventoryCount} продуктов
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Search area */}
+      <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+        {/* Input field */}
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Например: салат, паста, быстрый ужин..."
+            className="w-full px-4 py-3 pr-24 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isTranscribing}
+          />
+
+          {/* Voice button */}
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing}
+            className={`absolute right-12 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${
+              isRecording
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500'
+            }`}
+          >
+            {isTranscribing ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Send button */}
+          <button
+            onClick={() => handleSearch()}
+            disabled={!query.trim() || isTranscribing}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Recording indicator */}
+        {isRecording && (
+          <div className="flex items-center gap-2 text-red-500 text-sm animate-pulse">
+            <div className="w-2 h-2 bg-red-500 rounded-full" />
+            Говорите... (нажмите чтобы остановить)
+          </div>
+        )}
+
+        {/* Mode selection */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => inventoryCount > 0 && handleModeChange('available')}
+            disabled={inventoryCount === 0}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-colors text-sm ${
+              inventoryCount === 0
+                ? 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                : mode === 'available'
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                  : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            Из запасов {inventoryCount > 0 && `(${inventoryCount})`}
+          </button>
+          <button
+            onClick={() => handleModeChange('shopping')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-colors text-sm ${
+              mode === 'shopping' || inventoryCount === 0
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            С закупкой
+          </button>
+        </div>
+
+        {/* Quick suggestions */}
+        {!showResults && (
+          <div className="flex flex-wrap gap-2">
+            {['Салат', 'Быстрый ужин', 'Курица', 'Завтрак', 'Суп'].map(suggestion => (
+              <button
+                key={suggestion}
+                onClick={() => {
+                  setQuery(suggestion);
+                  handleSearch(suggestion);
+                }}
+                className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        {!showResults && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleSurprise}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition"
+            >
+              <Sparkles className="w-5 h-5" />
+              Удиви меня!
+            </button>
+            <button
+              onClick={handleBrowseAll}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+            >
+              <ChefHat className="w-5 h-5" />
+              Все
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Results */}
+      {showResults && (
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          {results.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <ChefHat className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Не нашли подходящих рецептов</p>
+              <p className="text-sm mt-1">Попробуйте другой запрос</p>
             </div>
+          ) : (
+            results.map((match) => (
+              <button
+                key={match.recipe.id}
+                onClick={() => handleSelectRecipe(match)}
+                className="w-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex border border-gray-100 dark:border-gray-700"
+              >
+                {/* Photo */}
+                <div className="w-28 h-28 shrink-0">
+                  <img
+                    src={match.recipe.photo}
+                    alt={match.recipe.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 p-3 text-left">
+                  <h3 className="font-bold dark:text-white flex items-center gap-1 text-sm">
+                    <span>{match.recipe.emoji}</span>
+                    {match.recipe.name}
+                  </h3>
+
+                  {/* Short description */}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
+                    {match.recipe.description}
+                  </p>
+
+                  {/* Time & difficulty */}
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {match.recipe.cookingTime} мин
+                    </span>
+                    <span className={getDifficultyColor(match.recipe.difficulty)}>
+                      {getDifficultyLabel(match.recipe.difficulty)}
+                    </span>
+                  </div>
+
+                  {/* Availability */}
+                  <div className="mt-2 space-y-1">
+                    {match.availableIngredients.length > 0 && (
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Есть: {match.availableIngredients.slice(0, 3).join(', ')}
+                        {match.availableIngredients.length > 3 && ` +${match.availableIngredients.length - 3}`}
+                      </p>
+                    )}
+                    {match.missingIngredients.length > 0 && (
+                      <p className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                        <ShoppingCart className="w-3 h-3" />
+                        Купить: {match.missingIngredients.slice(0, 2).join(', ')}
+                        {match.missingIngredients.length > 2 && ` +${match.missingIngredients.length - 2}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Match percentage */}
+                <div className="pr-3 flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm ${
+                    match.matchPercentage >= 70 ? 'bg-green-500' :
+                    match.matchPercentage >= 40 ? 'bg-yellow-500' : 'bg-red-400'
+                  }`}>
+                    {match.matchPercentage}%
+                  </div>
+                </div>
+              </button>
+            ))
           )}
 
-          {/* Today's context */}
-          {todayMeals.length > 0 && (
-            <div className="px-4 mb-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
-                  📊 Сегодня вы уже ели:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {todayMeals.slice(-3).map((meal, idx) => (
-                    <span key={idx} className="text-xs text-blue-600 dark:text-blue-400">
-                      {meal.time} {meal.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Recipe carousel */}
-          <div className="flex-1 px-4">
-            <RecipeCarousel
-              recipes={recipes}
-              images={recipeImages}
-              loadingImages={loadingImages}
-              onSelectRecipe={handleSelectRecipe}
-              selectedIndex={selectedRecipeIndex}
-            />
-          </div>
-
-          {/* Calories remaining */}
-          <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
-            <Flame className="w-4 h-4 inline mr-1 text-orange-500" />
-            Осталось на сегодня: <span className="font-medium">{caloriesRemaining} ккал</span>
-          </div>
+          {/* Back to search */}
+          <button
+            onClick={() => {
+              setShowResults(false);
+              setResults([]);
+              setQuery('');
+            }}
+            className="w-full py-3 text-blue-500 font-medium"
+          >
+            ← Новый поиск
+          </button>
         </div>
       )}
 
-      {/* Expanded recipe view */}
-      {state === 'expanded' && selectedRecipe && (
-        <RecipeCardExpanded
-          recipe={selectedRecipe}
-          imageUrl={selectedRecipeIndex !== undefined ? recipeImages[selectedRecipeIndex] : undefined}
-          onClose={handleCloseExpanded}
-          onStartCooking={handleStartCooking}
-          onChooseAnother={handleCloseExpanded}
-        />
-      )}
-
-      {/* Cooking mode */}
-      {state === 'cooking' && selectedRecipe && (
-        <CookingMode
-          recipe={selectedRecipe}
-          onComplete={handleCookingComplete}
-          onCancel={handleCookingCancel}
-        />
+      {/* Empty kitchen state */}
+      {!showResults && inventoryCount === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <Package className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+          <h3 className="text-lg font-semibold dark:text-white mb-2">
+            Кухня пуста
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Добавьте продукты, чтобы подобрать рецепты из ваших запасов
+          </p>
+          {onOpenKitchenCamera && (
+            <button
+              onClick={onOpenKitchenCamera}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium"
+            >
+              Сфотографировать кухню
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
