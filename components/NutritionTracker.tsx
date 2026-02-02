@@ -758,7 +758,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                         {/* Manual entry + Today's log preview */}
                         <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex flex-col">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('todayLog') || 'Сегодня'}</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Сегодня</span>
                                 <button
                                     onClick={() => setShowManualEntry(true)}
                                     className="text-xs text-blue-500 flex items-center gap-1 hover:text-blue-600"
@@ -781,7 +781,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                     </div>
                                 ) : (
                                     <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-                                        {t('noFoodLogged') || 'Нет записей'}
+                                        Нет записей
                                     </div>
                                 )}
                             </div>
