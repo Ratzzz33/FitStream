@@ -765,24 +765,24 @@ const App = () => {
 
   return (
     <BillingProvider>
-    <div className="min-h-dvh h-[var(--app-height,100dvh)] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 overflow-hidden">
+    <div className="h-dvh bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
       <UpdateBanner />
-      {/* Header */}
-      <header className="px-6 pt-8 pb-4">
-        <div className="flex justify-between items-center mb-4">
-            <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
-                    FitStream
-                    {settings.isPro && <span className="bg-yellow-500 text-black text-[9px] font-bold px-1 py-0.5 rounded uppercase flex items-center gap-0.5"><Crown size={8} fill="black"/> PRO</span>}
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
-            </div>
-            <BalanceMini onTopUp={() => setShowTopUpModal(true)} />
-        </div>
-      </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - header scrolls with content */}
       <main className="flex-1 overflow-y-auto">
+        {/* Header - part of scrollable content */}
+        <header className="px-6 pt-8 pb-4">
+          <div className="flex justify-between items-center mb-4">
+              <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
+                      FitStream
+                      {settings.isPro && <span className="bg-yellow-500 text-black text-[9px] font-bold px-1 py-0.5 rounded uppercase flex items-center gap-0.5"><Crown size={8} fill="black"/> PRO</span>}
+                  </h1>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
+              </div>
+              <BalanceMini onTopUp={() => setShowTopUpModal(true)} />
+          </div>
+        </header>
         {activeTab === AppTab.DASHBOARD && (
           <div className="px-4 space-y-8 pb-4">
 
