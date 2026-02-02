@@ -99,6 +99,7 @@ export type RecipeCategory = 'breakfast' | 'salad' | 'soup' | 'main' | 'dessert'
 export interface DietaryPreferences {
   vegetarian: boolean;
   diabetic: boolean;
+  allergies?: string[]; // List of allergens to avoid
 }
 
 export interface UserSettings {
@@ -133,6 +134,8 @@ export interface UserSettings {
   language?: 'auto' | 'en' | 'ru' | 'es' | 'fr' | 'de' | 'zh'; // UI language
   shoppingPreferences?: ShoppingPreferences; // Shopping assistant preferences
   dietaryPreferences?: DietaryPreferences; // Dietary restrictions for recipe filtering
+  dailyCalorieGoal?: number; // Daily calorie target
+  dailyProteinGoal?: number; // Daily protein target in grams
 }
 
 export interface Friend {

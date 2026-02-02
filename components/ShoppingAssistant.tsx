@@ -715,9 +715,9 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             todayProtein: todayTotals.protein,
             todayCarbs: todayTotals.carbs,
             todayFat: todayTotals.fat,
-            allergies: settings.allergies || [],
-            diabetic: settings.diabetic || false,
-            vegetarian: settings.vegetarian || false,
+            allergies: settings.dietaryPreferences?.allergies || [],
+            diabetic: settings.dietaryPreferences?.diabetic || false,
+            vegetarian: settings.dietaryPreferences?.vegetarian || false,
             inventoryItems: inventory.map(i => i.name)
         };
 
@@ -777,8 +777,8 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         const context: ShowcaseScanContext = {
             dailyProteinGoal: settings.dailyProteinGoal || 100,
             todayProtein: todayTotals.protein,
-            diabetic: settings.diabetic || false,
-            vegetarian: settings.vegetarian || false
+            diabetic: settings.dietaryPreferences?.diabetic || false,
+            vegetarian: settings.dietaryPreferences?.vegetarian || false
         };
 
         try {
