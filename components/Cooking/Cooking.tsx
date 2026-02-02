@@ -1,7 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Flame, ChefHat, Clock, Check, Sparkles, ShoppingCart, Package, Mic, MicOff, Send, Loader2, X } from 'lucide-react';
+import { Flame, ChefHat, Clock, Check, Sparkles, ShoppingCart, Mic, MicOff, Send, Loader2, X } from 'lucide-react';
+
+// Custom Empty Kitchen Icon (pot with lid)
+const EmptyKitchenIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* Pot body */}
+    <path d="M4 10h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9z" />
+    {/* Lid */}
+    <path d="M3 10h18" />
+    <path d="M10 7h4" />
+    {/* Lid handle */}
+    <circle cx="12" cy="5" r="1.5" />
+    {/* Side handles */}
+    <path d="M4 13H2" />
+    <path d="M22 13h-2" />
+  </svg>
+);
+
+// Custom Fridge Icon for inventory indicator
+const FridgeIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="5" y1="9" x2="19" y2="9" />
+    <line x1="15" y1="5" x2="15" y2="7" />
+    <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
 import { StorageService } from '../../services/storageService';
 import { searchRecipes, matchRecipesWithInventory, getSurpriseRecipe, RecipeMatch, Recipe } from '../../services/recipeDatabase';
+import { t } from '../../services/i18n';
 
 interface CookingProps {
   caloriesRemaining: number;
@@ -367,7 +410,7 @@ export const Cooking: React.FC<CookingProps> = ({
           </span>
           {inventoryCount > 0 && (
             <span className="flex items-center gap-1">
-              <Package className="w-4 h-4 text-blue-500" />
+              <FridgeIcon className="w-4 h-4 text-blue-500" />
               {inventoryCount} продуктов
             </span>
           )}
@@ -439,7 +482,7 @@ export const Cooking: React.FC<CookingProps> = ({
                   : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
             }`}
           >
-            <Package className="w-4 h-4" />
+            <FridgeIcon className="w-4 h-4" />
             Из запасов {inventoryCount > 0 && `(${inventoryCount})`}
           </button>
           <button
@@ -591,7 +634,7 @@ export const Cooking: React.FC<CookingProps> = ({
       {/* Empty kitchen state */}
       {!showResults && inventoryCount === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <Package className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+          <EmptyKitchenIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
           <h3 className="text-lg font-semibold dark:text-white mb-2">
             Кухня пуста
           </h3>
@@ -603,7 +646,7 @@ export const Cooking: React.FC<CookingProps> = ({
               onClick={onOpenKitchenCamera}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium"
             >
-              Сфотографировать кухню
+              {t('photographKitchen')}
             </button>
           )}
         </div>

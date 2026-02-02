@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2, Minus, PlusIcon } from 'lucide-re
 import { InventoryItem } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
+import { t } from '../../services/i18n';
 
 // PRD Gesture thresholds
 const SWIPE_THRESHOLD = 50; // pixels
@@ -247,7 +248,7 @@ export const ProductList: React.FC<ProductListProps> = ({
             className="w-full flex items-center justify-center gap-2 p-4 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            <span>Добавить пропущенное</span>
+            <span>{t('addMissing')}</span>
           </button>
         </div>
       )}

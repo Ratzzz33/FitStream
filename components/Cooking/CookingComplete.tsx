@@ -125,7 +125,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
           >
             <X className="w-6 h-6" />
           </button>
-          <h2 className="text-lg font-bold dark:text-white">Добавить в рацион</h2>
+          <h2 className="text-lg font-bold dark:text-white">{t('addToMealPlan')}</h2>
           <div className="w-10" />
         </div>
 
@@ -186,7 +186,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
             ) : (
               <>
                 <Check className="w-6 h-6" />
-                <span>Добавить в рацион</span>
+                <span>{t('addToMealPlan')}</span>
               </>
             )}
           </button>
@@ -223,7 +223,7 @@ export const CookingComplete: React.FC<CookingCompleteProps> = ({
             className="w-full mb-6 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
           >
             <ImagePlus className="w-6 h-6" />
-            <span>Сфотографировать блюдо</span>
+            <span>{t('photographDish')}</span>
           </button>
         )}
 

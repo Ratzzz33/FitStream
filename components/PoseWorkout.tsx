@@ -18,6 +18,7 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
 import { platformService, CameraCapability } from '../services/platformService';
 import { ExerciseRecognitionFallback } from './ExerciseRecognitionFallback';
+import { t } from '../services/i18n';
 
 // Russian number words for voice counting
 const RUSSIAN_NUMBERS = [
@@ -956,14 +957,14 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
             <button
               onClick={() => setVoiceCountEnabled(!voiceCountEnabled)}
               className={`p-2 rounded-full backdrop-blur-sm ${voiceCountEnabled ? 'bg-blue-500' : 'bg-white/20'}`}
-              title="Голосовой счёт"
+              title={t('voiceCounting')}
             >
               {voiceCountEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
               className={`p-2 rounded-full backdrop-blur-sm ${showSettings ? 'bg-blue-500' : 'bg-white/20'}`}
-              title="Настройки"
+              title={t('settings')}
             >
               <Settings className="w-5 h-5 text-white" />
             </button>
@@ -1353,7 +1354,7 @@ export const PoseWorkout: React.FC<PoseWorkoutProps> = ({
               onClick={handleComplete}
               disabled={repCount === 0 && plankTime === 0}
               className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 disabled:opacity-50 transition-colors"
-              title="Завершить тренировку"
+              title={t('finishWorkout')}
             >
               <Check className="w-6 h-6 text-white" />
             </button>

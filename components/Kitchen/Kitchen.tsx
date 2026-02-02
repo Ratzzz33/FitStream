@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, Package, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap, ChevronLeft } from 'lucide-react';
+import { Camera, Plus, Snowflake, RefreshCw, Receipt, PenLine, AlertTriangle, Images, X, Image, Zap, ChevronLeft } from 'lucide-react';
 import { KitchenStorage, InventoryItem, StorageType, StoragePhoto as StoragePhotoType } from '../../types';
 import { StorageService } from '../../services/storageService';
 import { StoragePhoto } from './StoragePhoto';
@@ -9,6 +9,7 @@ import { ScanReceiptModal } from './ScanReceiptModal';
 import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhotoId, detectStorageType } from '../../services/geminiService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 import { georgiaPrices } from '../../services/georgiaPricesService';
+import { t } from '../../services/i18n';
 
 // Custom Kitchen Silhouette Icon (header icon)
 const KitchenIcon = ({ className }: { className?: string }) => (
@@ -60,6 +61,30 @@ const FridgeIcon = ({ className }: { className?: string }) => (
     <line x1="5" y1="9" x2="19" y2="9" />
     <line x1="15" y1="5" x2="15" y2="7" />
     <line x1="15" y1="12" x2="15" y2="16" />
+  </svg>
+);
+
+// Custom Empty Kitchen Icon (pot with lid) - for empty state
+const EmptyKitchenIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* Pot body */}
+    <path d="M4 10h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9z" />
+    {/* Lid */}
+    <path d="M3 10h18" />
+    <path d="M10 7h4" />
+    {/* Lid handle */}
+    <circle cx="12" cy="5" r="1.5" />
+    {/* Side handles */}
+    <path d="M4 13H2" />
+    <path d="M22 13h-2" />
   </svg>
 );
 
@@ -743,10 +768,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   };
 
   const storageLabels: Record<StorageType, string> = {
-    fridge: 'Холодильник',
-    cabinet: 'Шкафы',
-    freezer: 'Морозилка',
-    appliances: 'Приборы'
+    fridge: t('fridge'),
+    cabinet: t('cabinet'),
+    freezer: t('freezer'),
+    appliances: t('appliances')
   };
 
   const storageEmojis: Record<StorageType, string> = {
@@ -774,8 +799,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           </button>
         )}
         <div className="flex items-center gap-2 flex-1 justify-center">
-          <KitchenIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-          <h2 className="text-lg font-semibold dark:text-white">Кухня</h2>
+          <EmptyKitchenIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+          <h2 className="text-lg font-semibold dark:text-white">{t('kitchen')}</h2>
         </div>
 
         {/* Add button */}
@@ -794,7 +819,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                 <>
                   <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <Zap className="w-3 h-3" />
-                    Быстрое добавление
+                    {t('quickAdd')}
                   </div>
                   <div className="px-3 pb-2 flex flex-wrap gap-1">
                     {frequentProducts.map((product) => (
@@ -817,8 +842,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               >
                 <Camera className="w-5 h-5 text-blue-500" />
                 <div>
-                  <div className="font-medium dark:text-white">Сфотографировать</div>
-                  <div className="text-xs text-gray-500">Открыть камеру</div>
+                  <div className="font-medium dark:text-white">{t('takePhoto')}</div>
+                  <div className="text-xs text-gray-500">{t('openCamera')}</div>
                 </div>
               </button>
               <button
@@ -827,8 +852,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               >
                 <Image className="w-5 h-5 text-indigo-500" />
                 <div>
-                  <div className="font-medium dark:text-white">Выбрать из галереи</div>
-                  <div className="text-xs text-gray-500">Загрузить готовое фото</div>
+                  <div className="font-medium dark:text-white">{t('chooseFromGallery')}</div>
+                  <div className="text-xs text-gray-500">{t('uploadExistingPhoto')}</div>
                 </div>
               </button>
               {currentPhotos.length > 0 && (
@@ -838,8 +863,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                 >
                   <Images className="w-5 h-5 text-green-500" />
                   <div>
-                    <div className="font-medium dark:text-white">Добавить ещё фото</div>
-                    <div className="text-xs text-gray-500">Другой ракурс / полка</div>
+                    <div className="font-medium dark:text-white">{t('addMorePhotos')}</div>
+                    <div className="text-xs text-gray-500">{t('differentAngle')}</div>
                   </div>
                 </button>
               )}
@@ -849,8 +874,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               >
                 <Receipt className="w-5 h-5 text-purple-500" />
                 <div>
-                  <div className="font-medium dark:text-white">Сканировать чек</div>
-                  <div className="text-xs text-gray-500">После покупок</div>
+                  <div className="font-medium dark:text-white">{t('scanReceipt')}</div>
+                  <div className="text-xs text-gray-500">{t('afterShopping')}</div>
                 </div>
               </button>
               <button
@@ -859,8 +884,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               >
                 <PenLine className="w-5 h-5 text-gray-500" />
                 <div>
-                  <div className="font-medium dark:text-white">Добавить вручную</div>
-                  <div className="text-xs text-gray-500">Если AI пропустил</div>
+                  <div className="font-medium dark:text-white">{t('addManually')}</div>
+                  <div className="text-xs text-gray-500">{t('ifAiMissed')}</div>
                 </div>
               </button>
             </div>
@@ -888,7 +913,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             )}
             <span className={`text-sm font-bold ${activeStorage === null ? 'text-white' : ''}`}>{inventory.length}</span>
             <span className={`text-[10px] font-medium ${activeStorage === null ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
-              Все
+              {t('allItems')}
             </span>
           </button>
 
@@ -964,17 +989,17 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             {currentPhotos.length === 0 && currentInventory.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="mb-3 text-gray-400 dark:text-gray-500 [&_svg]:w-12 [&_svg]:h-12">
-                  {activeStorage ? storageIcons[activeStorage] : <Package className="w-12 h-12" />}
+                  {activeStorage ? storageIcons[activeStorage] : <EmptyKitchenIcon className="w-12 h-12" />}
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  {activeStorage ? `${storageLabels[activeStorage]} пуст${activeStorage === 'appliances' ? 'ы' : ''}` : 'Пока нет продуктов'}
+                  {activeStorage ? `${storageLabels[activeStorage]} ${t('storageEmpty')}` : t('noProductsYet')}
                 </p>
                 <button
                   onClick={() => handleTakePhoto(false)}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
                 >
                   <Camera className="w-4 h-4" />
-                  Сфотографировать
+                  {t('takePhoto')}
                 </button>
               </div>
             )}
@@ -1006,7 +1031,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               <X className="w-6 h-6" />
             </button>
             <span className="text-white font-medium text-sm">
-              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : `Сфотографируйте ${activeStorage ? storageLabels[activeStorage].toLowerCase() : 'холодильник'}`}
+              {cameraMode === 'CAMERA_REPLACE' ? t('replacePhoto') : `${t('photographStorage')} ${activeStorage ? storageLabels[activeStorage].toLowerCase() : t('fridge').toLowerCase()}`}
             </span>
             {/* Flash toggle */}
             <button
@@ -1180,12 +1205,12 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
       {showLabelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold dark:text-white mb-4">Метка для фото</h3>
+            <h3 className="text-lg font-semibold dark:text-white mb-4">{t('photoLabel')}</h3>
             <input
               type="text"
               value={labelInput}
               onChange={(e) => setLabelInput(e.target.value)}
-              placeholder="Например: верхняя полка, дверца..."
+              placeholder={t('photoLabelPlaceholder')}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
               autoFocus
             />
@@ -1194,13 +1219,13 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                 onClick={() => setShowLabelModal(null)}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button
                 onClick={saveLabelPhoto}
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
-                Сохранить
+                {t('save')}
               </button>
             </div>
           </div>
