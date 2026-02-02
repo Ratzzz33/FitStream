@@ -12,9 +12,9 @@ import {
     BillingActionType
 } from '../types';
 
-// Helper to get API Key (Env Only)
+// Helper to get API Key (Vite env)
 const getApiKey = () => {
-    return process.env.API_KEY || '';
+    return import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '';
 };
 
 // Helper to sanitize base64 (remove data:image/... prefix if present)

@@ -6,7 +6,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { georgiaPrices, ProductPrice, PriceCategory } from './georgiaPricesService';
 
-const getApiKey = () => process.env.API_KEY || '';
+const getApiKey = () => import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '';
 const cleanBase64 = (b64: string) => b64.includes(',') ? b64.split(',')[1] : b64;
 
 export interface ProductRecognitionResult {

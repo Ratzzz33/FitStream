@@ -10,7 +10,7 @@ const PRICES_CENTS = {
   scale_scan: 2,          // $0.02
 };
 
-const TRIAL_DAYS = 3;
+const TRIAL_DAYS = 14;
 const CREDIT_LIMIT_CENTS = -50; // -$0.50 credit limit
 const LOW_BALANCE_CENTS = 50;   // $0.50 warning threshold
 const TRIAL_BONUS_CENTS = 50;   // $0.50 bonus after trial
