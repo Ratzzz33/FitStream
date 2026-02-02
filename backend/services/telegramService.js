@@ -27,28 +27,24 @@ let SUPPORT_CHAT_ID = null; // Will be resolved on first question
 // Welcome image path
 const WELCOME_IMAGE_PATH = path.join(__dirname, '../assets/welcome-image.png');
 
-// Bilingual welcome messages
-const WELCOME_MESSAGE_RU = `*Привет! Я FitStream AI — твой умный фитнес-помощник.*
+// Bilingual welcome messages (compact version)
+const WELCOME_MESSAGE_RU = `👋 *Привет! Я FitStream AI*
 
-Что я умею:
-📷 *Сканирование весов* — сфотографируй весы, я считаю вес
-🍽️ *Анализ еды по фото* — покажи блюдо, получи калории и БЖУ
-📋 *Меню ресторана* — найду полезные блюда в любом меню
-🏋️ *Тренировки с ИИ-коучем* — голосовой тренер ведёт занятие
-🥗 *Рецепты из холодильника* — сфотографируй продукты, получи рецепт
+📷 Сканирую весы и еду
+🛒 Помогаю в магазине
+📋 Нахожу ЗОЖ в меню ресторанов
+🥗 Рецепты из твоих продуктов
 
-📲 Скачай приложение и начни путь к форме!`;
+📲 fitstream.health`;
 
-const WELCOME_MESSAGE_EN = `*Hi! I'm FitStream AI — your smart fitness companion.*
+const WELCOME_MESSAGE_EN = `👋 *Hi! I'm FitStream AI*
 
-What I can do:
-📷 *Scale scanning* — snap a photo, I'll read your weight
-🍽️ *Food analysis* — show me your meal, get calories & macros
-📋 *Menu helper* — find healthy options in any restaurant menu
-🏋️ *AI workout coach* — voice-guided training sessions
-🥗 *Fridge recipes* — photo your ingredients, get a recipe
+📷 Scan scales & analyze food
+🛒 Shopping assistant
+📋 Find healthy menu options
+🥗 Recipes from your ingredients
 
-📲 Download the app and start your fitness journey!`;
+📲 fitstream.health`;
 
 /**
  * Initialize the Telegram bot
