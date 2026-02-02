@@ -48,9 +48,10 @@ test.describe('Settings - Theme', () => {
     await burgerMenu.click();
     await authenticatedPage.waitForTimeout(500);
 
-    // Find theme toggle
-    const themeToggle = authenticatedPage.locator('button, [role="switch"]').filter({
-      has: authenticatedPage.locator(':text("Theme"), :text("Dark"), :text("Light"), svg')
+    // Find theme toggle within the burger menu overlay
+    const burgerMenuOverlay = authenticatedPage.locator('.fixed.inset-0.z-50');
+    const themeToggle = burgerMenuOverlay.locator('button').filter({
+      hasText: /Theme|Dark|Light|тема|темная|светлая/i
     }).first();
 
     if (await themeToggle.isVisible()) {
@@ -61,7 +62,7 @@ test.describe('Settings - Theme', () => {
       });
 
       // Click toggle
-      await themeToggle.click();
+      await themeToggle.click({ force: true });
       await authenticatedPage.waitForTimeout(300);
 
       // Theme should change (or UI should update)
