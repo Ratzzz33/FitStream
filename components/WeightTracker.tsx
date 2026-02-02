@@ -86,7 +86,7 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
     canvasRef.current.height = videoRef.current.videoHeight;
     context?.drawImage(videoRef.current, 0, 0);
 
-    const base64 = canvasRef.current.toDataURL('image/jpeg').split(',')[1];
+    const base64 = canvasRef.current.toDataURL('image/jpeg', 0.95).split(',')[1];
 
     const stream = videoRef.current.srcObject as MediaStream;
     stream.getTracks().forEach(t => t.stop());

@@ -175,7 +175,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     canvasRef.current.height = videoRef.current.videoHeight;
     context?.drawImage(videoRef.current, 0, 0);
 
-    const base64 = canvasRef.current.toDataURL('image/jpeg');
+    const base64 = canvasRef.current.toDataURL('image/jpeg', 0.95);
 
     // Stop camera stream
     stopCamera();

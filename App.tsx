@@ -725,7 +725,7 @@ const App = () => {
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(quickScanVideoRef, 0, 0);
       
-      const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+      const base64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
       
       quickScanVideoRef.pause();
 

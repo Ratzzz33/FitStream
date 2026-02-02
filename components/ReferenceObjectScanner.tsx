@@ -59,7 +59,7 @@ export const ReferenceObjectScanner: React.FC<ReferenceObjectScannerProps> = ({ 
     canvasRef.current.height = videoRef.current.videoHeight;
     context?.drawImage(videoRef.current, 0, 0);
     
-    const base64 = canvasRef.current.toDataURL('image/jpeg').split(',')[1];
+    const base64 = canvasRef.current.toDataURL('image/jpeg', 0.95).split(',')[1];
     
     // Stop stream
     const stream = videoRef.current.srcObject as MediaStream;
