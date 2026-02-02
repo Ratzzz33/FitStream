@@ -707,7 +707,13 @@ const App = () => {
       setShowQuickScan(true);
       setQuickScanResult(null);
       try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          });
           const videoElement = document.createElement('video');
           videoElement.srcObject = stream;
           videoElement.play();

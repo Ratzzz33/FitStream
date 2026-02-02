@@ -142,7 +142,11 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     setCameraMode(mode);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -955,12 +959,31 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
           {/* Video preview with tap-to-focus */}
           <div
             className="flex-1 relative"
-            onClick={(e) => {
+            onClick={async (e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const x = ((e.clientX - rect.left) / rect.width) * 100;
               const y = ((e.clientY - rect.top) / rect.height) * 100;
               setFocusPoint({ x, y });
               setExposure(0); // Reset exposure on new focus
+
+              // Apply real camera focus if supported
+              if (videoRef.current?.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                const track = stream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities?.() as any;
+                if (capabilities?.focusMode?.includes('manual') || capabilities?.focusMode?.includes('single-shot')) {
+                  try {
+                    await track.applyConstraints({
+                      advanced: [{
+                        focusMode: 'manual',
+                        pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+                      }]
+                    } as any);
+                  } catch (err) {
+                    console.log('Focus not supported:', err);
+                  }
+                }
+              }
 
               // Clear previous timeout
               if (focusTimeoutRef.current) {
