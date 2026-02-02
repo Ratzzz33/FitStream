@@ -122,6 +122,12 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const dailyNeeds = StorageService.calculateDailyNeeds();
     const todayStats = StorageService.getTodayNutrition();
 
+    // Today's food logs for compact preview
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = StorageService.getNutritionLogs().filter(
+        (log: NutritionLog) => log.date === today && log.type === 'FOOD'
+    );
+
     // Open tool sheet when navigating from dashboard
     useEffect(() => {
         if (initialToolSheet) {
@@ -651,187 +657,134 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     };
 
     return (
-        <div className="flex flex-col min-h-full">
-            {/* Top Summary - Always visible */}
-            <div className="p-4 pb-2">
-                {/* Offline / Pending Sync Indicator */}
+        <div className="flex flex-col h-full">
+            {/* Compact Summary Bar - Calories + Water + Offline indicator */}
+            <div className="px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                {/* Offline indicator - compact */}
                 {(!isOnline || pendingCount > 0) && (
-                    <div className={`rounded-xl p-3 flex items-center justify-between mb-4 ${
-                        !isOnline
-                            ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'
-                            : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
-                    }`}>
-                        <div className="flex items-center gap-2">
-                            {!isOnline ? (
-                                <>
-                                    <WifiOff size={16} className="text-yellow-600 dark:text-yellow-400" />
-                                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
-                                        {t('offlineMode') || 'Offline Mode'}
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    <Loader2 size={16} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                                        {t('syncing') || 'Syncing...'}
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                        {pendingCount > 0 && (
-                            <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full font-bold text-gray-600 dark:text-gray-300">
-                                {pendingCount} {t('pending') || 'pending'}
-                            </span>
-                        )}
+                    <div className={`flex items-center gap-2 mb-2 text-xs ${!isOnline ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                        {!isOnline ? <WifiOff size={12} /> : <Loader2 size={12} className="animate-spin" />}
+                        <span>{!isOnline ? (t('offlineMode') || 'Offline') : (t('syncing') || 'Syncing')}</span>
+                        {pendingCount > 0 && <span className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{pendingCount}</span>}
                     </div>
                 )}
 
-                {/* Calories Progress Bar */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('calories')}</span>
-                        <span className="text-sm font-medium dark:text-white">
-                            {todayStats.calories} / {dailyNeeds.calories} {t('unitKcal')}
-                        </span>
+                {/* Dual progress bars - Calories & Water in one row */}
+                <div className="flex gap-3">
+                    {/* Calories */}
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Flame size={12} className="text-orange-500" /> {t('calories')}
+                            </span>
+                            <span className="text-xs font-medium dark:text-white">{todayStats.calories}/{dailyNeeds.calories}</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${
+                                    todayStats.calories > dailyNeeds.calories ? 'bg-red-500'
+                                    : todayStats.calories > dailyNeeds.calories * 0.8 ? 'bg-amber-500' : 'bg-green-500'
+                                }`}
+                                style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
+                            />
+                        </div>
                     </div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                                todayStats.calories > dailyNeeds.calories
-                                    ? 'bg-red-500'
-                                    : todayStats.calories > dailyNeeds.calories * 0.8
-                                        ? 'bg-amber-500'
-                                        : 'bg-green-500'
-                            }`}
-                            style={{ width: `${Math.min(100, (todayStats.calories / dailyNeeds.calories) * 100)}%` }}
-                        />
+                    {/* Water */}
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Droplets size={12} className="text-blue-500" /> {t('water')}
+                            </span>
+                            <span className="text-xs font-medium dark:text-white">{todayStats.water}/{dailyNeeds.water}</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-blue-500 transition-all"
+                                style={{ width: `${Math.min(100, (todayStats.water / dailyNeeds.water) * 100)}%` }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content - Diary */}
-            <div className="flex-1 overflow-auto">
-                <div className="p-4 space-y-6 pb-4">
-                        {/* Top Summary */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
-                <div className="flex flex-col items-center">
-                    <AchievementRing
-                        radius={50}
-                        stroke={8}
-                        progress={todayStats.calories}
-                        total={dailyNeeds.calories}
-                        color="#f59e0b" // Amber for Cals
-                        label={t('calories')}
-                        compact
-                    />
-                    <span className="text-xs text-gray-500 mt-2">{todayStats.calories} / {dailyNeeds.calories}</span>
-                </div>
-                <div className="h-20 w-px bg-gray-200 dark:bg-gray-700"></div>
-                <div className="flex flex-col items-center">
-                    <AchievementRing
-                        radius={50}
-                        stroke={8}
-                        progress={todayStats.water}
-                        total={dailyNeeds.water}
-                        color="#3b82f6" // Blue for Water
-                        label={t('water')}
-                        compact
-                    />
-                    <span className="text-xs text-gray-500 mt-2">{todayStats.water}{t('unitMl')} / {dailyNeeds.water}{t('unitMl')}</span>
-                </div>
-            </div>
-
-            {/* Water Tracker */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-800">
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                            <Droplets size={20} className="text-blue-500" />
-                            {t('water')}
-                        </h3>
-                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{t('waterGoal')}: {dailyNeeds.water}{t('unitMl')}</p>
+            {/* Main Content - No scroll layout */}
+            <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden">
+                {/* Quick Water Buttons - Compact horizontal row */}
+                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2">
+                    <Droplets size={16} className="text-blue-500 shrink-0" />
+                    <div className="flex-1 flex gap-2">
+                        <button onClick={() => addWater(150, 'Glass')} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-2 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                            <GlassWater size={14} />+150
+                        </button>
+                        <button onClick={() => addWater(250, 'Cup')} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-2 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                            <Coffee size={14} />+250
+                        </button>
+                        <button onClick={() => addWater(500, 'Bottle')} className="flex-1 bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold py-2 px-2 rounded-lg transition active:scale-95 border border-blue-200 dark:border-blue-700 flex items-center justify-center gap-1">
+                            <Milk size={14} />+500
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                    <button onClick={() => addWater(150, 'Glass')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
-                        <GlassWater size={20} className="text-blue-400" />
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('glass')}</span>
-                    </button>
-                    <button onClick={() => addWater(200, 'Cup')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
-                        <Coffee size={24} className="text-blue-500" />
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('cup')}</span>
-                    </button>
-                    <button onClick={() => addWater(500, 'Bottle')} className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-blue-100 dark:border-blue-800 p-3 rounded-xl flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-sm group">
-                        <Milk size={24} className="text-blue-600" />
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{t('bottle')}</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Food Tracker Logic Switch */}
-            <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Utensils size={20} className="text-orange-500" />
-                    {t('nutritionTracker')}
-                </h3>
-
-                {/* --- 1. IDLE STATE: Dual Buttons --- */}
+                {/* Scan Actions - Two compact buttons in a row */}
                 {mode === 'IDLE' && (
-                    <div className="grid grid-cols-1 gap-4">
-                        <button
-                            onClick={handleScanFoodClick}
-                            className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-6 rounded-2xl shadow-lg transition transform active:scale-[0.98] group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex flex-col items-start gap-1">
-                                    <h4 className="text-xl font-bold flex items-center gap-2">
-                                        <Camera size={24} /> {t('scanFood')}
-                                    </h4>
-                                    <p className="text-xs text-orange-100 opacity-90">{t('aiNutritionScanDesc')}</p>
-                                </div>
-                                <ChevronRight className="opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
-                            </div>
-
-                            {!isScannerUnlocked && (
-                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
-                                    <div className="bg-black/50 px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
-                                        <Lock size={12} /> {t('upgradeToScan')}
-                                    </div>
-                                </div>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={handleScanMenuClick}
-                            className="relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition transform active:scale-[0.98] group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex flex-col items-start gap-1 text-gray-800 dark:text-white">
-                                    <h4 className="text-xl font-bold flex items-center gap-2">
-                                        <Camera size={24} className="text-blue-500" /> {t('analyzeMenu')}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('menuRecs')}</p>
-                                </div>
-                                <ChevronRight className="text-gray-400 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1" />
-                            </div>
-
-                            {!isScannerUnlocked && (
-                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-                                    <div className="bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-2 text-xs font-bold border border-white/20">
-                                        <Lock size={12} /> {t('upgradeToScan')}
-                                    </div>
-                                </div>
-                            )}
-                        </button>
-
-                        <div className="flex justify-center pt-2">
+                    <div className="flex-1 flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <button
-                                onClick={() => setShowManualEntry(true)}
-                                className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition"
+                                onClick={handleScanFoodClick}
+                                className="relative bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white p-4 rounded-xl shadow-lg transition active:scale-[0.98] flex flex-col items-center justify-center gap-2"
                             >
-                                <PenTool size={14} /> {t('manualEntry')}
+                                <Camera size={28} />
+                                <span className="text-sm font-bold">{t('scanFood')}</span>
+                                {!isScannerUnlocked && (
+                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                                        <Lock size={16} className="text-white/80" />
+                                    </div>
+                                )}
                             </button>
+                            <button
+                                onClick={handleScanMenuClick}
+                                className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition active:scale-[0.98] flex flex-col items-center justify-center gap-2"
+                            >
+                                <FileText size={28} className="text-blue-500" />
+                                <span className="text-sm font-bold text-gray-800 dark:text-white">{t('analyzeMenu')}</span>
+                                {!isScannerUnlocked && (
+                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                                        <Lock size={16} className="text-white/80" />
+                                    </div>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Manual entry + Today's log preview */}
+                        <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex flex-col">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('todayLog') || 'Сегодня'}</span>
+                                <button
+                                    onClick={() => setShowManualEntry(true)}
+                                    className="text-xs text-blue-500 flex items-center gap-1 hover:text-blue-600"
+                                >
+                                    <PenTool size={12} /> {t('manualEntry')}
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-auto">
+                                {todayLogs.length > 0 ? (
+                                    <div className="space-y-1">
+                                        {todayLogs.slice(0, 5).map((log, i) => (
+                                            <div key={log.id || i} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
+                                                <span className="truncate text-gray-700 dark:text-gray-300">{log.name}</span>
+                                                <span className="text-xs font-medium text-orange-500 ml-2 shrink-0">{log.calories} ккал</span>
+                                            </div>
+                                        ))}
+                                        {todayLogs.length > 5 && (
+                                            <div className="text-xs text-center text-gray-400 py-1">+{todayLogs.length - 5} ещё</div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                                        {t('noFoodLogged') || 'Нет записей'}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1639,70 +1592,6 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                     </div>
                 </div>
             )}
-
-            {/* Kitchen & Recipes Section */}
-            <div className="mt-6">
-                <div className="grid grid-cols-2 gap-3">
-                    {/* Kitchen Card */}
-                    <button
-                        onClick={() => setActiveToolSheet('kitchen')}
-                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
-                    >
-                        <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400">
-                                <rect x="5" y="2" width="14" height="20" rx="2" />
-                                <line x1="5" y1="9" x2="19" y2="9" />
-                                <line x1="15" y1="5" x2="15" y2="7" />
-                                <line x1="15" y1="12" x2="15" y2="16" />
-                            </svg>
-                        </div>
-                        <div className="text-center">
-                            <span className="font-bold text-gray-900 dark:text-white">{t('kitchen') || 'Кухня'}</span>
-                            <p className="text-xs text-gray-500">{t('inventory') || 'Инвентарь'}</p>
-                        </div>
-                    </button>
-
-                    {/* Recipes Card */}
-                    <button
-                        onClick={() => setActiveToolSheet('recipes')}
-                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
-                    >
-                        <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                            <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
-                                <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
-                                <line x1="4" y1="10" x2="2" y2="10" />
-                                <line x1="14" y1="10" x2="16" y2="10" />
-                                <path d="M6 10V8a3 3 0 016 0v2" />
-                                <ellipse cx="25" cy="16" rx="6" ry="3" />
-                                <line x1="31" y1="15" x2="36" y2="14" />
-                            </svg>
-                        </div>
-                        <div className="text-center">
-                            <span className="font-bold text-gray-900 dark:text-white">{t('recipes') || 'Рецепты'}</span>
-                            <p className="text-xs text-gray-500">{t('cookingDesc') || 'Что приготовить'}</p>
-                        </div>
-                    </button>
-
-                    {/* Finance Card - Full Width */}
-                    <button
-                        onClick={() => setActiveToolSheet('finance')}
-                        className="col-span-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 p-4 rounded-2xl text-left hover:shadow-lg hover:scale-[1.01] transition-all active:scale-[0.99] group flex items-center gap-4"
-                    >
-                        <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                            <Wallet size={20} className="text-white" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5">{t('finance') || 'Финансы'}</h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {t('financeDesc') || 'Сколько тратишь на еду'}
-                            </p>
-                        </div>
-                        <ChevronRight size={20} className="text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
-                    </button>
-                </div>
-            </div>
-                    </div>
-            </div>
 
             {/* Tool Sheets (Fullscreen Overlays) */}
             {activeToolSheet && (
