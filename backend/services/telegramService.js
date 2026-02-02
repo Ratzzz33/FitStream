@@ -128,8 +128,7 @@ async function handleStart(msg) {
                     { text: '📲 Скачать / Download', web_app: { url: process.env.TELEGRAM_WEBAPP_URL || 'https://fitstream.health' } }
                 ],
                 [
-                    { text: '🌐 Сайт / Website', url: 'https://fitstream.health' },
-                    { text: '💬 Поддержка / Support', url: 'https://t.me/fitstream_support' }
+                    { text: '🌐 Сайт / Website', url: 'https://fitstream.health' }
                 ]
             ]
         };
