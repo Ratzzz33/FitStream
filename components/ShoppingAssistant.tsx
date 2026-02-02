@@ -32,11 +32,25 @@ import {
     detectStorageType,
     deduplicateProducts,
     ProductWithPhotoId,
-    ScannedProduct
+    ScannedProduct,
+    analyzeDisplayCase,
+    compareProducts,
+    ShowcaseProduct,
+    ShowcaseScanResult,
+    ShowcaseScanContext,
+    ProductComparison
 } from '../services/geminiService';
 import { StorageService } from '../services/storageService';
 
-type ShoppingView = 'home' | 'planning' | 'list' | 'shopping' | 'verify' | 'shelf' | 'complete';
+type ShoppingView = 'home' | 'planning' | 'list' | 'shopping' | 'verify' | 'shelf' | 'complete' | 'showcase';
+
+// Rating colors for showcase products
+const RATING_STYLES = {
+    best_choice: { bg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', icon: Trophy, label: '🏆 Лучший выбор' },
+    good: { bg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', icon: ThumbsUp, label: '👍 Хорошо' },
+    caution: { bg: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400', icon: ShieldAlert, label: '⚠️ Осторожно' },
+    avoid: { bg: 'bg-red-500', text: 'text-red-600 dark:text-red-400', icon: Ban, label: '🚫 Избегать' }
+};
 
 const CATEGORY_ICONS: Record<ShoppingCategory, string> = {
     dairy: '🥛',
@@ -147,6 +161,17 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [mealAlternatives, setMealAlternatives] = useState<MealAlternative[]>([]);
     const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
     const [productChanges, setProductChanges] = useState<{ added: string[]; removed: string[] } | null>(null);
+
+    // Showcase scan state (smart display case scanner)
+    const [showcaseResult, setShowcaseResult] = useState<ShowcaseScanResult | null>(null);
+    const [showcaseImage, setShowcaseImage] = useState<string | null>(null);
+    const [isShowcaseScanning, setIsShowcaseScanning] = useState(false);
+    const [selectedShowcaseProduct, setSelectedShowcaseProduct] = useState<ShowcaseProduct | null>(null);
+    const [compareMode, setCompareMode] = useState(false);
+    const [productsToCompare, setProductsToCompare] = useState<ShowcaseProduct[]>([]);
+    const [comparisonResult, setComparisonResult] = useState<ProductComparison | null>(null);
+    const [isComparing, setIsComparing] = useState(false);
+    const showcaseInputRef = useRef<HTMLInputElement>(null);
 
     // Load inventory
     const inventory = StorageService.getInventory?.() || [];
@@ -650,6 +675,144 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         setSession({ ...session, shoppingList: updatedList });
     };
 
+    // ========== SHOWCASE SCAN (Smart Display Case Scanner) ==========
+
+    // Open showcase scan
+    const handleOpenShowcaseScan = () => {
+        setShowcaseResult(null);
+        setShowcaseImage(null);
+        setSelectedShowcaseProduct(null);
+        setCompareMode(false);
+        setProductsToCompare([]);
+        setComparisonResult(null);
+        setView('showcase');
+    };
+
+    // Process showcase photo
+    const onShowcasePhotoSelected = async (base64: string) => {
+        setShowcaseImage(base64);
+        setIsShowcaseScanning(true);
+
+        // Build context from user settings and today's nutrition
+        const settings = StorageService.getSettings();
+        const todayLogs = StorageService.getNutritionLogs?.()?.filter((log: any) => {
+            const logDate = new Date(log.date).toDateString();
+            const today = new Date().toDateString();
+            return logDate === today;
+        }) || [];
+
+        const todayTotals = todayLogs.reduce((acc: any, log: any) => ({
+            calories: acc.calories + (log.calories || 0),
+            protein: acc.protein + (log.protein || 0),
+            carbs: acc.carbs + (log.carbs || 0),
+            fat: acc.fat + (log.fat || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        const context: ShowcaseScanContext = {
+            dailyCalorieGoal: settings.dailyCalorieGoal || 2000,
+            dailyProteinGoal: settings.dailyProteinGoal || 100,
+            todayCalories: todayTotals.calories,
+            todayProtein: todayTotals.protein,
+            todayCarbs: todayTotals.carbs,
+            todayFat: todayTotals.fat,
+            allergies: settings.dietaryPreferences?.allergies || [],
+            diabetic: settings.dietaryPreferences?.diabetic || false,
+            vegetarian: settings.dietaryPreferences?.vegetarian || false,
+            inventoryItems: inventory.map(i => i.name)
+        };
+
+        try {
+            const result = await analyzeDisplayCase(base64, context);
+            setShowcaseResult(result);
+        } catch (e: any) {
+            if (e.message === 'INSUFFICIENT_BALANCE') {
+                setError('Недостаточно средств для сканирования');
+            } else {
+                setShowcaseResult({
+                    products: [],
+                    bestChoices: [],
+                    avoidList: [],
+                    tip: '',
+                    notRecognized: true,
+                    notRecognizedReason: String(e)
+                });
+            }
+        }
+        setIsShowcaseScanning(false);
+    };
+
+    // Toggle compare mode
+    const toggleCompareMode = () => {
+        setCompareMode(!compareMode);
+        setProductsToCompare([]);
+        setComparisonResult(null);
+    };
+
+    // Add product to comparison
+    const toggleProductForComparison = (product: ShowcaseProduct) => {
+        if (productsToCompare.find(p => p.id === product.id)) {
+            setProductsToCompare(productsToCompare.filter(p => p.id !== product.id));
+        } else if (productsToCompare.length < 2) {
+            setProductsToCompare([...productsToCompare, product]);
+        }
+    };
+
+    // Run comparison
+    const runComparison = async () => {
+        if (productsToCompare.length !== 2) return;
+        setIsComparing(true);
+        setComparisonResult(null);
+
+        const settings = StorageService.getSettings();
+        const todayLogs = StorageService.getNutritionLogs?.()?.filter((log: any) => {
+            const logDate = new Date(log.date).toDateString();
+            const today = new Date().toDateString();
+            return logDate === today;
+        }) || [];
+
+        const todayTotals = todayLogs.reduce((acc: any, log: any) => ({
+            protein: acc.protein + (log.protein || 0)
+        }), { protein: 0 });
+
+        const context: ShowcaseScanContext = {
+            dailyProteinGoal: settings.dailyProteinGoal || 100,
+            todayProtein: todayTotals.protein,
+            diabetic: settings.dietaryPreferences?.diabetic || false,
+            vegetarian: settings.dietaryPreferences?.vegetarian || false
+        };
+
+        try {
+            const result = await compareProducts(productsToCompare[0], productsToCompare[1], context);
+            setComparisonResult(result);
+        } catch (e) {
+            setError(String(e));
+        }
+        setIsComparing(false);
+    };
+
+    // Add showcase product to inventory
+    const addShowcaseProductToInventory = (product: ShowcaseProduct) => {
+        const newItem: InventoryItem = {
+            id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: product.name,
+            emoji: product.emoji,
+            quantity: 1,
+            unit: 'шт',
+            storageId: 'fridge' as StorageType,
+            addedAt: new Date().toISOString(),
+            source: 'manual' as const,
+            caloriesPer100: product.calories,
+            price: product.estimatedPrice
+        };
+
+        const currentInventory = StorageService.getInventory() || [];
+        localStorage.setItem('fitstream_inventory', JSON.stringify([...currentInventory, newItem]));
+
+        // Show feedback
+        setSelectedShowcaseProduct(null);
+        alert(`${product.emoji} ${product.name} добавлен в инвентарь!`);
+    };
+
     // Finish shopping
     const handleFinishShopping = () => {
         if (session) {
@@ -864,6 +1027,33 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                     </div>
                 </div>
             )}
+
+            {/* Hidden input for showcase scan */}
+            <input
+                ref={showcaseInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handlePhotoSelect(e, onShowcasePhotoSelected)}
+            />
+
+            {/* Quick showcase scan button - NEW FEATURE */}
+            <button
+                onClick={handleOpenShowcaseScan}
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between hover:from-violet-400 hover:to-purple-400 transition transform active:scale-[0.98]"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2.5 rounded-xl">
+                        <Scan size={24} />
+                    </div>
+                    <div className="text-left">
+                        <p className="font-bold">📸 Сканировать витрину</p>
+                        <p className="text-xs text-white/80">Что полезного на полке?</p>
+                    </div>
+                </div>
+                <ChevronRight size={24} />
+            </button>
 
             {/* Go shopping button */}
             <button
@@ -1712,6 +1902,534 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
         </div>
     );
 
+    // ========== SHOWCASE SCAN VIEW ==========
+    const renderShowcase = () => (
+        <div className="fixed inset-0 bg-gray-100 dark:bg-gray-950 z-50 flex flex-col">
+            {/* Header */}
+            <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setView('home')}
+                        className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                    >
+                        <X size={24} className="text-gray-700 dark:text-gray-300" />
+                    </button>
+                    <div className="bg-violet-100 dark:bg-violet-900/30 px-4 py-2 rounded-full">
+                        <span className="text-violet-700 dark:text-violet-300 font-bold flex items-center gap-2">
+                            <Scan size={16} /> Умный сканер
+                        </span>
+                    </div>
+                    {showcaseResult && !showcaseResult.notRecognized && (
+                        <button
+                            onClick={toggleCompareMode}
+                            className={`p-2 rounded-full ${compareMode ? 'bg-violet-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+                        >
+                            <ArrowLeftRight size={20} />
+                        </button>
+                    )}
+                    {!showcaseResult && <div className="w-10" />}
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+                {/* Initial state - prompt to take photo */}
+                {!showcaseImage && !showcaseResult && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700 max-w-sm">
+                            <Scan size={64} className="mx-auto mb-4 text-violet-500" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                Что полезного на витрине?
+                            </h3>
+                            <p className="text-gray-500 text-sm mb-6">
+                                Сфоткай полку — я покажу что подходит именно тебе
+                            </p>
+                            <button
+                                onClick={() => showcaseInputRef.current?.click()}
+                                className="w-full bg-violet-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                                <Camera size={20} /> Сфоткать витрину
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Loading state */}
+                {isShowcaseScanning && (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <Loader2 size={48} className="animate-spin text-violet-500 mb-4" />
+                        <p className="text-gray-500">Анализирую продукты...</p>
+                        <p className="text-xs text-gray-400 mt-2">Учитываю твои цели и ограничения</p>
+                    </div>
+                )}
+
+                {/* Results */}
+                {showcaseImage && showcaseResult && (
+                    <div className="space-y-4">
+                        {/* Photo with markers */}
+                        <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 relative">
+                            <img
+                                src={`data:image/jpeg;base64,${showcaseImage}`}
+                                className="w-full"
+                                alt="Витрина"
+                            />
+
+                            {/* Product markers */}
+                            {!showcaseResult.notRecognized && showcaseResult.products.map((product) => {
+                                const style = RATING_STYLES[product.rating];
+                                const isSelected = selectedShowcaseProduct?.id === product.id;
+                                const isInComparison = productsToCompare.find(p => p.id === product.id);
+
+                                return (
+                                    <div
+                                        key={product.id}
+                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all ${
+                                            isSelected ? 'scale-125 z-20' : 'z-10'
+                                        } ${isInComparison ? 'ring-4 ring-white' : ''}`}
+                                        style={{
+                                            left: `${product.positionX}%`,
+                                            top: `${product.positionY}%`
+                                        }}
+                                        onClick={() => {
+                                            if (compareMode) {
+                                                toggleProductForComparison(product);
+                                            } else {
+                                                setSelectedShowcaseProduct(
+                                                    selectedShowcaseProduct?.id === product.id ? null : product
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <div className={`${style.bg} text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1`}>
+                                            {product.emoji}
+                                            {compareMode && isInComparison && (
+                                                <span className="bg-white text-violet-600 w-4 h-4 rounded-full text-[10px] flex items-center justify-center">
+                                                    {productsToCompare.findIndex(p => p.id === product.id) + 1}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Compare mode UI */}
+                        {compareMode && (
+                            <div className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-4 border border-violet-200 dark:border-violet-800">
+                                <p className="text-violet-700 dark:text-violet-300 font-bold mb-2 flex items-center gap-2">
+                                    <ArrowLeftRight size={18} /> Режим сравнения
+                                </p>
+                                <p className="text-sm text-violet-600 dark:text-violet-400 mb-3">
+                                    Выбери 2 продукта на фото для сравнения
+                                </p>
+                                <div className="flex gap-2 mb-3">
+                                    {[0, 1].map(idx => (
+                                        <div
+                                            key={idx}
+                                            className={`flex-1 p-3 rounded-xl border-2 border-dashed ${
+                                                productsToCompare[idx]
+                                                    ? 'border-violet-400 bg-white dark:bg-gray-800'
+                                                    : 'border-gray-300 dark:border-gray-600'
+                                            }`}
+                                        >
+                                            {productsToCompare[idx] ? (
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    {productsToCompare[idx].emoji} {productsToCompare[idx].name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">Продукт {idx + 1}</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {productsToCompare.length === 2 && (
+                                    <button
+                                        onClick={runComparison}
+                                        disabled={isComparing}
+                                        className="w-full bg-violet-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isComparing ? (
+                                            <Loader2 size={18} className="animate-spin" />
+                                        ) : (
+                                            <Scale size={18} />
+                                        )}
+                                        Сравнить
+                                    </button>
+                                )}
+
+                                {/* Comparison result */}
+                                {comparisonResult && (
+                                    <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Trophy size={20} className="text-yellow-500" />
+                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                {comparisonResult.winner === 'first'
+                                                    ? productsToCompare[0]?.name
+                                                    : comparisonResult.winner === 'second'
+                                                        ? productsToCompare[1]?.name
+                                                        : 'Равноценны'}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                            {comparisonResult.winnerReason}
+                                        </p>
+
+                                        {/* Comparison table */}
+                                        <div className="space-y-2">
+                                            {comparisonResult.comparison.map((row, idx) => (
+                                                <div key={idx} className="flex items-center text-sm">
+                                                    <span className={`flex-1 text-right ${row.better === 'first' ? 'font-bold text-emerald-600' : 'text-gray-500'}`}>
+                                                        {row.firstValue}
+                                                    </span>
+                                                    <span className="w-20 text-center text-gray-400 text-xs">{row.category}</span>
+                                                    <span className={`flex-1 ${row.better === 'second' ? 'font-bold text-emerald-600' : 'text-gray-500'}`}>
+                                                        {row.secondValue}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="mt-3 p-3 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+                                            <p className="text-sm text-violet-700 dark:text-violet-300">
+                                                💡 {comparisonResult.recommendation}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Not recognized */}
+                        {showcaseResult.notRecognized ? (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/30 p-6 rounded-2xl text-center">
+                                <AlertTriangle size={48} className="mx-auto mb-3 text-yellow-500" />
+                                <p className="font-bold text-gray-900 dark:text-white mb-2">
+                                    Не удалось распознать
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    {showcaseResult.notRecognizedReason || 'Попробуй сфоткать ближе и чётче'}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Personalized tip */}
+                                {showcaseResult.tip && (
+                                    <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-2xl border border-violet-200 dark:border-violet-800">
+                                        <p className="text-violet-700 dark:text-violet-300 flex items-center gap-2">
+                                            <Sparkles size={18} /> {showcaseResult.tip}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Best choices */}
+                                {showcaseResult.bestChoices.length > 0 && !compareMode && (
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800">
+                                        <h4 className="font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2">
+                                            <Trophy size={18} /> Рекомендую для тебя
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {showcaseResult.products
+                                                .filter(p => showcaseResult.bestChoices.includes(p.id))
+                                                .map(product => (
+                                                    <button
+                                                        key={product.id}
+                                                        onClick={() => setSelectedShowcaseProduct(product)}
+                                                        className="w-full flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-xl border border-emerald-200 dark:border-emerald-700 text-left"
+                                                    >
+                                                        <div>
+                                                            <span className="font-bold text-gray-900 dark:text-white">
+                                                                {product.emoji} {product.name}
+                                                            </span>
+                                                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                                                {product.ratingReason}
+                                                            </p>
+                                                        </div>
+                                                        <ChevronRight size={18} className="text-gray-400" />
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Avoid list */}
+                                {showcaseResult.avoidList.length > 0 && !compareMode && (
+                                    <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 border border-red-200 dark:border-red-800">
+                                        <h4 className="font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
+                                            <Ban size={18} /> Лучше избегать
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {showcaseResult.products
+                                                .filter(p => showcaseResult.avoidList.includes(p.id))
+                                                .map(product => (
+                                                    <div
+                                                        key={product.id}
+                                                        className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-xl border border-red-200 dark:border-red-700"
+                                                    >
+                                                        <span className="text-lg">{product.emoji}</span>
+                                                        <div className="flex-1">
+                                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                                {product.name}
+                                                            </span>
+                                                            <p className="text-xs text-red-600 dark:text-red-400">
+                                                                {product.allergenWarning || product.diabeticWarning || product.ratingReason}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* All products list */}
+                                {!compareMode && (
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                        <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                                            <h4 className="font-bold text-gray-900 dark:text-white">
+                                                Все продукты ({showcaseResult.products.length})
+                                            </h4>
+                                        </div>
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {showcaseResult.products.map(product => {
+                                                const style = RATING_STYLES[product.rating];
+                                                return (
+                                                    <button
+                                                        key={product.id}
+                                                        onClick={() => setSelectedShowcaseProduct(product)}
+                                                        className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                                    >
+                                                        <div className={`w-8 h-8 ${style.bg} rounded-full flex items-center justify-center text-white text-sm`}>
+                                                            {product.emoji}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 dark:text-white truncate">
+                                                                {product.name}
+                                                            </p>
+                                                            <p className={`text-xs ${style.text}`}>
+                                                                {RATING_STYLES[product.rating].label}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                                                {product.calories} ккал
+                                                            </p>
+                                                            {product.estimatedPrice && (
+                                                                <p className="text-xs text-gray-500">
+                                                                    ~{product.estimatedPrice}₽
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <ChevronRight size={18} className="text-gray-400" />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                onClick={() => {
+                                    setShowcaseResult(null);
+                                    setShowcaseImage(null);
+                                    setSelectedShowcaseProduct(null);
+                                    setCompareMode(false);
+                                    setProductsToCompare([]);
+                                    setComparisonResult(null);
+                                }}
+                                className="flex-1 py-4 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                                <RefreshCw size={16} /> Новое фото
+                            </button>
+                            <button
+                                onClick={() => setView('home')}
+                                className="flex-1 py-4 bg-violet-500 text-white rounded-xl font-bold"
+                            >
+                                Готово
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Product detail modal */}
+            {selectedShowcaseProduct && !compareMode && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+                    <div className="bg-white dark:bg-gray-900 rounded-t-3xl w-full max-w-lg max-h-[80vh] overflow-hidden animate-slide-up">
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 ${RATING_STYLES[selectedShowcaseProduct.rating].bg} rounded-xl flex items-center justify-center text-white text-2xl`}>
+                                    {selectedShowcaseProduct.emoji}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        {selectedShowcaseProduct.name}
+                                    </h3>
+                                    <p className={`text-sm ${RATING_STYLES[selectedShowcaseProduct.rating].text}`}>
+                                        {RATING_STYLES[selectedShowcaseProduct.rating].label}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedShowcaseProduct(null)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto max-h-[60vh] p-4 space-y-4">
+                            {/* Rating reason */}
+                            <div className={`p-4 rounded-xl ${
+                                selectedShowcaseProduct.rating === 'best_choice' || selectedShowcaseProduct.rating === 'good'
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                                    : selectedShowcaseProduct.rating === 'caution'
+                                        ? 'bg-yellow-50 dark:bg-yellow-900/20'
+                                        : 'bg-red-50 dark:bg-red-900/20'
+                            }`}>
+                                <p className={`${RATING_STYLES[selectedShowcaseProduct.rating].text} font-medium`}>
+                                    {selectedShowcaseProduct.ratingReason}
+                                </p>
+                            </div>
+
+                            {/* Warnings */}
+                            {selectedShowcaseProduct.allergenWarning && (
+                                <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center gap-3">
+                                    <AlertTriangle size={24} className="text-red-500 flex-shrink-0" />
+                                    <p className="text-red-700 dark:text-red-300 font-medium">
+                                        {selectedShowcaseProduct.allergenWarning}
+                                    </p>
+                                </div>
+                            )}
+
+                            {selectedShowcaseProduct.diabeticWarning && (
+                                <div className="p-4 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center gap-3">
+                                    <ShieldAlert size={24} className="text-orange-500 flex-shrink-0" />
+                                    <p className="text-orange-700 dark:text-orange-300 font-medium">
+                                        {selectedShowcaseProduct.diabeticWarning}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Nutrition */}
+                            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                                <h4 className="font-bold text-gray-900 dark:text-white mb-3">
+                                    КБЖУ на 100г
+                                </h4>
+                                <div className="grid grid-cols-4 gap-3 text-center">
+                                    <div>
+                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                            {selectedShowcaseProduct.calories}
+                                        </p>
+                                        <p className="text-xs text-gray-500">ккал</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-blue-600">
+                                            {selectedShowcaseProduct.protein}
+                                        </p>
+                                        <p className="text-xs text-gray-500">белки</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-orange-600">
+                                            {selectedShowcaseProduct.carbs}
+                                        </p>
+                                        <p className="text-xs text-gray-500">углеводы</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-yellow-600">
+                                            {selectedShowcaseProduct.fat}
+                                        </p>
+                                        <p className="text-xs text-gray-500">жиры</p>
+                                    </div>
+                                </div>
+                                {(selectedShowcaseProduct.sugar !== undefined || selectedShowcaseProduct.fiber !== undefined) && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-3 text-center">
+                                        {selectedShowcaseProduct.sugar !== undefined && (
+                                            <div>
+                                                <p className="text-lg font-bold text-red-500">{selectedShowcaseProduct.sugar}г</p>
+                                                <p className="text-xs text-gray-500">сахар</p>
+                                            </div>
+                                        )}
+                                        {selectedShowcaseProduct.fiber !== undefined && (
+                                            <div>
+                                                <p className="text-lg font-bold text-green-500">{selectedShowcaseProduct.fiber}г</p>
+                                                <p className="text-xs text-gray-500">клетчатка</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Price */}
+                            {selectedShowcaseProduct.estimatedPrice && (
+                                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                                    <span className="text-gray-500">Примерная цена</span>
+                                    <div className="text-right">
+                                        <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                            ~{selectedShowcaseProduct.estimatedPrice}₽
+                                        </p>
+                                        {selectedShowcaseProduct.pricePerKg && (
+                                            <p className="text-xs text-gray-500">
+                                                {selectedShowcaseProduct.pricePerKg}₽/кг
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Serving suggestion */}
+                            {selectedShowcaseProduct.servingSuggestion && (
+                                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                                    <Info size={20} className="text-blue-500 flex-shrink-0" />
+                                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                                        {selectedShowcaseProduct.servingSuggestion}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Pairs with */}
+                            {selectedShowcaseProduct.pairsWith && selectedShowcaseProduct.pairsWith.length > 0 && (
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                                    <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Хорошо сочетается с:
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedShowcaseProduct.pairsWith.map((item, idx) => (
+                                            <span
+                                                key={idx}
+                                                className="bg-white dark:bg-gray-700 px-3 py-1 rounded-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                                            >
+                                                {item}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                            <button
+                                onClick={() => setSelectedShowcaseProduct(null)}
+                                className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl font-medium text-gray-700 dark:text-gray-300"
+                            >
+                                Закрыть
+                            </button>
+                            <button
+                                onClick={() => addShowcaseProductToInventory(selectedShowcaseProduct)}
+                                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                            >
+                                <Plus size={18} /> В инвентарь
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
     const renderComplete = () => (
         <div className="px-4 space-y-6 pb-24 text-center">
             <div className="py-12">
@@ -1761,6 +2479,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             {view === 'shopping' && renderShopping()}
             {view === 'verify' && renderVerify()}
             {view === 'shelf' && renderShelfScan()}
+            {view === 'showcase' && renderShowcase()}
             {view === 'complete' && renderComplete()}
         </div>
     );

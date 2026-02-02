@@ -1768,3 +1768,301 @@ export const generateMealAlternatives = async (
         throw error;
     }
 };
+
+// ============================================
+// SMART SHOWCASE SCANNER
+// ============================================
+
+// 17. Analyze Display Case / Showcase (Quick scan without shopping list)
+export type ShowcaseProductRating = 'best_choice' | 'good' | 'caution' | 'avoid';
+
+export interface ShowcaseProduct {
+    id: string;
+    name: string;
+    emoji: string;
+    positionX: number;           // 0-100% position on photo
+    positionY: number;
+    // Nutrition per 100g
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    sugar?: number;
+    fiber?: number;
+    // Price estimate
+    estimatedPrice?: number;
+    pricePerKg?: number;
+    // Personalized rating
+    rating: ShowcaseProductRating;
+    ratingReason: string;        // "Высокий белок — отлично для твоих целей"
+    // Warnings
+    allergenWarning?: string;    // "Содержит глютен!"
+    diabeticWarning?: string;    // "Высокий гликемический индекс"
+    // Suggestions
+    servingSuggestion?: string;  // "Хватит на 3 порции"
+    pairsWith?: string[];        // ["рис", "овощи"]
+}
+
+export interface ShowcaseScanContext {
+    // User goals
+    dailyCalorieGoal?: number;
+    dailyProteinGoal?: number;
+    // Today's intake
+    todayCalories?: number;
+    todayProtein?: number;
+    todayCarbs?: number;
+    todayFat?: number;
+    // Restrictions
+    allergies?: string[];
+    diabetic?: boolean;
+    vegetarian?: boolean;
+    // What user already has
+    inventoryItems?: string[];
+}
+
+export interface ShowcaseScanResult {
+    products: ShowcaseProduct[];
+    // Top recommendations
+    bestChoices: string[];       // IDs of best products for user
+    avoidList: string[];         // IDs of products to avoid
+    // Personalized tip
+    tip: string;                 // "Тебе не хватает белка сегодня — возьми курицу или творог"
+    // If scan failed
+    notRecognized: boolean;
+    notRecognizedReason?: string;
+}
+
+export const analyzeDisplayCase = async (
+    base64Image: string,
+    context: ShowcaseScanContext
+): Promise<ShowcaseScanResult> => {
+    const billing = await checkAndCharge('showcase_scan');
+    if (!billing.allowed) {
+        throw new Error('INSUFFICIENT_BALANCE');
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    // Calculate remaining macros
+    const caloriesRemaining = context.dailyCalorieGoal && context.todayCalories
+        ? context.dailyCalorieGoal - context.todayCalories
+        : null;
+    const proteinRemaining = context.dailyProteinGoal && context.todayProtein
+        ? context.dailyProteinGoal - context.todayProtein
+        : null;
+
+    const contextInfo = `
+КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:
+${context.dailyCalorieGoal ? `- Цель калорий: ${context.dailyCalorieGoal} ккал/день` : ''}
+${context.dailyProteinGoal ? `- Цель белка: ${context.dailyProteinGoal}г/день` : ''}
+${caloriesRemaining !== null ? `- Осталось калорий сегодня: ${caloriesRemaining} ккал` : ''}
+${proteinRemaining !== null ? `- Осталось белка сегодня: ${proteinRemaining}г` : ''}
+${context.todayCarbs ? `- Углеводов сегодня съел: ${context.todayCarbs}г` : ''}
+${context.todayFat ? `- Жиров сегодня съел: ${context.todayFat}г` : ''}
+${context.allergies?.length ? `- ⚠️ АЛЛЕРГИИ: ${context.allergies.join(', ')}` : ''}
+${context.diabetic ? '- ⚠️ ДИАБЕТИК: избегать сахар и высокий ГИ!' : ''}
+${context.vegetarian ? '- 🌱 ВЕГЕТАРИАНЕЦ: без мяса и рыбы' : ''}
+${context.inventoryItems?.length ? `- Уже есть дома: ${context.inventoryItems.join(', ')}` : ''}
+`.trim();
+
+    try {
+        const mimeType = getMimeType(base64Image);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType, data: cleanBase64(base64Image) } },
+                        {
+                            text: `Ты умный помощник в магазине. Пользователь сфоткал витрину/полку.
+
+${contextInfo}
+
+ЗАДАЧА:
+1. Распознай ВСЕ видимые продукты на фото
+2. Для каждого продукта определи:
+   - id: уникальный ID (prod_1, prod_2, ...)
+   - name, emoji
+   - positionX, positionY: позиция на фото (0-100%)
+   - КБЖУ на 100г (calories, protein, carbs, fat, sugar, fiber)
+   - estimatedPrice: примерная цена в рублях
+   - pricePerKg: цена за кг для сравнения
+
+3. ПЕРСОНАЛЬНЫЙ РЕЙТИНГ каждого продукта:
+   - best_choice: 🏆 Идеально подходит пользователю
+   - good: 👍 Хороший выбор
+   - caution: ⚠️ С осторожностью (много сахара, калорий)
+   - avoid: 🚫 Избегать (аллергены, противопоказано)
+
+4. ratingReason: объясни ПОЧЕМУ такой рейтинг (персонализировано!)
+   Примеры:
+   - "Высокий белок (25г) — тебе не хватает 40г сегодня"
+   - "Много сахара — опасно для диабетика"
+   - "Содержит глютен — у тебя аллергия!"
+
+5. Предупреждения:
+   - allergenWarning: если содержит аллергены пользователя
+   - diabeticWarning: если опасно для диабетика
+
+6. Полезные советы:
+   - servingSuggestion: на сколько хватит
+   - pairsWith: с чем сочетается
+
+7. Итоговые рекомендации:
+   - bestChoices: ID лучших продуктов для пользователя
+   - avoidList: ID продуктов которых избегать
+   - tip: персональный совет ("Тебе не хватает белка — возьми творог или курицу")
+
+ВАЖНО:
+- Если фото размытое или это НЕ витрина — честно скажи notRecognized: true
+- Учитывай ВСЕ ограничения пользователя!
+- Рейтинг должен быть ПЕРСОНАЛЬНЫМ, не общим
+
+Язык: ${lang}`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        products: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.STRING },
+                                    name: { type: Type.STRING },
+                                    emoji: { type: Type.STRING },
+                                    positionX: { type: Type.NUMBER },
+                                    positionY: { type: Type.NUMBER },
+                                    calories: { type: Type.NUMBER },
+                                    protein: { type: Type.NUMBER },
+                                    carbs: { type: Type.NUMBER },
+                                    fat: { type: Type.NUMBER },
+                                    sugar: { type: Type.NUMBER },
+                                    fiber: { type: Type.NUMBER },
+                                    estimatedPrice: { type: Type.NUMBER },
+                                    pricePerKg: { type: Type.NUMBER },
+                                    rating: { type: Type.STRING, enum: ['best_choice', 'good', 'caution', 'avoid'] },
+                                    ratingReason: { type: Type.STRING },
+                                    allergenWarning: { type: Type.STRING },
+                                    diabeticWarning: { type: Type.STRING },
+                                    servingSuggestion: { type: Type.STRING },
+                                    pairsWith: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                },
+                                required: ["id", "name", "emoji", "positionX", "positionY", "calories", "protein", "carbs", "fat", "rating", "ratingReason"]
+                            }
+                        },
+                        bestChoices: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        avoidList: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        tip: { type: Type.STRING },
+                        notRecognized: { type: Type.BOOLEAN },
+                        notRecognizedReason: { type: Type.STRING }
+                    },
+                    required: ["products", "bestChoices", "avoidList", "tip", "notRecognized"]
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        return { products: [], bestChoices: [], avoidList: [], tip: '', notRecognized: true, notRecognizedReason: "Empty AI response" };
+    } catch (error) {
+        console.error("Error analyzing display case:", error);
+        return { products: [], bestChoices: [], avoidList: [], tip: '', notRecognized: true, notRecognizedReason: String(error) };
+    }
+};
+
+// 18. Compare two products
+export interface ProductComparison {
+    winner: 'first' | 'second' | 'tie';
+    winnerReason: string;
+    comparison: {
+        category: string;       // "Белок", "Калории", "Цена"
+        firstValue: string;     // "25г"
+        secondValue: string;    // "18г"
+        better: 'first' | 'second' | 'tie';
+    }[];
+    recommendation: string;     // "Для твоих целей лучше первый — больше белка"
+}
+
+export const compareProducts = async (
+    first: ShowcaseProduct,
+    second: ShowcaseProduct,
+    context: ShowcaseScanContext
+): Promise<ProductComparison> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+    const lang = navigator.language;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: `Сравни два продукта для пользователя:
+
+ПРОДУКТ 1: ${first.emoji} ${first.name}
+- Калории: ${first.calories} ккал/100г
+- Белок: ${first.protein}г, Углеводы: ${first.carbs}г, Жиры: ${first.fat}г
+- Цена: ~${first.estimatedPrice || '?'}₽
+
+ПРОДУКТ 2: ${second.emoji} ${second.name}
+- Калории: ${second.calories} ккал/100г
+- Белок: ${second.protein}г, Углеводы: ${second.carbs}г, Жиры: ${second.fat}г
+- Цена: ~${second.estimatedPrice || '?'}₽
+
+КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:
+${context.dailyProteinGoal ? `- Цель белка: ${context.dailyProteinGoal}г/день` : ''}
+${context.todayProtein ? `- Белка сегодня съел: ${context.todayProtein}г` : ''}
+${context.diabetic ? '- ⚠️ ДИАБЕТИК' : ''}
+${context.vegetarian ? '- 🌱 ВЕГЕТАРИАНЕЦ' : ''}
+
+Сравни по категориям и дай персональную рекомендацию.
+Язык: ${lang}`
+                        }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        winner: { type: Type.STRING, enum: ['first', 'second', 'tie'] },
+                        winnerReason: { type: Type.STRING },
+                        comparison: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    category: { type: Type.STRING },
+                                    firstValue: { type: Type.STRING },
+                                    secondValue: { type: Type.STRING },
+                                    better: { type: Type.STRING, enum: ['first', 'second', 'tie'] }
+                                },
+                                required: ["category", "firstValue", "secondValue", "better"]
+                            }
+                        },
+                        recommendation: { type: Type.STRING }
+                    },
+                    required: ["winner", "winnerReason", "comparison", "recommendation"]
+                }
+            }
+        });
+
+        if (response.text) return JSON.parse(response.text);
+        throw new Error("Empty AI response");
+    } catch (error) {
+        console.error("Error comparing products:", error);
+        throw error;
+    }
+};
