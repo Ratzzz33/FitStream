@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk, Flame } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, Weight, Users, Settings, Settings2, ChevronDown, ChevronUp, Footprints, Activity, ArrowDown, ArrowUp, Move, Camera, Check, Loader2, Moon, Sun, Crown, Utensils, Ruler, Smartphone, X, Mic, Volume2, LogOut, AlertTriangle, Wifi, WifiOff, Coins, ShoppingCart, MessageCircle, Send, Globe, Droplets, GlassWater, Coffee, Milk, Flame, Menu, ChefHat } from 'lucide-react';
 import { AppTab, UserSettings, DailyGoal, GoalType, WeightLog, Gender, ActivityLevel, WeightGoal, NutritionLog } from './types';
 import { StorageService } from './services/storageService';
 import { ApiService } from './services/api';
@@ -18,6 +18,7 @@ import { DeviceSettings } from './components/DeviceSettings';
 import { ReferenceObjectScanner } from './components/ReferenceObjectScanner';
 import { GoalDetailsModal } from './components/GoalDetailsModal';
 import { ShoppingAssistant } from './components/ShoppingAssistant';
+import { Kitchen } from './components/Kitchen/Kitchen';
 import { useStepCounter } from './hooks/useStepCounter';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
 import { t, getLanguageList, getSavedLanguage, setLanguage } from './services/i18n';
@@ -79,6 +80,9 @@ const App = () => {
 
   // Telegram Mini App Detection
   const [isTelegramApp, setIsTelegramApp] = useState(false);
+
+  // Burger menu
+  const [showBurgerMenu, setShowBurgerMenu] = useState(false);
   
   // Phone Weight Scan Logic
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -771,16 +775,23 @@ const App = () => {
       {/* Main Content Area - header scrolls with content */}
       <main className="flex-1 overflow-y-auto">
         {/* Header - part of scrollable content */}
-        <header className="px-6 pt-8 pb-4">
-          <div className="flex justify-between items-center mb-4">
+        <header className="px-4 pt-6 pb-2">
+          <div className="flex justify-between items-center">
               <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
                       FitStream
                       {settings.isPro && <span className="bg-yellow-500 text-black text-[9px] font-bold px-1 py-0.5 rounded uppercase flex items-center gap-0.5"><Crown size={8} fill="black"/> PRO</span>}
                   </h1>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('aiTracking')}</p>
               </div>
-              <BalanceMini onTopUp={() => setShowTopUpModal(true)} />
+              <div className="flex items-center gap-2">
+                  <BalanceMini onTopUp={() => setShowTopUpModal(true)} />
+                  <button
+                      onClick={() => setShowBurgerMenu(true)}
+                      className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                  >
+                      <Menu size={20} className="text-gray-600 dark:text-gray-400" />
+                  </button>
+              </div>
           </div>
         </header>
         {activeTab === AppTab.DASHBOARD && (
@@ -886,50 +897,6 @@ const App = () => {
                 </div>
             </div>
 
-            {/* Kitchen & Cooking Quick Access */}
-            <div className="grid grid-cols-2 gap-3">
-                <button
-                    onClick={handleKitchenClick}
-                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
-                >
-                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                        {/* Refrigerator Icon */}
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400">
-                            <rect x="5" y="2" width="14" height="20" rx="2" />
-                            <line x1="5" y1="9" x2="19" y2="9" />
-                            <line x1="15" y1="5" x2="15" y2="7" />
-                            <line x1="15" y1="12" x2="15" y2="16" />
-                        </svg>
-                    </div>
-                    <div className="text-center">
-                        <span className="font-bold text-gray-900 dark:text-white">{t('kitchen')}</span>
-                        <p className="text-xs text-gray-500">{t('inventory')}</p>
-                    </div>
-                </button>
-                <button
-                    onClick={handleCookingClick}
-                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-lg transition active:scale-[0.98]"
-                >
-                    <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                        {/* Pot and Pan Icon */}
-                        <svg width="36" height="32" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 dark:text-orange-400">
-                            {/* Pot */}
-                            <path d="M4 10h10v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8z" />
-                            <line x1="4" y1="10" x2="2" y2="10" />
-                            <line x1="14" y1="10" x2="16" y2="10" />
-                            <path d="M6 10V8a3 3 0 016 0v2" />
-                            {/* Pan */}
-                            <ellipse cx="25" cy="16" rx="6" ry="3" />
-                            <line x1="31" y1="15" x2="36" y2="14" />
-                        </svg>
-                    </div>
-                    <div className="text-center">
-                        <span className="font-bold text-gray-900 dark:text-white">{t('whatToCook')}</span>
-                        <p className="text-xs text-gray-500">{t('recipesAndTips')}</p>
-                    </div>
-                </button>
-            </div>
-
             {/* Billing Status Banner */}
             <BillingBanner onTopUp={() => setShowTopUpModal(true)} variant="dashboard" />
 
@@ -969,6 +936,8 @@ const App = () => {
         )}
 
         {activeTab === AppTab.SHOPPING && <ShoppingAssistant onRequestPro={() => setShowTopUpModal(true)} />}
+
+        {activeTab === AppTab.KITCHEN && <Kitchen />}
 
         {activeTab === AppTab.SOCIAL && (
             <div className="px-4 space-y-4 pb-4">
@@ -1388,9 +1357,15 @@ const App = () => {
           <span className="text-[10px] font-medium">{t('shopping')}</span>
         </button>
 
-        <button onClick={() => setActiveTab(AppTab.SETTINGS)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.SETTINGS ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
-          <Settings size={20} />
-          <span className="text-[10px] font-medium">{t('settings')}</span>
+        {/* Kitchen Button */}
+        <button onClick={() => setActiveTab(AppTab.KITCHEN)} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === AppTab.KITCHEN ? 'text-cyan-500' : 'text-gray-400 dark:text-gray-500'}`}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" />
+            <line x1="5" y1="9" x2="19" y2="9" />
+            <line x1="15" y1="5" x2="15" y2="7" />
+            <line x1="15" y1="12" x2="15" y2="16" />
+          </svg>
+          <span className="text-[10px] font-medium">{t('kitchen')}</span>
         </button>
       </nav>
 
@@ -1587,6 +1562,128 @@ const App = () => {
 
       {/* Top Up Modal */}
       <TopUpModal isOpen={showTopUpModal} onClose={() => setShowTopUpModal(false)} />
+
+      {/* Burger Menu Overlay */}
+      {showBurgerMenu && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={() => setShowBurgerMenu(false)}>
+              <div
+                  className="absolute right-0 top-0 h-full w-full max-w-sm bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  {/* Header */}
+                  <div className="sticky top-0 bg-white dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between z-10">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Settings size={20} className="text-blue-500" /> {t('settings')}
+                      </h2>
+                      <button
+                          onClick={() => setShowBurgerMenu(false)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition"
+                      >
+                          <X size={20} className="text-gray-500"/>
+                      </button>
+                  </div>
+
+                  {/* Settings Content */}
+                  <div className="p-4 space-y-4">
+                      {/* Avatar & Name */}
+                      <div className="flex items-center gap-4 py-4">
+                          <div className="relative cursor-pointer" onClick={() => { setShowBurgerMenu(false); setShowAvatarSelector(true); }}>
+                              {settings.isPro && (
+                                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 transform -rotate-6">
+                                      <Crown size={20} className="text-yellow-400 fill-yellow-400 drop-shadow-md" />
+                                  </div>
+                              )}
+                              <div className={`w-16 h-16 rounded-full overflow-hidden border-3 ${settings.isPro ? 'border-yellow-400' : 'border-gray-300 dark:border-gray-700'}`}>
+                                  <img src={settings.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                              </div>
+                          </div>
+                          <div className="flex-1">
+                              <p className="font-bold text-gray-900 dark:text-white">{settings.name}</p>
+                              {settings.email && <p className="text-xs text-gray-500 truncate">{settings.email}</p>}
+                          </div>
+                      </div>
+
+                      {/* Quick Settings */}
+                      <div className="space-y-2">
+                          {/* Theme Toggle */}
+                          <button
+                              onClick={toggleTheme}
+                              className="w-full flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-xl"
+                          >
+                              <div className="flex items-center gap-3">
+                                  {settings.theme === 'dark' ? <Moon size={20} className="text-purple-400" /> : <Sun size={20} className="text-orange-500" />}
+                                  <span className="font-medium text-gray-900 dark:text-white">{t('theme')}</span>
+                              </div>
+                              <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                                  {settings.theme === 'dark' ? t('darkMode') : t('lightMode')}
+                              </span>
+                          </button>
+
+                          {/* Language */}
+                          <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                              <div className="flex items-center gap-3">
+                                  <Globe size={20} className="text-blue-500" />
+                                  <span className="font-medium text-gray-900 dark:text-white">{t('languageSelection')}</span>
+                              </div>
+                              <select
+                                  value={getSavedLanguage()}
+                                  onChange={(e) => {
+                                      setLanguage(e.target.value);
+                                      const updated = { ...settings, language: e.target.value };
+                                      setSettings(updated);
+                                      StorageService.saveSettings(updated);
+                                      window.location.reload();
+                                  }}
+                                  className="bg-gray-200 dark:bg-gray-700 border-none rounded-lg px-2 py-1 text-sm outline-none"
+                              >
+                                  {getLanguageList().map((lang) => (
+                                      <option key={lang.code} value={lang.code}>
+                                          {lang.flag} {lang.code.toUpperCase()}
+                                      </option>
+                                  ))}
+                              </select>
+                          </div>
+
+                          {/* All Settings Button */}
+                          <button
+                              onClick={() => { setShowBurgerMenu(false); setActiveTab(AppTab.SETTINGS); }}
+                              className="w-full flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
+                          >
+                              <div className="flex items-center gap-3">
+                                  <Settings2 size={20} />
+                                  <span className="font-medium">{t('allSettings') || 'Все настройки'}</span>
+                              </div>
+                              <ChevronDown size={16} className="-rotate-90" />
+                          </button>
+                      </div>
+
+                      {/* Support */}
+                      <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+                          <button
+                              onClick={() => {
+                                  const botUrl = 'https://t.me/fitstreambot';
+                                  if (isTelegramWebApp()) {
+                                      openTelegramLink(botUrl);
+                                  } else {
+                                      window.open(botUrl, '_blank');
+                                  }
+                                  setShowBurgerMenu(false);
+                              }}
+                              className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition"
+                          >
+                              <MessageCircle size={20} className="text-blue-500" />
+                              <span className="font-medium text-gray-900 dark:text-white">{t('support')}</span>
+                          </button>
+                      </div>
+
+                      {/* App Version */}
+                      <div className="text-center py-2 text-gray-400 dark:text-gray-600 text-xs">
+                          <p>FitStream v{APP_VERSION}</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
     </BillingProvider>
   );
