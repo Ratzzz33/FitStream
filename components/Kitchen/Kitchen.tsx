@@ -144,8 +144,8 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 2560 },
+          height: { ideal: 1440 }
         }
       });
       if (videoRef.current) {

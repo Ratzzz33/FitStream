@@ -14,8 +14,10 @@ export const ReferenceObjectScanner: React.FC<ReferenceObjectScannerProps> = ({ 
   const [isCapturing, setIsCapturing] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<{ name: string, dimensions: string } | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const settings = StorageService.getSettings();
   const isDark = settings.theme === 'dark';
@@ -25,8 +27,8 @@ export const ReferenceObjectScanner: React.FC<ReferenceObjectScannerProps> = ({ 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 2560 },
+          height: { ideal: 1440 }
         }
       });
       if (videoRef.current) {
@@ -97,10 +99,53 @@ export const ReferenceObjectScanner: React.FC<ReferenceObjectScannerProps> = ({ 
 
         {/* Camera View */}
         {isCapturing ? (
-            <div className="relative w-full h-full bg-black">
+            <div
+                className="relative w-full h-full bg-black"
+                onClick={async (e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    setFocusPoint({ x, y });
+
+                    // Apply real camera focus if supported
+                    if (videoRef.current?.srcObject) {
+                        const stream = videoRef.current.srcObject as MediaStream;
+                        const track = stream.getVideoTracks()[0];
+                        const capabilities = track.getCapabilities?.() as any;
+                        if (capabilities?.focusMode?.includes('manual') || capabilities?.focusMode?.includes('single-shot')) {
+                            try {
+                                await track.applyConstraints({
+                                    advanced: [{
+                                        focusMode: 'manual',
+                                        pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+                                    }]
+                                } as any);
+                            } catch (err) {
+                                console.log('Focus not supported:', err);
+                            }
+                        }
+                    }
+
+                    // Hide focus square after 1.5s
+                    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+                    focusTimeoutRef.current = setTimeout(() => setFocusPoint(null), 1500);
+                }}
+            >
                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
                 <canvas ref={canvasRef} className="hidden" />
-                
+
+                {/* Focus indicator */}
+                {focusPoint && (
+                    <div
+                        className="absolute w-16 h-16 border-2 border-yellow-400 rounded-lg pointer-events-none animate-pulse"
+                        style={{
+                            left: `${focusPoint.x}%`,
+                            top: `${focusPoint.y}%`,
+                            transform: 'translate(-50%, -50%)'
+                        }}
+                    />
+                )}
+
                 {/* Guidelines */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-64 h-64 border-2 border-white/50 border-dashed rounded-xl flex items-center justify-center">
