@@ -1571,7 +1571,7 @@ const App = () => {
                   onClick={(e) => e.stopPropagation()}
               >
                   {/* Header */}
-                  <div className="sticky top-0 bg-white dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between z-10">
+                  <div className="bg-white dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
                       <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                           <Settings size={20} className="text-blue-500" /> {t('settings')}
                       </h2>
