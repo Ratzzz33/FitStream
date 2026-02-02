@@ -93,7 +93,9 @@ const App = () => {
   const [quickScanVideoRef, setQuickScanVideoRef] = useState<HTMLVideoElement | null>(null);
   const [quickScanResult, setQuickScanResult] = useState<{ raw: number, net: number } | null>(null);
   const [isQuickScanning, setIsQuickScanning] = useState(false);
+  const [quickScanFocusPoint, setQuickScanFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const quickScanCanvasRef = useRef<HTMLCanvasElement>(null);
+  const quickScanFocusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Local state for auto-save fields
   const [nameInput, setNameInput] = useState(settings.name);
@@ -710,8 +712,8 @@ const App = () => {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
               facingMode: 'environment',
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
+              width: { ideal: 2560 },
+              height: { ideal: 1440 }
             }
           });
           const videoElement = document.createElement('video');
@@ -1441,7 +1443,39 @@ const App = () => {
                   </button>
               </div>
               
-              <div className="relative w-full h-full bg-black">
+              <div
+                  className="relative w-full h-full bg-black"
+                  onClick={async (e) => {
+                      if (!quickScanVideoRef) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = ((e.clientX - rect.left) / rect.width) * 100;
+                      const y = ((e.clientY - rect.top) / rect.height) * 100;
+                      setQuickScanFocusPoint({ x, y });
+
+                      // Apply real camera focus if supported
+                      if (quickScanVideoRef.srcObject) {
+                          const stream = quickScanVideoRef.srcObject as MediaStream;
+                          const track = stream.getVideoTracks()[0];
+                          const capabilities = track.getCapabilities?.() as any;
+                          if (capabilities?.focusMode?.includes('manual') || capabilities?.focusMode?.includes('single-shot')) {
+                              try {
+                                  await track.applyConstraints({
+                                      advanced: [{
+                                          focusMode: 'manual',
+                                          pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+                                      }]
+                                  } as any);
+                              } catch (err) {
+                                  console.log('Focus not supported:', err);
+                              }
+                          }
+                      }
+
+                      // Hide focus square after 1.5s
+                      if (quickScanFocusTimeoutRef.current) clearTimeout(quickScanFocusTimeoutRef.current);
+                      quickScanFocusTimeoutRef.current = setTimeout(() => setQuickScanFocusPoint(null), 1500);
+                  }}
+              >
                   <div className="w-full h-full flex items-center justify-center" ref={(el) => {
                       if (el && quickScanVideoRef) {
                           el.innerHTML = ''; // Clear previous
@@ -1450,6 +1484,18 @@ const App = () => {
                       }
                   }}></div>
                   <canvas ref={quickScanCanvasRef} className="hidden" />
+
+                  {/* Focus indicator */}
+                  {quickScanFocusPoint && (
+                      <div
+                          className="absolute w-16 h-16 border-2 border-yellow-400 rounded-lg pointer-events-none animate-pulse"
+                          style={{
+                              left: `${quickScanFocusPoint.x}%`,
+                              top: `${quickScanFocusPoint.y}%`,
+                              transform: 'translate(-50%, -50%)'
+                          }}
+                      />
+                  )}
                   
                   {/* HUD */}
                   {quickScanResult ? (

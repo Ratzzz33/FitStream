@@ -248,8 +248,8 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: useFacing,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 2560 },
+                    height: { ideal: 1440 }
                 }
             });
             if (videoRef.current) {
