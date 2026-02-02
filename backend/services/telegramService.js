@@ -33,18 +33,14 @@ const WELCOME_MESSAGE_RU = `👋 *Привет! Я FitStream AI*
 📷 Сканирую весы и еду
 🛒 Помогаю в магазине
 📋 Нахожу ЗОЖ в меню ресторанов
-🥗 Рецепты из твоих продуктов
-
-📲 fitstream.health`;
+🥗 Рецепты из твоих продуктов`;
 
 const WELCOME_MESSAGE_EN = `👋 *Hi! I'm FitStream AI*
 
 📷 Scan scales & analyze food
 🛒 Shopping assistant
 📋 Find healthy menu options
-🥗 Recipes from your ingredients
-
-📲 fitstream.health`;
+🥗 Recipes from your ingredients`;
 
 /**
  * Initialize the Telegram bot
