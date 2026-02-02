@@ -1,6 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
 import { Hero } from '@/components/home/Hero';
-import { TrustBadges } from '@/components/home/TrustBadges';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { Testimonials } from '@/components/home/Testimonials';
 import { FAQ } from '@/components/home/FAQ';
@@ -21,7 +20,6 @@ export default async function HomePage({ params }: HomePageProps) {
   return (
     <>
       <Hero />
-      <TrustBadges />
       <HowItWorks />
       {/* <SocialProof /> - Hidden until real data available */}
       <BentoGrid />
