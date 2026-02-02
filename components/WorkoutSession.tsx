@@ -559,7 +559,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         </div>
 
         {/* Scrollable content with bottom padding for fixed button */}
-        <div className="h-[calc(100%-64px)] overflow-auto pb-20">
+        <div className="h-[calc(100%-64px)] overflow-auto pb-24">
           <div className="p-4">
             <SmartWorkoutPanel
               onStartWorkout={handleStartWorkout}
@@ -573,7 +573,7 @@ You are an AI fitness coach powered by computer vision. Your task is to track re
         <div className={`absolute bottom-0 left-0 right-0 p-4 border-t ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
           <button
             onClick={() => setMode('local')}
-            className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 border ${isDark ? 'text-gray-400 border-gray-700 hover:bg-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`}
+            className="w-full py-4 rounded-xl flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all"
           >
             <Cpu className="w-5 h-5" />
             {t('customWorkout')}

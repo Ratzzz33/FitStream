@@ -10,6 +10,41 @@ import { scanStoragePhoto, ScannedProduct, deduplicateProducts, ProductWithPhoto
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
 import { georgiaPrices } from '../../services/georgiaPricesService';
 
+// Custom Kitchen Silhouette Icon (header icon)
+const KitchenIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* Countertop */}
+    <line x1="2" y1="14" x2="22" y2="14" />
+    {/* Upper cabinets */}
+    <rect x="3" y="3" width="6" height="5" rx="0.5" />
+    <rect x="10" y="3" width="4" height="5" rx="0.5" />
+    <rect x="15" y="3" width="6" height="5" rx="0.5" />
+    {/* Range hood */}
+    <path d="M10 8v2h4V8" />
+    <line x1="12" y1="10" x2="12" y2="14" />
+    {/* Stove burners */}
+    <circle cx="8" cy="16" r="1" />
+    <circle cx="12" cy="16" r="1" />
+    {/* Sink */}
+    <rect x="15" y="15" width="4" height="2" rx="0.5" />
+    {/* Lower cabinets */}
+    <rect x="3" y="18" width="4" height="4" rx="0.5" />
+    <rect x="8" y="18" width="4" height="4" rx="0.5" />
+    <rect x="15" y="18" width="6" height="4" rx="0.5" />
+    {/* Fridge */}
+    <rect x="17" y="3" width="4" height="8" rx="0.5" />
+    <line x1="19" y1="5" x2="19" y2="6" />
+  </svg>
+);
+
 // Custom Fridge Icon (matches Dashboard)
 const FridgeIcon = ({ className }: { className?: string }) => (
   <svg
@@ -66,7 +101,7 @@ type CameraMode = 'IDLE' | 'CAMERA' | 'CAMERA_REPLACE';
 
 export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
   const [storages, setStorages] = useState<KitchenStorage[]>([]);
-  const [activeStorage, setActiveStorage] = useState<StorageType>('fridge');
+  const [activeStorage, setActiveStorage] = useState<StorageType | null>(null); // null = show all
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState<string>('');
@@ -95,9 +130,12 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
     setInventory(StorageService.getInventory());
   }, []);
 
-  const currentStorage = storages.find(s => s.type === activeStorage);
+  const currentStorage = activeStorage ? storages.find(s => s.type === activeStorage) : null;
   const currentPhotos = currentStorage?.photos || [];
-  const currentInventory = inventory.filter(i => i.storageId === activeStorage);
+  // Show all items when no storage selected, or filter by selected storage
+  const currentInventory = activeStorage
+    ? inventory.filter(i => i.storageId === activeStorage)
+    : inventory;
   const expiringItems = StorageService.getExpiringItems(3);
   const totalItems = inventory.length;
 
@@ -735,7 +773,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             <ChevronLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
           </button>
         )}
-        <h2 className="text-lg font-semibold dark:text-white flex-1 text-center">Кухня</h2>
+        <div className="flex items-center gap-2 flex-1 justify-center">
+          <KitchenIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+          <h2 className="text-lg font-semibold dark:text-white">Кухня</h2>
+        </div>
 
         {/* Add button */}
         <div className="relative">
@@ -827,9 +868,31 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Storage Tiles - Compact Horizontal Row */}
+      {/* Storage Tiles - With "All" option first, then icons for each storage */}
       <div className="px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-2">
+          {/* "All" button - показать все продукты */}
+          <button
+            onClick={() => setActiveStorage(null)}
+            className={`relative py-2 px-3 rounded-lg flex flex-col items-center gap-0.5 transition-all
+              ${activeStorage === null
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+          >
+            {/* Expiring badge for all */}
+            {expiringItems.length > 0 && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-2.5 h-2.5 text-white" />
+              </div>
+            )}
+            <span className={`text-sm font-bold ${activeStorage === null ? 'text-white' : ''}`}>{inventory.length}</span>
+            <span className={`text-[10px] font-medium ${activeStorage === null ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
+              Все
+            </span>
+          </button>
+
+          {/* Storage type buttons with custom icons */}
           {(['fridge', 'freezer', 'cabinet', 'appliances'] as StorageType[]).map(type => {
             const count = inventory.filter(i => i.storageId === type).length;
             const hasExpiring = getExpiringCount(type) > 0;
@@ -852,9 +915,11 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                {/* Compact: emoji + count */}
+                {/* Icon + count */}
                 <div className="flex items-center gap-1">
-                  <span className="text-sm">{storageEmojis[type]}</span>
+                  <span className={`${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                    {storageIcons[type]}
+                  </span>
                   <span className={`text-sm font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
                 </div>
 
@@ -899,10 +964,10 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
             {currentPhotos.length === 0 && currentInventory.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="mb-3 text-gray-400 dark:text-gray-500 [&_svg]:w-12 [&_svg]:h-12">
-                  {storageIcons[activeStorage]}
+                  {activeStorage ? storageIcons[activeStorage] : <Package className="w-12 h-12" />}
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  {storageLabels[activeStorage]} пуст{activeStorage === 'appliances' ? 'ы' : ''}
+                  {activeStorage ? `${storageLabels[activeStorage]} пуст${activeStorage === 'appliances' ? 'ы' : ''}` : 'Пока нет продуктов'}
                 </p>
                 <button
                   onClick={() => handleTakePhoto(false)}
@@ -941,7 +1006,7 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               <X className="w-6 h-6" />
             </button>
             <span className="text-white font-medium text-sm">
-              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : `Сфотографируйте ${storageLabels[activeStorage].toLowerCase()}`}
+              {cameraMode === 'CAMERA_REPLACE' ? 'Заменить фото' : `Сфотографируйте ${activeStorage ? storageLabels[activeStorage].toLowerCase() : 'холодильник'}`}
             </span>
             {/* Flash toggle */}
             <button

@@ -501,6 +501,64 @@ export const analyzeMenu = async (base64Image: string): Promise<MenuRecommendati
     }
 };
 
+// 5.5. Detect Photo Type (Food/Menu/QR) - Universal scanner
+export type PhotoContentType = 'FOOD' | 'MENU' | 'QR_MENU' | 'UNKNOWN';
+
+export interface PhotoTypeDetectionResult {
+    type: PhotoContentType;
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    qrUrl?: string;
+}
+
+export const detectPhotoType = async (base64Image: string): Promise<PhotoTypeDetectionResult> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key missing");
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                {
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: cleanBase64(base64Image) } },
+                        { text: `Analyze this image and determine what it shows:
+
+1. FOOD - A plate/dish with food that should be analyzed for nutrition (calories, macros)
+2. MENU - A restaurant/cafe menu (printed text with dish names and prices)
+3. QR_MENU - A QR code that likely leads to a digital menu
+4. UNKNOWN - None of the above
+
+If it's a QR code, try to read the URL from it if visible.
+
+Respond with JSON: { "type": "FOOD" | "MENU" | "QR_MENU" | "UNKNOWN", "confidence": "HIGH" | "MEDIUM" | "LOW", "qrUrl": "url if QR detected" }` }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['FOOD', 'MENU', 'QR_MENU', 'UNKNOWN'] },
+                        confidence: { type: Type.STRING, enum: ['HIGH', 'MEDIUM', 'LOW'] },
+                        qrUrl: { type: Type.STRING }
+                    },
+                    required: ["type", "confidence"]
+                }
+            }
+        });
+
+        if (response.text) {
+            return JSON.parse(response.text);
+        }
+        return { type: 'UNKNOWN', confidence: 'LOW' };
+    } catch (error) {
+        console.error("Error detecting photo type:", error);
+        return { type: 'UNKNOWN', confidence: 'LOW' };
+    }
+};
+
 // 6. Motivation
 export const getMotivation = async (streak: number, repsToday: number): Promise<string> => {
     const apiKey = getApiKey();
