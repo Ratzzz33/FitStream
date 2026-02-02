@@ -823,9 +823,9 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Storage Tiles - 2x2 Grid */}
-      <div className="p-3 bg-white dark:bg-gray-800">
-        <div className="grid grid-cols-2 gap-2">
+      {/* Storage Tiles - Compact Horizontal Row */}
+      <div className="px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2">
           {(['fridge', 'freezer', 'cabinet', 'appliances'] as StorageType[]).map(type => {
             const count = inventory.filter(i => i.storageId === type).length;
             const hasExpiring = getExpiringCount(type) > 0;
@@ -835,29 +835,27 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               <button
                 key={type}
                 onClick={() => setActiveStorage(type)}
-                className={`relative h-20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all
+                className={`relative flex-1 py-2 px-1 rounded-lg flex flex-col items-center gap-0.5 transition-all
                   ${isActive
-                    ? 'bg-blue-500 text-white shadow-lg scale-[1.02]'
+                    ? 'bg-blue-500 text-white shadow-md'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
               >
                 {/* Expiring badge */}
                 {hasExpiring && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-3 h-3 text-white" />
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
 
-                {/* Icon + count row */}
-                <div className="flex items-center gap-2">
-                  <span className={`${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                    {storageIcons[type]}
-                  </span>
-                  <span className={`text-lg font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
+                {/* Compact: emoji + count */}
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">{storageEmojis[type]}</span>
+                  <span className={`text-sm font-bold ${isActive ? 'text-white' : ''}`}>{count}</span>
                 </div>
 
-                {/* Label */}
-                <span className={`text-xs font-medium ${isActive ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
+                {/* Short label */}
+                <span className={`text-[10px] font-medium truncate max-w-full ${isActive ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
                   {storageLabels[type]}
                 </span>
               </button>
@@ -866,44 +864,45 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
         </div>
       </div>
 
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
+      {/* Content - No scroll layout */}
+      <div className="flex-1 flex flex-col overflow-hidden p-3 gap-2">
         {isScanning ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            <p className="text-gray-600 dark:text-gray-400">{scanProgress || 'Распознаём продукты...'}</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{scanProgress || 'Распознаём продукты...'}</p>
           </div>
         ) : (
           <>
             {/* Storage photo with overlay (supports multi-photo) */}
             {currentPhotos.length > 0 && (
-              <StoragePhoto
-                photos={currentPhotos}
-                items={currentInventory}
-                onItemClick={(item) => console.log('Item clicked:', item)}
-                onRefresh={handleRescanAll}
-                onAddPhoto={() => handleTakePhoto(true)}
-                onRemovePhoto={handleRemovePhoto}
-                onLabelPhoto={handleLabelPhoto}
-                onReplacePhoto={handleReplacePhoto}
-                onRetryParse={handleRetryParse}
-                isRetrying={retryingPhotoId}
-              />
+              <div className="shrink-0 max-h-[40%]">
+                <StoragePhoto
+                  photos={currentPhotos}
+                  items={currentInventory}
+                  onItemClick={(item) => console.log('Item clicked:', item)}
+                  onRefresh={handleRescanAll}
+                  onAddPhoto={() => handleTakePhoto(true)}
+                  onRemovePhoto={handleRemovePhoto}
+                  onLabelPhoto={handleLabelPhoto}
+                  onReplacePhoto={handleReplacePhoto}
+                  onRetryParse={handleRetryParse}
+                  isRetrying={retryingPhotoId}
+                />
+              </div>
             )}
 
             {/* Empty state */}
             {currentPhotos.length === 0 && currentInventory.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <div className="mb-4 text-gray-400 dark:text-gray-500 [&_svg]:w-16 [&_svg]:h-16">
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="mb-3 text-gray-400 dark:text-gray-500 [&_svg]:w-12 [&_svg]:h-12">
                   {storageIcons[activeStorage]}
                 </div>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   {storageLabels[activeStorage]} пуст{activeStorage === 'appliances' ? 'ы' : ''}
                 </p>
                 <button
                   onClick={() => handleTakePhoto(false)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
                 >
                   <Camera className="w-4 h-4" />
                   Сфотографировать
@@ -911,14 +910,16 @@ export const Kitchen: React.FC<KitchenProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* Product list */}
+            {/* Product list - fills remaining space with internal scroll */}
             {currentInventory.length > 0 && (
-              <ProductList
-                items={currentInventory}
-                onUpdate={handleProductUpdate}
-                onRemove={handleProductRemove}
-                onAddMissing={handleAddManual}
-              />
+              <div className="flex-1 min-h-0 overflow-auto">
+                <ProductList
+                  items={currentInventory}
+                  onUpdate={handleProductUpdate}
+                  onRemove={handleProductRemove}
+                  onAddMissing={handleAddManual}
+                />
+              </div>
             )}
           </>
         )}
