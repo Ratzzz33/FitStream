@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     ShoppingCart, ChefHat, Users, Clock, Loader2, Camera, Check, X,
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
-    RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus, Refrigerator
+    RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus, Refrigerator,
+    Scan, ZoomIn, Scale, Trophy, ThumbsUp, ShieldAlert, Ban, Info, ArrowLeftRight
 } from 'lucide-react';
 import { t, tf } from '../services/i18n';
 import { formatCurrency, getCurrencySymbol, CurrencyCode } from '../services/currencyService';
@@ -1753,7 +1754,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
 
     // Main render
     return (
-        <div className="min-h-screen pb-20">
+        <div className="min-h-full pb-4">
             {view === 'home' && renderHome()}
             {view === 'planning' && renderPlanning()}
             {view === 'list' && renderList()}

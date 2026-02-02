@@ -11,10 +11,35 @@ interface AppLifecycleOptions {
 }
 
 /**
+ * Force viewport recalculation
+ * Fixes Android WebView issue where viewport height gets stuck after minimize
+ */
+function forceViewportRecalc(): void {
+  // Method 1: Dispatch resize event to recalculate CSS viewport units
+  window.dispatchEvent(new Event('resize'));
+
+  // Method 2: Force layout recalculation via CSS variable
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+
+  // Method 3: Reset any stuck body height
+  document.body.style.height = '';
+  document.body.style.minHeight = '';
+  requestAnimationFrame(() => {
+    document.body.style.height = '100%';
+    document.body.style.minHeight = '100dvh';
+  });
+}
+
+/**
  * Force a full repaint of the WebView
  * This fixes rendering glitches when app resumes from background
  */
 function forceRepaint(): void {
+  // First, recalculate viewport
+  forceViewportRecalc();
+
   // Method 1: Trigger reflow via display toggle
   const root = document.getElementById('root');
   if (root) {
@@ -32,6 +57,11 @@ function forceRepaint(): void {
 
   // Method 3: Scroll position reset (helps with stuck scroll)
   window.scrollTo(0, window.scrollY);
+
+  // Method 4: Force another viewport recalc after paint
+  requestAnimationFrame(() => {
+    forceViewportRecalc();
+  });
 }
 
 /**
@@ -67,6 +97,15 @@ export function useAppLifecycle(options: AppLifecycleOptions = {}): void {
   }, [onResume, onPause]);
 
   useEffect(() => {
+    // Initialize viewport height on mount
+    forceViewportRecalc();
+
+    // Update on resize
+    const handleResize = () => {
+      forceViewportRecalc();
+    };
+    window.addEventListener('resize', handleResize);
+
     // Web visibility API
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -127,6 +166,7 @@ export function useAppLifecycle(options: AppLifecycleOptions = {}): void {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('resize', handleResize);
       capacitorListener?.remove();
     };
   }, [handleVisibilityChange, onResume, onPause]);

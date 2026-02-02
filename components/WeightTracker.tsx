@@ -194,7 +194,7 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ onWeightLogged }) 
   };
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="p-4 space-y-6 pb-4">
        {/* Offline / Pending Sync Indicator */}
        {(!isOnline || pendingCount > 0) && (
          <div className={`rounded-xl p-3 flex items-center justify-between ${

@@ -651,7 +651,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col min-h-full">
             {/* Top Summary - Always visible */}
             <div className="p-4 pb-2">
                 {/* Offline / Pending Sync Indicator */}
@@ -711,7 +711,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
             {/* Main Content - Diary */}
             <div className="flex-1 overflow-auto">
-                <div className="p-4 space-y-6 pb-24">
+                <div className="p-4 space-y-6 pb-4">
                         {/* Top Summary */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-around">
                 <div className="flex flex-col items-center">
