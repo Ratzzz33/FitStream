@@ -1651,7 +1651,7 @@ const App = () => {
                           >
                               <div className="flex items-center gap-3">
                                   <Settings2 size={20} />
-                                  <span className="font-medium">{t('allSettings') || 'Все настройки'}</span>
+                                  <span className="font-medium">{t('settings')}</span>
                               </div>
                               <ChevronDown size={16} className="-rotate-90" />
                           </button>
