@@ -1,0 +1,19 @@
+{
+  "name": "strict-worktree-workflow",
+  "description": "MANDATORY workflow - ALL coding tasks MUST start in git worktree. No direct commits to main/master. Complete via PR with passing tests/CI. Delete worktree after merge. Use BEFORE any coding task.",
+  "version": "1.0.0",
+  "author": {
+    "name": "User"
+  },
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "worktree",
+    "workflow",
+    "pr",
+    "ci",
+    "branch",
+    "protection"
+  ],
+  "agents": []
+}
