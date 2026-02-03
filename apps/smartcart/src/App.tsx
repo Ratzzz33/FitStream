@@ -1,72 +1,69 @@
 import { useState } from 'react';
 import { AuthProvider, ThemeProvider, useAuth, useTheme, SettingsPanel } from '@fitstream/shared';
-import { ShoppingCart, Receipt, Camera, Settings, List } from 'lucide-react';
+import { ShoppingCart, Wallet, Settings } from 'lucide-react';
+import ShoppingAssistant from './components/ShoppingAssistant';
+import { FoodFinance } from './components/FoodFinance';
+
+type Tab = 'shop' | 'finance' | 'settings';
 
 function SmartCartApp() {
   const { settings } = useAuth();
   const { theme } = useTheme();
-  const [view, setView] = useState<'shop' | 'receipts' | 'settings'>('shop');
+  const [activeTab, setActiveTab] = useState<Tab>('shop');
+
+  const isDark = theme === 'dark';
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <header className="px-4 pt-12 pb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShoppingCart className="text-green-400" size={24} />
-          SmartCart
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">AI Shopping Assistant</p>
-      </header>
-
-      <main className="px-4 pb-24">
-        {view === 'shop' && (
-          <div className="space-y-4">
-            <button className="w-full p-6 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-2 border-dashed border-green-500/30 flex flex-col items-center gap-3">
-              <List size={48} className="text-green-400" />
-              <span className="text-lg font-medium">Generate Shopping List</span>
-              <span className="text-sm text-gray-400">AI plans meals and creates your list</span>
-            </button>
-
-            <button className="w-full p-4 rounded-xl bg-white/5 flex items-center gap-3 hover:bg-white/10 transition-colors">
-              <Receipt size={24} className="text-yellow-400" />
-              <div className="text-left">
-                <div className="font-medium">Scan Receipt</div>
-                <div className="text-sm text-gray-400">Track spending and nutrition from receipts</div>
-              </div>
-            </button>
-
-            <button className="w-full p-4 rounded-xl bg-white/5 flex items-center gap-3 hover:bg-white/10 transition-colors">
-              <Camera size={24} className="text-blue-400" />
-              <div className="text-left">
-                <div className="font-medium">Verify Product</div>
-                <div className="text-sm text-gray-400">Scan product to check health score</div>
-              </div>
-            </button>
+    <div className={`min-h-screen ${isDark ? 'dark bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Main content area */}
+      <main className="pb-20">
+        {activeTab === 'shop' && <ShoppingAssistant />}
+        {activeTab === 'finance' && <FoodFinance />}
+        {activeTab === 'settings' && (
+          <div className="pt-12 px-4">
+            <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Settings className="text-green-500" size={24} />
+              Settings
+            </h1>
+            <SettingsPanel appName="SmartCart" />
           </div>
         )}
-
-        {view === 'receipts' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Receipt History</h2>
-            <p className="text-gray-400">No receipts scanned yet.</p>
-          </div>
-        )}
-
-        {view === 'settings' && <SettingsPanel appName="SmartCart" />}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-gray-900/95 backdrop-blur border-t border-white/10 px-6 py-3 flex justify-around">
-        <button onClick={() => setView('shop')} className={`flex flex-col items-center gap-1 ${view === 'shop' ? 'text-green-400' : 'text-gray-500'}`}>
-          <ShoppingCart size={20} />
-          <span className="text-xs">Shop</span>
-        </button>
-        <button onClick={() => setView('receipts')} className={`flex flex-col items-center gap-1 ${view === 'receipts' ? 'text-green-400' : 'text-gray-500'}`}>
-          <Receipt size={20} />
-          <span className="text-xs">Receipts</span>
-        </button>
-        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1 ${view === 'settings' ? 'text-green-400' : 'text-gray-500'}`}>
-          <Settings size={20} />
-          <span className="text-xs">Settings</span>
-        </button>
+      {/* Bottom Tab Bar - green theme */}
+      <nav className={`fixed bottom-0 inset-x-0 z-50 ${
+        isDark
+          ? 'bg-gray-900/95 border-gray-800'
+          : 'bg-white/95 border-gray-200'
+      } backdrop-blur-lg border-t px-6 py-2 flex justify-around safe-area-bottom`}>
+        {([
+          { id: 'shop' as Tab, icon: ShoppingCart, label: 'Shop' },
+          { id: 'finance' as Tab, icon: Wallet, label: 'Finance' },
+          { id: 'settings' as Tab, icon: Settings, label: 'Settings' },
+        ]).map(({ id, icon: Icon, label }) => {
+          const isActive = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+                isActive
+                  ? 'text-green-500'
+                  : isDark
+                    ? 'text-gray-500 hover:text-gray-300'
+                    : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-[10px] font-medium ${isActive ? 'text-green-500' : ''}`}>
+                {label}
+              </span>
+              {isActive && (
+                <div className="w-1 h-1 rounded-full bg-green-500 -mt-0.5" />
+              )}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );
