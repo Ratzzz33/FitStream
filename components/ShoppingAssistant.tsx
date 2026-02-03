@@ -3,9 +3,11 @@ import {
     ShoppingCart, ChefHat, Users, Clock, Loader2, Camera, Check, X,
     AlertTriangle, Sparkles, ChevronRight, ChevronDown, ChevronUp,
     RefreshCw, Heart, AlertCircle, Eye, Repeat, Plus, Minus, Refrigerator,
-    Scan, ZoomIn, Scale, Trophy, ThumbsUp, ShieldAlert, Ban, Info, ArrowLeftRight
+    Scan, ZoomIn, Scale, Trophy, ThumbsUp, ShieldAlert, Ban, Info, ArrowLeftRight,
+    Receipt
 } from 'lucide-react';
 import { t, tf } from '../services/i18n';
+import { ScanReceiptModal } from './Kitchen/ScanReceiptModal';
 import { formatCurrency, getCurrencySymbol, CurrencyCode } from '../services/currencyService';
 import {
     ShoppingPreferences,
@@ -171,6 +173,7 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
     const [productsToCompare, setProductsToCompare] = useState<ShowcaseProduct[]>([]);
     const [comparisonResult, setComparisonResult] = useState<ProductComparison | null>(null);
     const [isComparing, setIsComparing] = useState(false);
+    const [showReceiptModal, setShowReceiptModal] = useState(false);
     const showcaseInputRef = useRef<HTMLInputElement>(null);
 
     // Load inventory
@@ -960,6 +963,23 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
                         <ChevronRight size={20} className="text-gray-400" />
                     </>
                 )}
+            </button>
+
+            {/* 2.5. Сканировать чек */}
+            <button
+                onClick={() => setShowReceiptModal(true)}
+                className="w-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition cursor-pointer flex items-center justify-between"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="bg-gray-200 dark:bg-gray-700 p-2.5 rounded-xl">
+                        <Receipt size={24} className="text-purple-500 dark:text-purple-400" />
+                    </div>
+                    <div className="text-left">
+                        <p className="font-medium text-gray-700 dark:text-gray-300">{t('scanReceipt')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('afterShopping')}</p>
+                    </div>
+                </div>
+                <ChevronRight size={20} className="text-gray-400" />
             </button>
 
             {/* 3. Нужно купить */}
@@ -2429,6 +2449,15 @@ export const ShoppingAssistant: React.FC<Props> = ({ onRequestPro }) => {
             {view === 'shelf' && renderShelfScan()}
             {view === 'showcase' && renderShowcase()}
             {view === 'complete' && renderComplete()}
+
+            {showReceiptModal && (
+                <ScanReceiptModal
+                    onClose={() => setShowReceiptModal(false)}
+                    onAdded={() => {
+                        setShowReceiptModal(false);
+                    }}
+                />
+            )}
         </div>
     );
 };
