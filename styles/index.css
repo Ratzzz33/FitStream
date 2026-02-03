@@ -28,19 +28,21 @@ body {
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }
 
-/* App container with safe areas */
+/* App container with safe areas — fixed height, no page-level scroll */
 #root {
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
+  overflow: hidden;
   padding-top: var(--safe-area-inset-top);
   padding-bottom: var(--safe-area-inset-bottom);
   padding-left: var(--safe-area-inset-left);
   padding-right: var(--safe-area-inset-right);
 }
 
-/* Prevent WebView rendering issues on resume */
+/* Prevent page-level scroll — only <main> inside the app should scroll */
 html, body {
-  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -52,9 +54,15 @@ html, body {
   -webkit-backface-visibility: hidden;
 }
 
-/* Hide scrollbar for clean UI */
+/* Hide scrollbar for clean native-app feel */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 ::-webkit-scrollbar {
   width: 0px;
+  height: 0px;
+  display: none;
   background: transparent;
 }
 
