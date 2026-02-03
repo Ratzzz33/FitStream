@@ -110,9 +110,9 @@ const GOAL_DEFAULTS: Record<GoalType, { color: string }> = {
 };
 
 const DEFAULT_GOALS: DailyGoal[] = [
-  { type: 'STEPS', target: 10000, current: 0, isEnabled: true, unit: 'steps', color: GOAL_DEFAULTS.STEPS.color },
   { type: 'CALORIES', target: 2000, current: 0, isEnabled: true, unit: 'kcal', color: GOAL_DEFAULTS.CALORIES.color },
   { type: 'WATER', target: 2000, current: 0, isEnabled: true, unit: 'ml', color: GOAL_DEFAULTS.WATER.color },
+  { type: 'STEPS', target: 10000, current: 0, isEnabled: true, unit: 'steps', color: GOAL_DEFAULTS.STEPS.color },
   { type: 'PUSHUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.PUSHUPS.color },
   { type: 'SQUATS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SQUATS.color },
   { type: 'SITUPS', target: 50, current: 0, isEnabled: false, unit: 'reps', color: GOAL_DEFAULTS.SITUPS.color },

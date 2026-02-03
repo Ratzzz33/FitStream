@@ -428,3 +428,64 @@ export interface EconomySettings {
   recipeSource: 'ai' | 'database' | 'hybrid';
   foodAnalysis: 'full' | 'basic';
 }
+
+// === RESTAURANT MENU CACHE TYPES ===
+
+export interface GeoLocation {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+}
+
+export interface CachedMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price?: number;
+  currency?: string;
+  calories: number;
+  protein: number;
+  carbs?: number;
+  fat?: number;
+  healthScore: 1 | 2 | 3;
+  category: 'BEST_CHOICE' | 'HIGH_PROTEIN' | 'LESSER_OF_EVILS' | 'REGULAR';
+  tags?: string[];
+  photoHash?: string;
+}
+
+export interface CachedRestaurant {
+  id: string;
+  name: string;
+  normalizedName: string;
+  location: GeoLocation;
+  address?: string;
+  city: string;
+  country: string;
+  cuisine?: string[];
+  menuItems: CachedMenuItem[];
+  healthyScore: number;
+  healthyItemsCount: number;
+  lastUpdated: string;
+  scanCount: number;
+  deliveryPlatforms?: ('glovo' | 'bolt' | 'wolt')[];
+  glovoSlug?: string;
+  boltSlug?: string;
+}
+
+export interface RestaurantMapPoint {
+  id: string;
+  name: string;
+  location: GeoLocation;
+  healthyScore: number;
+  healthyItemsCount: number;
+  cuisine?: string[];
+}
+
+export interface MenuCacheStats {
+  totalRestaurants: number;
+  totalItems: number;
+  byCity: Record<string, number>;
+  byCountry: Record<string, number>;
+  lastScanDate: string;
+  tokensSaved: number;
+}
