@@ -809,8 +809,8 @@ const App = () => {
       <UpdateBanner />
 
       {/* Main Content Area - header scrolls with content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Header - part of scrollable content */}
+      <main className="flex-1 overflow-y-auto scrollbar-hide">
+        {/* Header */}
         <header className="px-4 pt-6 pb-2">
           <div className="flex justify-between items-center">
               <div>
@@ -831,7 +831,7 @@ const App = () => {
           </div>
         </header>
         {activeTab === AppTab.DASHBOARD && (
-          <div className="px-4 space-y-8 pb-4">
+          <div className="px-4 space-y-8 pb-6">
 
             {/* Trial Banner */}
             <TrialBanner onTopUp={() => setShowTopUpModal(true)} />
@@ -1000,7 +1000,7 @@ const App = () => {
         )}
 
         {activeTab === AppTab.SOCIAL && (
-            <div className="px-4 space-y-4 pb-4">
+            <div className="px-4 space-y-4 pb-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('leaderboard')}</h2>
                 
                 <div className="bg-white dark:bg-gray-800/50 p-4 rounded-xl flex items-center justify-between border border-blue-500/30 shadow-md mb-6">
@@ -1048,7 +1048,7 @@ const App = () => {
         )}
 
         {activeTab === AppTab.SETTINGS && (
-            <div className="px-4 space-y-6 pb-4">
+            <div className="px-4 space-y-6 pb-6">
                 
                 {/* Avatar & Name */}
                 <div className="flex flex-col items-center py-6">
