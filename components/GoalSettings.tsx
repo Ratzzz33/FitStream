@@ -12,6 +12,8 @@ interface GoalSettingsProps {
 
 const getLabelForType = (type: GoalType): string => {
     switch(type) {
+        case 'CALORIES': return t('calories');
+        case 'WATER': return t('water');
         case 'STEPS': return t('steps');
         case 'PUSHUPS': return t('pushups');
         case 'SQUATS': return t('squats');
@@ -25,8 +27,9 @@ const getLabelForType = (type: GoalType): string => {
     }
 };
 
+// Order: CALORIES, WATER first, then exercise goals
 const AVAILABLE_TYPES: GoalType[] = [
-  'STEPS', 'PUSHUPS', 'SQUATS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'BURPEES', 'DIPS', 'PULLUPS'
+  'CALORIES', 'WATER', 'STEPS', 'PUSHUPS', 'SQUATS', 'SITUPS', 'JUMPING_JACKS', 'LUNGES', 'BURPEES', 'DIPS', 'PULLUPS'
 ];
 
 export const GoalSettings: React.FC<GoalSettingsProps> = ({ onClose, onUpdate }) => {
