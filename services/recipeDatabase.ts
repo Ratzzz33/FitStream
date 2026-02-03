@@ -564,7 +564,259 @@ export const getSurpriseRecipe = (availableProducts: string[]): RecipeMatch | nu
 
 // Get recipe by ID
 export const getRecipeById = (id: string): Recipe | undefined => {
-  return recipes.find(r => r.id === id);
+  return recipes.find(r => r.id === id) || getGeneratedRecipes().find(r => r.id === id);
+};
+
+// ========== AI-POWERED SEARCH ==========
+
+// Storage key for AI-generated recipes
+const GENERATED_RECIPES_KEY = 'fitstream_generated_recipes';
+
+// Get saved generated recipes from localStorage
+export const getGeneratedRecipes = (): Recipe[] => {
+  try {
+    const saved = localStorage.getItem(GENERATED_RECIPES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Save generated recipes to localStorage
+const saveGeneratedRecipes = (newRecipes: Recipe[]) => {
+  try {
+    const existing = getGeneratedRecipes();
+    const combined = [...existing, ...newRecipes];
+    // Keep max 100 generated recipes
+    const trimmed = combined.slice(-100);
+    localStorage.setItem(GENERATED_RECIPES_KEY, JSON.stringify(trimmed));
+  } catch (e) {
+    console.error('Failed to save generated recipes:', e);
+  }
+};
+
+// Get all recipes (database + generated)
+export const getAllRecipes = (): Recipe[] => {
+  return [...recipes, ...getGeneratedRecipes()];
+};
+
+// AI search that generates missing recipes
+export const aiSearchRecipes = async (
+  query: string,
+  minResults: number = 4
+): Promise<{ recipes: Recipe[]; fromAI: boolean; offline: boolean }> => {
+  // First, try local search across all recipes
+  const allRecipes = getAllRecipes();
+
+  // Enhanced local search
+  const localResults = searchRecipesInList(query, allRecipes);
+
+  // If we have enough results, return them
+  if (localResults.length >= minResults) {
+    return { recipes: localResults.slice(0, 8), fromAI: false, offline: false };
+  }
+
+  // Check if online
+  if (!navigator.onLine) {
+    // Offline - return what we have with emoji placeholders
+    return {
+      recipes: localResults.map(r => ({
+        ...r,
+        photo: '' // Empty photo = will show emoji
+      })),
+      fromAI: false,
+      offline: true
+    };
+  }
+
+  // Need to generate more recipes with AI
+  try {
+    const needed = minResults - localResults.length;
+    const generatedRecipes = await generateRecipesWithAI(query, needed, localResults);
+
+    // Save generated recipes for future
+    if (generatedRecipes.length > 0) {
+      saveGeneratedRecipes(generatedRecipes);
+    }
+
+    // Combine local and generated
+    const combined = [...localResults, ...generatedRecipes];
+    return { recipes: combined.slice(0, 8), fromAI: true, offline: false };
+  } catch (error) {
+    console.error('AI recipe generation failed:', error);
+    // Return local results as fallback
+    return { recipes: localResults, fromAI: false, offline: false };
+  }
+};
+
+// Search within a specific list of recipes
+const searchRecipesInList = (query: string, recipeList: Recipe[]): Recipe[] => {
+  const queryLower = query.toLowerCase();
+  const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+
+  if (queryWords.length === 0) {
+    return recipeList.filter(r => r.name.toLowerCase().includes(queryLower));
+  }
+
+  const scored = recipeList.map(recipe => {
+    let score = 0;
+    let matchedWords = 0;
+    const nameLower = recipe.name.toLowerCase();
+    const nameWords = nameLower.split(/\s+/);
+    const descLower = recipe.description.toLowerCase();
+
+    if (nameLower.includes(queryLower)) {
+      score += 100;
+    }
+
+    for (const qWord of queryWords) {
+      let wordFound = false;
+
+      if (nameWords.some(nw => wordMatches(qWord, nw))) {
+        score += 50;
+        wordFound = true;
+      }
+
+      if (recipe.tags.some(tag => wordMatches(qWord, tag))) {
+        score += 30;
+        wordFound = true;
+      }
+
+      if (recipe.ingredients.some(ing => wordMatches(qWord, ing.name.toLowerCase()))) {
+        score += 20;
+        wordFound = true;
+      }
+
+      if (descLower.includes(qWord) || wordMatches(qWord, descLower)) {
+        score += 10;
+        wordFound = true;
+      }
+
+      if (wordFound) {
+        matchedWords++;
+      }
+    }
+
+    if (queryWords.length > 1) {
+      if (matchedWords < queryWords.length) {
+        score = Math.floor(score * (matchedWords / queryWords.length) * 0.3);
+      } else {
+        score += 50 * queryWords.length;
+      }
+    }
+
+    return { recipe, score, matchedWords };
+  });
+
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => {
+      if (a.matchedWords !== b.matchedWords) {
+        return b.matchedWords - a.matchedWords;
+      }
+      return b.score - a.score;
+    })
+    .map(s => s.recipe);
+};
+
+// Generate recipes using Gemini AI
+const generateRecipesWithAI = async (
+  query: string,
+  count: number,
+  existingRecipes: Recipe[]
+): Promise<Recipe[]> => {
+  const apiKey = (import.meta as any).env?.VITE_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('API key not configured');
+  }
+
+  const existingNames = existingRecipes.map(r => r.name).join(', ');
+
+  const prompt = `Ты - кулинарный эксперт. Сгенерируй ${count} рецептов по запросу "${query}".
+
+${existingNames ? `Уже есть рецепты: ${existingNames}. Предложи ДРУГИЕ варианты.` : ''}
+
+Верни JSON массив рецептов. Каждый рецепт:
+{
+  "name": "Название блюда",
+  "emoji": "🍽️",
+  "description": "Краткое описание (1 предложение)",
+  "ingredients": [{"name": "ингредиент", "amount": "100 г"}],
+  "cookingTime": 30,
+  "difficulty": "easy|medium|hard",
+  "calories": 350,
+  "servings": 2,
+  "tags": ["тег1", "тег2"],
+  "steps": ["Шаг 1", "Шаг 2"]
+}
+
+ВАЖНО:
+- Рецепты должны быть реалистичными и вкусными
+- Калории должны быть точными
+- Ингредиенты с количеством
+- 4-8 шагов приготовления
+- Emoji соответствует блюду
+- Отвечай ТОЛЬКО JSON массивом, без markdown`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4096,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Parse JSON from response
+  let recipesData: any[];
+  try {
+    // Try to extract JSON array from response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      recipesData = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error('No JSON array found');
+    }
+  } catch (e) {
+    console.error('Failed to parse AI response:', text);
+    throw new Error('Failed to parse recipes');
+  }
+
+  // Convert to Recipe format with proper IDs
+  const generatedRecipes: Recipe[] = recipesData.map((r: any, index: number) => ({
+    id: `ai-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+    name: r.name || 'Без названия',
+    emoji: r.emoji || '🍽️',
+    photo: '', // No photo for AI-generated - will show emoji
+    description: r.description || '',
+    ingredients: (r.ingredients || []).map((ing: any) => ({
+      name: ing.name || '',
+      amount: ing.amount || '',
+      optional: ing.optional || false,
+    })),
+    cookingTime: r.cookingTime || 30,
+    difficulty: r.difficulty || 'medium',
+    calories: r.calories || 300,
+    servings: r.servings || 2,
+    tags: r.tags || [],
+    steps: r.steps || [],
+  }));
+
+  return generatedRecipes;
 };
 
 export default {
@@ -573,4 +825,7 @@ export default {
   matchRecipesWithInventory,
   getSurpriseRecipe,
   getRecipeById,
+  aiSearchRecipes,
+  getAllRecipes,
+  getGeneratedRecipes,
 };
