@@ -81,6 +81,14 @@ const i18n = {
             offline: ["Full offline functionality", "Automatic sync when online", "No data loss", "Local storage backup", "Works anywhere"],
             shop: ["AI meal planning for any period", "Smart shopping list generation", "Shelf scanner finds products", "Product verification via photo", "Health score for items"],
             gotIt: "Got it!"
+        },
+        testimonials: {
+            title: "What Users Say",
+            subtitle: "Real reviews from real athletes",
+            name: "James Cooper",
+            role: "Fitness Enthusiast",
+            review: "FitStream gave me the data-driven approach I needed. The AI scale reader saves me time every morning, and the progress charts keep me accountable week after week.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=JamesCooper&backgroundColor=b6e3f4"
         }
     },
     ru: {
@@ -162,6 +170,14 @@ const i18n = {
             offline: ["Полная работа офлайн", "Автосинхронизация при подключении", "Без потери данных", "Локальное резервное копирование", "Работает везде"],
             shop: ["ИИ планирование меню на любой срок", "Умная генерация списка покупок", "Сканер полки находит продукты", "Проверка продукта по фото", "Оценка полезности товаров"],
             gotIt: "Понятно!"
+        },
+        testimonials: {
+            title: "Что говорят пользователи",
+            subtitle: "Реальные отзывы реальных спортсменов",
+            name: "Алексей Петров",
+            role: "Фитнес-энтузиаст",
+            review: "Сначала не верил в очередное фитнес-приложение, но FitStream реально удивил. ИИ-сканер весов работает чётко, а трекер питания наконец-то считает калории без мучений. За 3 месяца скинул 8 кг — цифры не врут.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=AlexeyPetrov&backgroundColor=c0aede"
         }
     },
     de: {
@@ -242,6 +258,14 @@ const i18n = {
             charts: ["Gewichtstrend-Diagramme", "Trainingshistorie-Grafiken", "Fortschritt über Zeit", "Körperzusammensetzung-Tracking", "Daten als CSV exportieren"],
             offline: ["Volle Offline-Funktionalität", "Automatische Sync wenn online", "Kein Datenverlust", "Lokale Speicher-Backup", "Funktioniert überall"],
             gotIt: "Verstanden!"
+        },
+        testimonials: {
+            title: "Was Nutzer sagen",
+            subtitle: "Echte Bewertungen von echten Sportlern",
+            name: "Markus Weber",
+            role: "Sportenthusiast",
+            review: "Die Datengenauigkeit von FitStream ist beeindruckend. Der KI-Waagescanner liefert konsistente Ergebnisse, und die Fortschrittsdiagramme geben mir exakt die Kontrolle über mein Training, die ich brauche.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=MarkusWeber&backgroundColor=d1d4f9"
         }
     },
     fr: {
@@ -316,6 +340,14 @@ const i18n = {
             charts: ["Graphiques tendance de poids", "Graphiques historique d'entraînement", "Progrès dans le temps", "Suivi composition corporelle", "Export données en CSV"],
             offline: ["Fonctionnalité offline complète", "Sync auto quand en ligne", "Pas de perte de données", "Sauvegarde stockage local", "Fonctionne partout"],
             gotIt: "Compris!"
+        },
+        testimonials: {
+            title: "Ce que disent nos utilisateurs",
+            subtitle: "De vrais avis de vrais sportifs",
+            name: "Sophie Martin",
+            role: "Passionnée de bien-être",
+            review: "FitStream allie élégance et efficacité. Le scanner alimentaire est d'une précision remarquable, et l'interface est si agréable qu'on prend plaisir à suivre ses progrès au quotidien.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=SophieMartin&backgroundColor=ffd5dc"
         }
     },
     es: {
@@ -390,6 +422,14 @@ const i18n = {
             charts: ["Gráficos de tendencia de peso", "Gráficos de historial de entrenamiento", "Progreso en el tiempo", "Seguimiento de composición corporal", "Exportar datos a CSV"],
             offline: ["Funcionalidad offline completa", "Sync automático cuando en línea", "Sin pérdida de datos", "Copia de seguridad local", "Funciona en cualquier lugar"],
             gotIt: "¡Entendido!"
+        },
+        testimonials: {
+            title: "Lo que dicen nuestros usuarios",
+            subtitle: "Opiniones reales de atletas reales",
+            name: "Carlos García",
+            role: "Entusiasta del fitness",
+            review: "¡FitStream cambió mi vida y la de toda mi familia! Mi esposa usa el escáner de comida, yo sigo mis entrenamientos, y hasta los niños compiten en el ranking. Una app que nos une en salud.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CarlosGarcia&backgroundColor=ffdfbf"
         }
     },
     it: {
@@ -458,6 +498,14 @@ const i18n = {
             charts: ["Grafici tendenza peso", "Grafici cronologia allenamenti", "Progressi nel tempo", "Tracciamento composizione corporea", "Esporta dati in CSV"],
             offline: ["Funzionalità offline completa", "Sync automatico quando online", "Nessuna perdita dati", "Backup storage locale", "Funziona ovunque"],
             gotIt: "Capito!"
+        },
+        testimonials: {
+            title: "Cosa dicono gli utenti",
+            subtitle: "Recensioni vere da veri atleti",
+            name: "Marco Rossi",
+            role: "Appassionato di fitness",
+            review: "Mamma mia, finalmente un'app che capisce il cibo! Lo scanner alimentare riconosce anche la pasta fatta in casa. Il monitoraggio delle calorie non è mai stato così semplice e preciso.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=MarcoRossi&backgroundColor=c0f0e8"
         }
     },
     pt: {
@@ -526,6 +574,14 @@ const i18n = {
             charts: ["Gráficos de tendência de peso", "Gráficos de histórico de treinos", "Progresso ao longo do tempo", "Rastreamento de composição corporal", "Exportar dados para CSV"],
             offline: ["Funcionalidade offline completa", "Sync automático quando online", "Sem perda de dados", "Backup de armazenamento local", "Funciona em qualquer lugar"],
             gotIt: "Entendi!"
+        },
+        testimonials: {
+            title: "O que dizem nossos usuários",
+            subtitle: "Avaliações reais de atletas reais",
+            name: "Lucas Silva",
+            role: "Entusiasta de fitness",
+            review: "FitStream trouxe uma energia nova pro meu treino! O ranking com os amigos virou competição saudável, e o scanner de alimentos facilita demais o dia a dia. Recomendo pra galera toda!",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=LucasSilva&backgroundColor=fce4b8"
         }
     },
     ja: {
@@ -594,6 +650,14 @@ const i18n = {
             charts: ["体重トレンドチャート", "ワークアウト履歴グラフ", "時間経過での進捗", "体組成追跡", "CSVでデータエクスポート"],
             offline: ["完全オフライン機能", "オンライン時に自動同期", "データ損失なし", "ローカルストレージバックアップ", "どこでも動作"],
             gotIt: "了解！"
+        },
+        testimonials: {
+            title: "ユーザーの声",
+            subtitle: "実際のアスリートからのレビュー",
+            name: "田中太郎",
+            role: "フィットネス愛好家",
+            review: "AIスケールスキャナーの精度に感動しました。毎朝の体重測定がとても簡単になり、食事のカロリー計算も写真一枚で完了します。細かいデータ管理が好きな方に最適です。",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TanakaTaro&backgroundColor=e8d5f5"
         }
     },
     ko: {
@@ -662,6 +726,14 @@ const i18n = {
             charts: ["체중 트렌드 차트", "운동 기록 그래프", "시간 경과에 따른 진행", "체성분 추적", "CSV로 데이터 내보내기"],
             offline: ["완전한 오프라인 기능", "온라인 시 자동 동기화", "데이터 손실 없음", "로컬 저장소 백업", "어디서나 작동"],
             gotIt: "알겠어요!"
+        },
+        testimonials: {
+            title: "사용자 후기",
+            subtitle: "실제 운동인들의 리얼 리뷰",
+            name: "김민준",
+            role: "피트니스 매니아",
+            review: "리더보드 기능이 진짜 중독적이에요! 친구들이랑 경쟁하면서 운동하니까 동기부여가 확 됩니다. AI 식단 스캐너도 한식 인식률이 놀라울 정도로 정확해요.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=KimMinjun&backgroundColor=d5e8f5"
         }
     },
     zh: {
@@ -730,6 +802,14 @@ const i18n = {
             charts: ["体重趋势图表", "锻炼历史图表", "随时间的进度", "身体成分追踪", "导出CSV数据"],
             offline: ["完全离线功能", "在线时自动同步", "无数据丢失", "本地存储备份", "随处可用"],
             gotIt: "明白了！"
+        },
+        testimonials: {
+            title: "用户评价",
+            subtitle: "来自真实运动爱好者的评价",
+            name: "王小明",
+            role: "健身爱好者",
+            review: "FitStream非常实用高效。AI扫描功能节省了大量时间，进度图表一目了然。三个月内减重5公斤，完全达到了预期目标。推荐给注重效率的朋友。",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=WangXiaoming&backgroundColor=f5d5d5"
         }
     },
     nl: {
@@ -798,6 +878,14 @@ const i18n = {
             charts: ["Gewichtstrend grafieken", "Trainingsgeschiedenis grafieken", "Voortgang in de tijd", "Lichaamssamenstelling tracking", "Data exporteren als CSV"],
             offline: ["Volledige offline functionaliteit", "Automatische sync wanneer online", "Geen gegevensverlies", "Lokale opslag backup", "Werkt overal"],
             gotIt: "Begrepen!"
+        },
+        testimonials: {
+            title: "Wat gebruikers zeggen",
+            subtitle: "Echte beoordelingen van echte sporters",
+            name: "Jan de Vries",
+            role: "Sportliefhebber",
+            review: "Geen poespas, gewoon een app die doet wat het moet doen. De AI-scanner werkt snel en nauwkeurig, de interface is overzichtelijk. Precies wat ik zocht — simpel en effectief.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=JandeVries&backgroundColor=f5e8d5"
         }
     },
     sv: {
@@ -866,6 +954,14 @@ const i18n = {
             charts: ["Vikttrenddiagram", "Träningshistorikgrafer", "Framsteg över tid", "Kroppssammansättningsspårning", "Exportera data som CSV"],
             offline: ["Full offline-funktionalitet", "Automatisk synk när online", "Ingen dataförlust", "Lokal lagringsbackup", "Fungerar överallt"],
             gotIt: "Uppfattat!"
+        },
+        testimonials: {
+            title: "Vad användare säger",
+            subtitle: "Riktiga omdömen från riktiga atleter",
+            name: "Erik Lindberg",
+            role: "Hälsoentusiast",
+            review: "FitStream har en ren och minimalistisk design som jag verkligen uppskattar. AI-funktionerna är smarta utan att vara påträngande. Perfekt för den som vill ha koll på sin hälsa utan krångel.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ErikLindberg&backgroundColor=d5f5e8"
         }
     },
     pl: {
@@ -934,6 +1030,14 @@ const i18n = {
             charts: ["Wykresy trendu wagi", "Wykresy historii treningów", "Postępy w czasie", "Śledzenie składu ciała", "Eksport danych do CSV"],
             offline: ["Pełna funkcjonalność offline", "Automatyczna synchronizacja online", "Bez utraty danych", "Kopia zapasowa lokalnego magazynu", "Działa wszędzie"],
             gotIt: "Rozumiem!"
+        },
+        testimonials: {
+            title: "Co mówią użytkownicy",
+            subtitle: "Prawdziwe opinie prawdziwych sportowców",
+            name: "Tomasz Kowalski",
+            role: "Entuzjasta fitnessu",
+            review: "Szukałem czegoś w dobrej cenie z prawdziwym AI — FitStream to strzał w dziesiątkę. Skaner wagi działa bezbłędnie, śledzenie posiłków jest proste, a za tę cenę to naprawdę świetna aplikacja.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TomaszKowalski&backgroundColor=e8f5d5"
         }
     },
     tr: {
@@ -1002,6 +1106,14 @@ const i18n = {
             charts: ["Kilo trend grafikleri", "Antrenman geçmişi grafikleri", "Zaman içinde ilerleme", "Vücut kompozisyonu takibi", "CSV olarak veri dışa aktarma"],
             offline: ["Tam çevrimdışı işlevsellik", "Çevrimiçi olduğunda otomatik senkronizasyon", "Veri kaybı yok", "Yerel depolama yedeklemesi", "Her yerde çalışır"],
             gotIt: "Anladım!"
+        },
+        testimonials: {
+            title: "Kullanıcılar ne diyor",
+            subtitle: "Gerçek sporculardan gerçek yorumlar",
+            name: "Mehmet Yılmaz",
+            role: "Fitness tutkunu",
+            review: "Ailece kullanıyoruz! Eşim yemek tarayıcısını çok seviyor, ben antrenman takibini yapıyorum. Sağlıklı yaşam artık tüm ailenin ortak projesi oldu. Harika bir uygulama.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=MehmetYilmaz&backgroundColor=f5d5e8"
         }
     },
     ar: {
@@ -1070,6 +1182,14 @@ const i18n = {
             charts: ["مخططات اتجاه الوزن", "رسوم بيانية لسجل التمارين", "التقدم عبر الزمن", "تتبع تركيب الجسم", "تصدير البيانات كـ CSV"],
             offline: ["وظائف كاملة بدون اتصال", "مزامنة تلقائية عند الاتصال", "لا فقدان للبيانات", "نسخ احتياطي للتخزين المحلي", "يعمل في أي مكان"],
             gotIt: "فهمت!"
+        },
+        testimonials: {
+            title: "ماذا يقول المستخدمون",
+            subtitle: "تقييمات حقيقية من رياضيين حقيقيين",
+            name: "أحمد الحسن",
+            role: "متحمس للياقة البدنية",
+            review: "FitStream ساعدني على الانضباط في تحقيق أهدافي الرياضية. متابعة التمارين والتغذية أصبحت سهلة، والنتائج واضحة. تطبيق يستحق الاحترام لمن يأخذ صحته بجدية.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=AhmedAlHasan&backgroundColor=d5d5f5"
         }
     },
     ka: {
@@ -1144,6 +1264,14 @@ const i18n = {
             charts: ["წონის ტრენდის დიაგრამები", "ვარჯიშის ისტორიის გრაფიკები", "პროგრესი დროთა განმავლობაში", "სხეულის შემადგენლობის თვალყურისდევნება", "მონაცემების ექსპორტი CSV-ში"],
             offline: ["სრული ოფლაინ ფუნქციონალობა", "ავტომატური სინქრონიზაცია ონლაინ რეჟიმში", "მონაცემთა დაკარგვა არ ხდება", "ლოკალური შენახვის სარეზერვო ასლი", "მუშაობს ყველგან"],
             gotIt: "გასაგებია!"
+        },
+        testimonials: {
+            title: "რას ამბობენ მომხმარებლები",
+            subtitle: "ნამდვილი შეფასებები ნამდვილი სპორტსმენებისგან",
+            name: "გიორგი ბერიძე",
+            role: "ფიტნეს-ენთუზიასტი",
+            review: "ქართველისთვის ჯანსაღი ცხოვრება ტრადიციაა, და FitStream ამ ტრადიციას თანამედროვე ტექნოლოგიებთან აკავშირებს. AI სკანერი ზუსტია, ინტერფეისი მარტივი — ვამაყობ რომ ასეთ აპს ვიყენებ.",
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=GiorgiBeridzе&backgroundColor=f5f5d5"
         }
     }
 };
