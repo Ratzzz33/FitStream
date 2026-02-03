@@ -18,9 +18,13 @@ import {
     BillingActionType, GeoLocation, CachedMenuItem, CachedRestaurant
 } from '../types';
 
-// Helper to get API Key (Vite env)
+// Helper to get API Key (try all available sources)
 const getApiKey = () => {
-    return import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '';
+    return import.meta.env.VITE_API_KEY
+        || import.meta.env.VITE_GEMINI_API_KEY
+        || (typeof process !== 'undefined' && process.env?.API_KEY)
+        || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
+        || '';
 };
 
 // Helper to sanitize base64 (remove data:image/... prefix if present)

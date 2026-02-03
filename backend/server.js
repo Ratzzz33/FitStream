@@ -1133,6 +1133,90 @@ app.post('/api/telegram/notify', async (req, res) => {
     }
 });
 
+// --- ADMIN API ---
+
+// Grant subscription to a user (admin only)
+app.post('/api/admin/grant-subscription', async (req, res) => {
+    const adminUserId = req.headers['x-user-id'];
+    const { telegramUsername, googleId, userId, durationDays } = req.body;
+
+    // Verify admin
+    if (!adminUserId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const adminCheck = await pool.query(
+            'SELECT is_admin FROM users WHERE id = $1 OR google_id = $1',
+            [adminUserId]
+        );
+        if (!adminCheck.rows[0]?.is_admin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        // Find target user
+        let targetQuery, targetParams;
+        if (telegramUsername) {
+            targetQuery = 'SELECT id, telegram_username, telegram_chat_id FROM users WHERE telegram_username = $1';
+            targetParams = [telegramUsername.replace('@', '')];
+        } else if (googleId) {
+            targetQuery = 'SELECT id, telegram_username, telegram_chat_id FROM users WHERE google_id = $1';
+            targetParams = [googleId];
+        } else if (userId) {
+            targetQuery = 'SELECT id, telegram_username, telegram_chat_id FROM users WHERE id = $1';
+            targetParams = [userId];
+        } else {
+            return res.status(400).json({ error: 'Provide telegramUsername, googleId, or userId' });
+        }
+
+        const targetUser = await pool.query(targetQuery, targetParams);
+        if (targetUser.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const target = targetUser.rows[0];
+        const days = durationDays || 365;
+
+        // Grant subscription
+        await pool.query(
+            `UPDATE users
+             SET is_pro = TRUE,
+                 pro_until = CURRENT_TIMESTAMP + INTERVAL '1 day' * $1
+             WHERE id = $2`,
+            [days, target.id]
+        );
+
+        // Also add balance if billing is active
+        try {
+            await billingService.addBalance(target.id, days * 10); // 10 cents per day (~$36.5/year)
+        } catch (e) {
+            console.log('Balance add skipped:', e.message);
+        }
+
+        // Send telegram notification
+        if (target.telegram_chat_id) {
+            try {
+                await telegramService.sendNotification(target.id, 'PRO_ACTIVATED', {});
+            } catch (e) {
+                console.log('TG notify failed:', e.message);
+            }
+        }
+
+        console.log(`✅ Admin ${adminUserId} granted ${days}-day subscription to user ${target.id} (tg: ${target.telegram_username})`);
+
+        res.json({
+            success: true,
+            userId: target.id,
+            telegramUsername: target.telegram_username,
+            durationDays: days,
+            proUntil: new Date(Date.now() + days * 86400000).toISOString()
+        });
+    } catch (e) {
+        console.error('Grant subscription error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- PRODUCT PRICES API ---
 
 // Get all currencies
