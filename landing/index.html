@@ -81,6 +81,11 @@ function setLang(l) {
     }
     // Handle RTL
     document.documentElement.dir = i18n[l]?._meta?.rtl ? 'rtl' : 'ltr';
+    // Update testimonial avatar
+    const avatarEl = document.getElementById('testimonial-avatar');
+    if (avatarEl && i18n[l]?.testimonials?.avatar) {
+        avatarEl.src = i18n[l].testimonials.avatar;
+    }
     // Refresh dropdown active state
     populateLangDropdown();
     renderPhone();
@@ -392,6 +397,25 @@ function populateLangDropdown() {
                         <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">-20%</div>
                         <p class="text-2xl font-bold">$25</p>
                         <p class="text-xs text-slate-400" data-t="pricing.pkg3">~600 scans</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-24 px-6 bg-gradient-to-b from-slate-950 via-slate-900/50 to-slate-950">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4" data-t="testimonials.title">What Users Say</h2>
+            <p class="text-xl text-slate-400 mb-12" data-t="testimonials.subtitle">Real reviews from real athletes</p>
+            <div class="max-w-2xl mx-auto bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-sm">
+                <div class="flex flex-col items-center gap-4">
+                    <img id="testimonial-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=JohnSmith&backgroundColor=b6e3f4" alt="User avatar" class="w-20 h-20 rounded-full border-2 border-blue-500/30">
+                    <div class="flex gap-1 text-yellow-400 text-xl">★★★★★</div>
+                    <p class="text-slate-300 text-lg italic leading-relaxed" data-t="testimonials.review">"FitStream completely changed how I approach fitness..."</p>
+                    <div class="mt-2">
+                        <p class="font-bold text-white" data-t="testimonials.name">John Smith</p>
+                        <p class="text-sm text-slate-400" data-t="testimonials.role">Fitness Enthusiast</p>
                     </div>
                 </div>
             </div>
