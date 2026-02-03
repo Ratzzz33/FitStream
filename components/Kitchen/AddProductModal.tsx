@@ -5,6 +5,7 @@ import { StorageService } from '../../services/storageService';
 import { getProductNutrition } from '../../services/geminiService';
 import { georgiaPrices } from '../../services/georgiaPricesService';
 import { formatCurrency, CurrencyCode } from '../../services/currencyService';
+import { t } from '../../services/i18n';
 
 // Auto-emoji mapping based on product name patterns
 const EMOJI_MAP: Record<string, string> = {
@@ -278,7 +279,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onClick={handleGetNutrition}
                 disabled={!name.trim() || isLoadingNutrition}
                 className="px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Подсказать калории по названию"
+                title={t('suggestCaloriesByName')}
               >
                 {isLoadingNutrition ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
