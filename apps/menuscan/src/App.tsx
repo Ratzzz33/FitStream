@@ -1,69 +1,125 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AuthProvider, ThemeProvider, useAuth, useTheme, SettingsPanel } from '@fitstream/shared';
-import { Camera, Settings, MapPin, History } from 'lucide-react';
+import { Camera, Settings, History, Flame, Zap } from 'lucide-react';
+import { MenuScanner } from './components/MenuScanner';
+import { RestaurantHistory } from './components/RestaurantHistory';
+import { StorageService } from './services/storageService';
+import type { NutritionLog } from './types';
+
+type AppView = 'scan' | 'history' | 'settings';
 
 function MenuScanApp() {
   const { settings } = useAuth();
   const { theme } = useTheme();
-  const [view, setView] = useState<'scan' | 'history' | 'settings'>('scan');
+  const isDark = theme === 'dark';
+  const [view, setView] = useState<AppView>('scan');
+  const [todayCalories, setTodayCalories] = useState(() => StorageService.getTodayNutrition().calories);
+
+  const handleMealLogged = useCallback((log: NutritionLog) => {
+    setTodayCalories(StorageService.getTodayNutrition().calories);
+  }, []);
+
+  const needs = StorageService.calculateDailyNeeds();
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen ${isDark ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Header */}
       <header className="px-4 pt-12 pb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Camera className="text-rose-400" size={24} />
-          MenuScan
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">Restaurant Menu Analyzer</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Camera className="text-rose-400" size={24} />
+              MenuScan
+            </h1>
+            <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Restaurant Menu Analyzer
+            </p>
+          </div>
+          {/* Quick calorie badge */}
+          {todayCalories > 0 && (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+              isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'
+            }`}>
+              <Flame size={14} className="text-orange-400" />
+              <span className="font-medium">{todayCalories}</span>
+              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                / {needs.calories}
+              </span>
+            </div>
+          )}
+        </div>
       </header>
 
+      {/* Main Content */}
       <main className="px-4 pb-24">
         {view === 'scan' && (
-          <div className="space-y-4">
-            <button className="w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 border-2 border-dashed border-rose-500/30 flex flex-col items-center justify-center gap-3">
-              <Camera size={48} className="text-rose-400" />
-              <span className="text-lg font-medium">Scan Menu</span>
-              <span className="text-sm text-gray-400">Photo a menu for healthy recommendations</span>
-            </button>
-
-            <button className="w-full p-4 rounded-xl bg-white/5 flex items-center gap-3 hover:bg-white/10 transition-colors">
-              <MapPin size={24} className="text-blue-400" />
-              <div className="text-left">
-                <div className="font-medium">Nearby Restaurants</div>
-                <div className="text-sm text-gray-400">Find healthy options near you</div>
-              </div>
-            </button>
-          </div>
+          <MenuScanner onMealLogged={handleMealLogged} />
         )}
 
         {view === 'history' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <History size={20} />
-              Scan History
-            </h2>
-            <p className="text-gray-400">No menus scanned yet.</p>
-          </div>
+          <RestaurantHistory onMealLogged={handleMealLogged} />
         )}
 
         {view === 'settings' && <SettingsPanel appName="MenuScan" />}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-gray-900/95 backdrop-blur border-t border-white/10 px-6 py-3 flex justify-around">
-        <button onClick={() => setView('scan')} className={`flex flex-col items-center gap-1 ${view === 'scan' ? 'text-rose-400' : 'text-gray-500'}`}>
-          <Camera size={20} />
-          <span className="text-xs">Scan</span>
-        </button>
-        <button onClick={() => setView('history')} className={`flex flex-col items-center gap-1 ${view === 'history' ? 'text-rose-400' : 'text-gray-500'}`}>
-          <History size={20} />
-          <span className="text-xs">History</span>
-        </button>
-        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1 ${view === 'settings' ? 'text-rose-400' : 'text-gray-500'}`}>
-          <Settings size={20} />
-          <span className="text-xs">Settings</span>
-        </button>
+      {/* Bottom Navigation */}
+      <nav className={`fixed bottom-0 inset-x-0 backdrop-blur border-t px-6 py-3 flex justify-around z-50 ${
+        isDark
+          ? 'bg-gray-950/95 border-white/10'
+          : 'bg-white/95 border-gray-200'
+      }`}>
+        <NavButton
+          icon={<Camera size={20} />}
+          label="Scan"
+          active={view === 'scan'}
+          onClick={() => setView('scan')}
+          isDark={isDark}
+        />
+        <NavButton
+          icon={<History size={20} />}
+          label="History"
+          active={view === 'history'}
+          onClick={() => setView('history')}
+          isDark={isDark}
+        />
+        <NavButton
+          icon={<Settings size={20} />}
+          label="Settings"
+          active={view === 'settings'}
+          onClick={() => setView('settings')}
+          isDark={isDark}
+        />
       </nav>
     </div>
+  );
+}
+
+function NavButton({
+  icon,
+  label,
+  active,
+  onClick,
+  isDark,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  isDark: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1 transition-colors ${
+        active
+          ? 'text-rose-400'
+          : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+      }`}
+    >
+      {icon}
+      <span className="text-xs">{label}</span>
+    </button>
   );
 }
 
