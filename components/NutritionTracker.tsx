@@ -23,6 +23,7 @@ interface NutritionTrackerProps {
 }
 
 type ScanMode = 'IDLE' | 'CAMERA_FOOD' | 'CAMERA_MENU' | 'CAMERA_UNIVERSAL' | 'ANALYZING' | 'DETECTING_TYPE' | 'RESULT_FOOD' | 'RESULT_MENU' | 'OFFLINE_PHOTO';
+type ScanErrorType = 'offline' | 'no_api_key' | 'no_balance' | null;
 type ToolSheet = 'kitchen' | 'recipes' | 'finance' | null;
 
 // Default city/country for Georgia (can be detected later)
@@ -123,6 +124,12 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
     const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
     const [showCameraRefSelector, setShowCameraRefSelector] = useState(false);
     const [selectedRefObject, setSelectedRefObject] = useState<string>('Hand');
+
+    // Error type tracking for scan failures
+    const [scanError, setScanError] = useState<ScanErrorType>(null);
+
+    // Gallery file input ref
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     // Camera Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -233,12 +240,13 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             onRequestPro();
             return;
         }
-        // Reset multi-page state
+        // Reset state
         setMenuPages([]);
         setIsCapturingMenuPages(false);
         setDetectedType(null);
         setQrUrl(null);
         setCachedMenuFound(null);
+        setScanError(null);
 
         // Get geolocation for menu cache
         if (navigator.geolocation) {
@@ -338,8 +346,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             setMode('RESULT_MENU');
             setMenuPages([]);
         } catch (e) {
-            setCapturedPhotoBase64(allPages[0]);
-            setMode('OFFLINE_PHOTO');
+            handleScanError(e, allPages[0]);
             setMenuPages([]);
         }
     };
@@ -462,6 +469,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         // If offline, save photo and show manual entry
         if (!navigator.onLine) {
             setCapturedPhotoBase64(base64);
+            setScanError('offline');
             setMode('OFFLINE_PHOTO');
             return;
         }
@@ -538,8 +546,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
                 await saveFoodResult(result, base64);
             } catch (e) {
-                setCapturedPhotoBase64(base64);
-                setMode('OFFLINE_PHOTO');
+                handleScanError(e, base64);
             }
             return;
         }
@@ -584,14 +591,106 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 setMode('RESULT_MENU');
             }
         } catch (e) {
-            setCapturedPhotoBase64(base64);
-            setMode('OFFLINE_PHOTO');
+            handleScanError(e, base64);
         }
     };
 
     // Retake photo - go back to camera
     const retakePreview = () => {
         setCapturedPreview(null);
+    };
+
+    // Classify scan errors for user-friendly messages
+    const classifyScanError = (e: unknown): ScanErrorType => {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes('INSUFFICIENT_BALANCE')) return 'no_balance';
+        if (msg.includes('API Key missing') || msg.includes('API_KEY')) return 'no_api_key';
+        return 'offline';
+    };
+
+    // Handle error in scan catch blocks
+    const handleScanError = (e: unknown, base64: string) => {
+        console.error('Scan error:', e);
+        const errorType = classifyScanError(e);
+        setScanError(errorType);
+        setCapturedPhotoBase64(base64);
+        setMode('OFFLINE_PHOTO');
+    };
+
+    // Gallery upload handler
+    const handleGallerySelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        // Reset input so same file can be selected again
+        event.target.value = '';
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(',')[1];
+            if (!base64) return;
+
+            if (!navigator.onLine) {
+                setCapturedPhotoBase64(base64);
+                setScanError('offline');
+                setMode('OFFLINE_PHOTO');
+                return;
+            }
+
+            // Use universal detection flow
+            setMode('DETECTING_TYPE');
+            try {
+                const detection = await detectPhotoType(base64);
+                setDetectedType(detection.type);
+
+                if (detection.type === 'QR_MENU' && detection.qrUrl) {
+                    setQrUrl(detection.qrUrl);
+                    setMode('RESULT_MENU');
+                    window.open(detection.qrUrl, '_blank');
+                    return;
+                }
+
+                if (detection.type === 'MENU') {
+                    setMode('ANALYZING');
+                    const result = await analyzeMenuWithCache(base64, {
+                        location: currentLocation || undefined,
+                        city: DEFAULT_CITY,
+                        country: DEFAULT_COUNTRY
+                    });
+                    setMenuRecommendations(result.recommendations);
+                    setMenuFromCache(result.fromCache);
+                    if (result.fromCache) {
+                        const stats = getCacheStats();
+                        setTokensSavedTotal(stats.tokensSaved);
+                    }
+                    setMode('RESULT_MENU');
+                    return;
+                }
+
+                // Default to food analysis
+                setMode('ANALYZING');
+                const result = await analyzeFood(base64, selectedRefObject || 'Hand');
+
+                if (selectedRefObject && !result.referenceDetected && result.confidenceLevel === 'LOW') {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowRefNotDetected(true);
+                    return;
+                }
+
+                if (checkHomeMadeVerification(result)) {
+                    setPendingFoodResult(result);
+                    setPendingPhotoBase64(base64);
+                    setShowHomeMadeDialog(true);
+                    return;
+                }
+
+                await saveFoodResult(result, base64);
+            } catch (e) {
+                handleScanError(e, base64);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const captureAndAnalyze = async () => {
@@ -613,6 +712,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
         // If offline, save photo and show manual entry with photo
         if (!navigator.onLine) {
             setCapturedPhotoBase64(base64);
+            setScanError('offline');
             setMode('OFFLINE_PHOTO');
             return;
         }
@@ -659,9 +759,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 setMode('RESULT_MENU');
             }
         } catch (e) {
-            // If analysis fails (maybe went offline during), offer manual entry with photo
-            setCapturedPhotoBase64(base64);
-            setMode('OFFLINE_PHOTO');
+            handleScanError(e, base64);
         }
     };
 
@@ -718,8 +816,7 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
             // Skip reference check - user explicitly chose an alternative, just save the result
             await saveFoodResult(result, pendingPhotoBase64);
         } catch (e) {
-            setCapturedPhotoBase64(pendingPhotoBase64);
-            setMode('OFFLINE_PHOTO');
+            handleScanError(e, pendingPhotoBase64);
         } finally {
             setPendingFoodResult(null);
             setPendingPhotoBase64(null);
@@ -977,25 +1074,51 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                 {/* Universal Scan Button - Food/Menu/QR auto-detection */}
                 {mode === 'IDLE' && (
                     <div className="flex-1 flex flex-col gap-3">
-                        <button
-                            onClick={handleUniversalScanClick}
-                            className="relative bg-gradient-to-br from-orange-500 via-red-500 to-purple-500 hover:from-orange-400 hover:via-red-400 hover:to-purple-400 text-white p-5 rounded-xl shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-4"
-                        >
-                            <div className="flex items-center gap-2">
-                                <Camera size={32} />
-                                <span className="text-xl font-bold">Фото еды/меню</span>
-                            </div>
-                            <div className="flex gap-1 opacity-70">
-                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">🍕 Еда</span>
-                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📋 Меню</span>
-                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📱 QR</span>
-                            </div>
-                            {!isScannerUnlocked && (
-                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
-                                    <Lock size={20} className="text-white/80" />
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleUniversalScanClick}
+                                className="relative flex-1 bg-gradient-to-br from-orange-500 via-red-500 to-purple-500 hover:from-orange-400 hover:via-red-400 hover:to-purple-400 text-white p-5 rounded-xl shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-4"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Camera size={32} />
+                                    <span className="text-xl font-bold">Фото еды/меню</span>
                                 </div>
-                            )}
-                        </button>
+                                <div className="flex gap-1 opacity-70">
+                                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">🍕 Еда</span>
+                                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📋 Меню</span>
+                                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">📱 QR</span>
+                                </div>
+                                {!isScannerUnlocked && (
+                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                                        <Lock size={20} className="text-white/80" />
+                                    </div>
+                                )}
+                            </button>
+                            {/* Gallery picker button */}
+                            <button
+                                onClick={() => {
+                                    if (!isScannerUnlocked) { onRequestPro(); return; }
+                                    galleryInputRef.current?.click();
+                                }}
+                                className="relative bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white p-5 rounded-xl shadow-lg transition active:scale-[0.98] flex flex-col items-center justify-center gap-1"
+                            >
+                                <ImagePlus size={28} />
+                                <span className="text-xs font-medium">Галерея</span>
+                                {!isScannerUnlocked && (
+                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                                        <Lock size={16} className="text-white/80" />
+                                    </div>
+                                )}
+                            </button>
+                        </div>
+                        {/* Hidden gallery file input */}
+                        <input
+                            ref={galleryInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleGallerySelect}
+                        />
 
                         {/* Manual entry + Today's log preview */}
                         <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex flex-col">
@@ -1243,14 +1366,21 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                         </div>
                                     )}
 
-                                    {/* Capture button */}
-                                    <div className="flex justify-center">
+                                    {/* Capture button with gallery option */}
+                                    <div className="flex justify-center items-center gap-6">
+                                        <button
+                                            onClick={() => galleryInputRef.current?.click()}
+                                            className="w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white active:scale-95 transition"
+                                        >
+                                            <ImagePlus size={22} />
+                                        </button>
                                         <button
                                             onClick={capturePhoto}
                                             className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-lg active:scale-95 transition border-4 border-white/50"
                                         >
                                             <div className="w-16 h-16 rounded-full bg-white border-4 border-gray-300" />
                                         </button>
+                                        <div className="w-12 h-12" /> {/* Spacer for centering */}
                                     </div>
                                 </>
                             ) : (
@@ -1336,10 +1466,25 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
 
                 {/* --- 3.5. OFFLINE PHOTO STATE --- */}
                 {mode === 'OFFLINE_PHOTO' && capturedPhotoBase64 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-yellow-200 dark:border-yellow-900/50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
-                        <div className="flex items-center gap-2 mb-4 text-yellow-600 dark:text-yellow-400">
-                            <WifiOff size={20} />
-                            <span className="font-bold">{t('offlineMode') || 'Offline Mode'}</span>
+                    <div className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg animate-in fade-in slide-in-from-bottom-4 border ${
+                        scanError === 'no_balance' ? 'border-red-200 dark:border-red-900/50' :
+                        scanError === 'no_api_key' ? 'border-orange-200 dark:border-orange-900/50' :
+                        'border-yellow-200 dark:border-yellow-900/50'
+                    }`}>
+                        {/* Error header - different for each type */}
+                        <div className={`flex items-center gap-2 mb-4 ${
+                            scanError === 'no_balance' ? 'text-red-600 dark:text-red-400' :
+                            scanError === 'no_api_key' ? 'text-orange-600 dark:text-orange-400' :
+                            'text-yellow-600 dark:text-yellow-400'
+                        }`}>
+                            {scanError === 'no_balance' ? <Wallet size={20} /> :
+                             scanError === 'no_api_key' ? <AlertTriangle size={20} /> :
+                             <WifiOff size={20} />}
+                            <span className="font-bold">
+                                {scanError === 'no_balance' ? 'Подписка истекла' :
+                                 scanError === 'no_api_key' ? 'Ошибка конфигурации' :
+                                 (t('offlineMode') || 'Нет сети')}
+                            </span>
                         </div>
 
                         {/* Photo Preview with retake button */}
@@ -1349,7 +1494,6 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 alt="Captured food"
                                 className="w-full h-full object-cover"
                             />
-                            {/* Retake button overlay */}
                             <button
                                 onClick={retakePhoto}
                                 className="absolute top-2 left-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur transition"
@@ -1359,22 +1503,42 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                             </button>
                             <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-white text-xs flex items-center gap-1">
                                 <Image size={12} />
-                                {t('photoSaved') || 'Photo saved'}
+                                {t('photoSaved') || 'Фото сохранено'}
                             </div>
                         </div>
 
+                        {/* Error-specific message */}
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">
-                            {t('offlinePhotoHint') || 'You can enter data manually now or save the photo for AI analysis when you are back online.'}
+                            {scanError === 'no_balance'
+                                ? 'Недостаточно средств на балансе. Пополните баланс для AI-анализа или введите данные вручную.'
+                             : scanError === 'no_api_key'
+                                ? 'AI-сервис временно недоступен. Попробуйте позже или введите данные вручную.'
+                             : (t('offlinePhotoHint') || 'Нет подключения к интернету. Введите данные вручную или сохраните фото для анализа позже.')}
                         </p>
 
                         <div className="space-y-3">
-                            {/* Retake button - prominent option */}
+                            {/* Top-up button for balance errors */}
+                            {scanError === 'no_balance' && (
+                                <button
+                                    onClick={() => {
+                                        setCapturedPhotoBase64(null);
+                                        setScanError(null);
+                                        setMode('IDLE');
+                                        onRequestPro();
+                                    }}
+                                    className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    <Wallet size={18} />
+                                    Пополнить баланс
+                                </button>
+                            )}
+
                             <button
                                 onClick={retakePhoto}
                                 className="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-600"
                             >
                                 <RotateCcw size={18} />
-                                {t('retake') || 'Retake Photo'}
+                                {t('retake') || 'Переснять'}
                             </button>
 
                             <button
@@ -1382,20 +1546,23 @@ export const NutritionTracker: React.FC<NutritionTrackerProps> = ({ onRequestPro
                                 className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                             >
                                 <PenTool size={18} />
-                                {t('enterManually') || 'Enter Manually'}
+                                {t('enterManually') || 'Ввести вручную'}
                             </button>
 
-                            <button
-                                onClick={savePhotoForLater}
-                                className="w-full py-3 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold border border-yellow-200 dark:border-yellow-800 flex items-center justify-center gap-2"
-                            >
-                                <CloudOff size={18} />
-                                {t('saveForLater') || 'Analyze When Online'}
-                            </button>
+                            {scanError === 'offline' && (
+                                <button
+                                    onClick={savePhotoForLater}
+                                    className="w-full py-3 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 font-bold border border-yellow-200 dark:border-yellow-800 flex items-center justify-center gap-2"
+                                >
+                                    <CloudOff size={18} />
+                                    {t('saveForLater') || 'Анализировать позже'}
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => {
                                     setCapturedPhotoBase64(null);
+                                    setScanError(null);
                                     setMode('IDLE');
                                 }}
                                 className="w-full py-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white"
