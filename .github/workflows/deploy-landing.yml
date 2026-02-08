@@ -4,19 +4,38 @@
 name: Deploy Landing
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'landing-next/**'
   workflow_dispatch:
 
 jobs:
   deploy:
     name: 🚀 Deploy Landing to Hetzner
     runs-on: self-hosted
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
+      - name: Check landing changes
+        if: github.event_name == 'workflow_run'
+        id: changes
+        run: |
+          CHANGED=$(gh api repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }} --jq '.files[].filename' | grep '^landing-next/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "No landing changes, skipping deploy"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Landing changes detected: $CHANGED"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Setup SSH Key
+        if: steps.changes.outputs.skip != 'true'
         env:
           SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_KEY }}
         run: |
@@ -26,6 +45,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.HETZNER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
+        if: steps.changes.outputs.skip != 'true'
         env:
           SSH_HOST: ${{ secrets.HETZNER_HOST }}
           SSH_USER: root
@@ -59,6 +79,7 @@ jobs:
         run: rm -f ~/.ssh/hetzner_key
 
       - name: Health check
+        if: steps.changes.outputs.skip != 'true'
         run: |
           sleep 10
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://fitstream.health)
@@ -70,6 +91,7 @@ jobs:
           fi
 
       - name: Deployment summary
+        if: steps.changes.outputs.skip != 'true'
         run: |
           echo "### 🚀 Landing Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

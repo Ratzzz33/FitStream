@@ -52,14 +52,15 @@ jobs:
           CI: true
 
       - name: Upload results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
-          name: playwright-results-pr
+          name: playwright-results-pr-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/
-          retention-days: 7
+          retention-days: 3
 
   # ============================================
   # E2E FOR MAIN - All browsers (parallel)
@@ -80,11 +81,13 @@ jobs:
       - run: npx playwright test --project=chromium --reporter=html
         env:
           CI: true
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
-          name: results-chromium
+          name: results-chromium-${{ github.run_id }}
           path: playwright-report/
+          retention-days: 3
 
   e2e-firefox:
     name: 🎭 E2E (firefox)
@@ -102,11 +105,13 @@ jobs:
       - run: npx playwright test --project=firefox --reporter=html
         env:
           CI: true
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
-          name: results-firefox
+          name: results-firefox-${{ github.run_id }}
           path: playwright-report/
+          retention-days: 3
 
   e2e-webkit:
     name: 🎭 E2E (webkit)
@@ -124,11 +129,13 @@ jobs:
       - run: npx playwright test --project=webkit --reporter=html
         env:
           CI: true
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
-          name: results-webkit
+          name: results-webkit-${{ github.run_id }}
           path: playwright-report/
+          retention-days: 3
 
   # ============================================
   # MOBILE - Only on main
