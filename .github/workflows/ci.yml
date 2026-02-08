@@ -50,11 +50,13 @@ jobs:
         run: npm run test:ci
 
       - name: Upload build
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
+        if: success()
+        continue-on-error: true
         with:
-          name: build-output
+          name: build-output-${{ github.run_id }}
           path: dist/
-          retention-days: 7
+          retention-days: 3
 
   # ============================================
   # SECRETS SCAN - Always runs (fast)
@@ -118,9 +120,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download build
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          name: build-output
+          name: build-output-${{ github.run_id }}
           path: dist/
 
       - name: Build & scan
