@@ -10,21 +10,21 @@
   },
   "dependencies": {
     "@fitstream/shared": "1.0.0",
-    "@capacitor/camera": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
+    "@capacitor/camera": "^8.0.1",
+    "@capacitor/core": "^8.1.0",
     "@capacitor/haptics": "^8.0.0",
-    "@google/genai": "^1.39.0",
+    "@google/genai": "^1.41.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/pose": "^0.5.1675469404",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^0.564.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.9.3",
     "vite": "^6.2.0"
