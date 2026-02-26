@@ -152,7 +152,7 @@ jobs:
 
       - name: 📤 Upload IPA Artifact
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FitStream-iOS
           path: ios/App/build/ipa/*.ipa

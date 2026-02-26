@@ -98,7 +98,7 @@ jobs:
           echo "📁 Full reports in artifacts" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         continue-on-error: true
         with:
           name: weekly-security-report-${{ github.run_number }}
