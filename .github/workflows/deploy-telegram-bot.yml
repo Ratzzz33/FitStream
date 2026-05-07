@@ -26,6 +26,10 @@ env:
   APP_NAME: fitstream-backend
   APP_DIR: /opt/fitstream-backend
 
+concurrency:
+  group: deploy-tg-bot
+  cancel-in-progress: false
+
 jobs:
   telegram-bot:
     name: Telegram Bot

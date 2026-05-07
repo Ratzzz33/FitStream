@@ -10,6 +10,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: 🚀 Deploy Landing to Hetzner
