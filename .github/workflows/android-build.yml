@@ -47,6 +47,14 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
 
+      # Self-hosted runner has no pre-installed Android SDK (unlike GitHub-hosted
+      # ubuntu-latest), so install it here and export ANDROID_HOME. Without this,
+      # gradle fails with "SDK location not found".
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+
       - name: 🔧 Install dependencies
         run: npm ci --legacy-peer-deps
 
