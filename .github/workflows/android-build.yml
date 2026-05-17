@@ -134,7 +134,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp /tmp/apk/fitstream-*.apk /tmp/apk/fitstream-latest.apk
+          cp /tmp/apk/fitstream-${{ steps.version.outputs.version }}.apk /tmp/apk/fitstream-latest.apk
           if gh release view v${{ steps.version.outputs.version }} &>/dev/null; then
             gh release upload v${{ steps.version.outputs.version }} \
               /tmp/apk/fitstream-latest.apk --clobber
