@@ -16,6 +16,10 @@ env:
   S3_BUCKET: fitstream-frontend-467968377874
   CLOUDFRONT_DISTRIBUTION_ID: E3AIUCH1L3CNKI
 
+concurrency:
+  group: deploy-fitstream-app
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: 🚀 Deploy to AWS
