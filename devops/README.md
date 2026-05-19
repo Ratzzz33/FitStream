@@ -160,3 +160,43 @@ systemctl --user enable --now podman.socket
 # Проверь
 ls -la /run/user/$(id -u)/podman/podman.sock
 ```
+
+---
+
+## Runner Health Monitoring
+
+Мониторинг доступности runner'а реализован двумя способами:
+
+### 1. GitHub Actions (автоматически, не требует настройки сервера)
+
+Workflow `.github/workflows/runner-health.yml` запускается каждые 5 минут на
+GitHub-hosted runner и проверяет статус self-hosted runner'а через GitHub API.
+
+**Необходимые GitHub Secrets:**
+
+| Secret | Описание |
+|--------|----------|
+| `TELEGRAM_BOT_TOKEN` | Уже настроен |
+| `TELEGRAM_ALERT_CHAT_ID` | Chat ID для алертов (добавить) |
+| `GH_PAT` | GitHub PAT с scope `repo` для API-проверки runner'ов (добавить) |
+
+Добавить секреты: Settings → Secrets and variables → Actions → New repository secret
+
+**Ручной тест:**
+```
+GitHub → Actions → Runner Health Alerts → Run workflow → force_alert=true
+```
+
+### 2. Локальный скрипт на сервере (для on-premise проверки процесса)
+
+```bash
+chmod +x devops/runner-monitor.sh
+
+# Тест вручную
+./devops/runner-monitor.sh
+
+# Установка в cron (каждые 5 минут)
+(crontab -l 2>/dev/null; echo "*/5 * * * * /opt/fitstream/devops/runner-monitor.sh >> /var/log/fitstream-runner-monitor.log 2>&1") | crontab -
+```
+
+Требует переменные окружения: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALERT_CHAT_ID`, `GH_TOKEN`, `GITHUB_REPO`.
