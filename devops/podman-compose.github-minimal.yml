@@ -3,6 +3,19 @@ version: "3.8"
 # FitStream DevSecOps - MINIMAL GitHub Actions Runner
 # Для серверов с 4-8GB RAM
 # Использование: podman-compose -f podman-compose.github-minimal.yml up -d
+#
+# ВАЖНО: используй ACCESS_TOKEN (GitHub PAT с repo scope), НЕ RUNNER_TOKEN.
+# RUNNER_TOKEN одноразовый и истекает через 1 час — при перезапуске контейнера
+# runner не может перерегистрироваться. ACCESS_TOKEN позволяет автоматически
+# получать новый registration token при каждом запуске.
+#
+# Создать PAT: GitHub → Settings → Developer settings → Personal access tokens (classic)
+# Минимальные права: repo (full) + admin:repo_hook (только если нужны webhooks)
+#
+# В .env на сервере:
+#   GITHUB_REPO_URL=https://github.com/Ratzzz33/FitStream
+#   ACCESS_TOKEN=ghp_xxxxxxxx        <-- PAT вместо одноразового RUNNER_TOKEN
+#   RUNNER_NAME=fitstream-runner
 
 services:
   # ============================================
@@ -14,11 +27,15 @@ services:
     restart: unless-stopped
     environment:
       - REPO_URL=${GITHUB_REPO_URL}
-      - RUNNER_TOKEN=${RUNNER_TOKEN}
+      # ACCESS_TOKEN (PAT) используется вместо RUNNER_TOKEN — автоматически
+      # обновляет registration token при каждом перезапуске контейнера.
+      # Если задан ACCESS_TOKEN, RUNNER_TOKEN игнорируется.
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
       - RUNNER_NAME=${RUNNER_NAME:-fitstream-runner}
       - RUNNER_WORKDIR=/tmp/runner/work
       - LABELS=self-hosted,linux,x64,podman
       - EPHEMERAL=false
+      - DISABLE_AUTO_UPDATE=false
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -8,6 +8,11 @@
 #   GH_PAT               - GitHub PAT with repo+admin:org scope (add this secret)
 #
 # Runner name checked: fitstream-runner (see devops/setup-github-runner.sh)
+#
+# Recovery (when runner goes offline):
+#   ssh root@<server> "cd /path/to/FitStream/devops && bash restart-runner.sh"
+# Root cause prevention: use ACCESS_TOKEN (PAT) in .env, not RUNNER_TOKEN — see
+#   devops/podman-compose.github-minimal.yml comments for details.
 
 name: Runner Health Alerts
 
@@ -173,6 +178,9 @@ Runner'ы:
 ${OFFLINE_NAMES:+• Offline имена: ${OFFLINE_NAMES}}
 
 CI-задания могут зависнуть в очереди.
+
+Восстановление:
+\`ssh root@<server> \"cd /path/to/FitStream/devops && bash restart-runner.sh\"\`
 
 [Открыть Actions →](${RUN_URL})"
 
