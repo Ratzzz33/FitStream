@@ -29,10 +29,23 @@ jobs:
     timeout-minutes: 3
 
     steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "::error::Secret GH_PAT is required but not set."
+            echo "::error::Add a GitHub PAT with 'repo' scope to repository secrets: Settings -> Secrets -> Actions -> New repository secret."
+            echo "::error::Without GH_PAT the runners API returns 403 and monitoring cannot work."
+            exit 1
+          fi
+          if [ -z "${{ secrets.TELEGRAM_ALERT_CHAT_ID }}" ]; then
+            echo "::warning::Secret TELEGRAM_ALERT_CHAT_ID is not set — Telegram alerts will be silently skipped."
+          fi
+          echo "Secret validation passed."
+
       - name: Check runner status via GitHub API
         id: runner_check
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
           REPO: ${{ github.repository }}
         run: |
           echo "Checking self-hosted runners for $REPO ..."
