@@ -10,7 +10,8 @@ version: "3.8"
 # получать новый registration token при каждом запуске.
 #
 # Создать PAT: GitHub → Settings → Developer settings → Personal access tokens (classic)
-# Минимальные права: repo (full) + admin:repo_hook (только если нужны webhooks)
+# Минимальные права: repo (для приватного репо) — нужен только для получения reg-token.
+# admin:repo_hook НЕ нужен. Для публичного репо достаточно пустого PAT (без scope).
 #
 # В .env на сервере:
 #   GITHUB_REPO_URL=https://github.com/Ratzzz33/FitStream
@@ -35,7 +36,9 @@ services:
       - RUNNER_WORKDIR=/tmp/runner/work
       - LABELS=self-hosted,linux,x64,podman
       - EPHEMERAL=false
-      - DISABLE_AUTO_UPDATE=false
+      # Отключить авто-обновление runner binary в рантайме — исключает класс внезапных
+      # оффлайнов из-за auto-update mid-job. Обновление делаем контролируемо через podman pull.
+      - DISABLE_AUTO_UPDATE=true
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

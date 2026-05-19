@@ -65,15 +65,19 @@ log "Запуск github-runner через podman-compose ..."
 podman-compose -f "$COMPOSE_FILE" up -d github-runner
 
 # ============================================
-# 4. Ждать запуска (до 30 секунд)
+# 4. Ждать запуска (до 2 минут)
+# При первом старте myoung34/github-runner скачивает runner binary — это 60-120 сек.
 # ============================================
-log "Ожидание запуска контейнера ..."
-for i in $(seq 1 15); do
+MAX_WAIT_SEC="${MAX_WAIT_SEC:-120}"
+WAIT_INTERVAL=2
+MAX_ITER=$(( MAX_WAIT_SEC / WAIT_INTERVAL ))
+log "Ожидание запуска контейнера (max ${MAX_WAIT_SEC} сек) ..."
+for i in $(seq 1 "$MAX_ITER"); do
   if podman ps --filter "name=github-runner" --filter "status=running" --quiet | grep -q .; then
     log "Контейнер запущен (попытка $i)"
     break
   fi
-  sleep 2
+  sleep "$WAIT_INTERVAL"
 done
 
 CONTAINER_STATUS=$(podman inspect github-runner --format '{{.State.Status}}' 2>/dev/null || echo "unknown")
@@ -101,16 +105,11 @@ if [ -n "$GH_TOKEN" ]; then
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${GITHUB_REPO}/actions/runners" 2>/dev/null || echo '{}')
 
-  RUNNER_STATUS=$(echo "$RUNNERS_JSON" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-runners = d.get('runners', [])
-for r in runners:
-    if r.get('name') == '$RUNNER_NAME':
-        print(r.get('status', 'unknown'))
-        sys.exit(0)
-print('not_found')
-" 2>/dev/null || echo "parse_error")
+  # Use jq (already a devops-stack dependency) instead of python3
+  RUNNER_STATUS=$(echo "$RUNNERS_JSON" | \
+    jq -r --arg n "$RUNNER_NAME" \
+      '.runners // [] | map(select(.name == $n)) | .[0].status // "not_found"' \
+    2>/dev/null || echo "parse_error")
 
   if [ "$RUNNER_STATUS" = "online" ]; then
     log "SUCCESS: runner '$RUNNER_NAME' зарегистрирован и ONLINE в GitHub"
