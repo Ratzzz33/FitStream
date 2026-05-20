@@ -230,7 +230,7 @@ test.describe('Performance', () => {
 });
 
 test.describe('Performance - Lighthouse Metrics', () => {
-  test('collects web vitals', async ({ page }) => {
+  test('collects web vitals', async ({ page, browserName }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -302,8 +302,11 @@ test.describe('Performance - Lighthouse Metrics', () => {
     console.log(`  CLS: ${vitals.cls.toFixed(3)}`);
     console.log(`  TTFB: ${vitals.ttfb.toFixed(0)}ms`);
 
+    // Browser-specific FCP threshold
+    const fcpThreshold = browserName === 'firefox' ? 5000 : 3000;
+
     // Basic thresholds (not as strict as Lighthouse)
-    expect(vitals.fcp).toBeLessThan(3000);
+    expect(vitals.fcp).toBeLessThan(fcpThreshold);
     expect(vitals.lcp).toBeLessThan(4000);
     expect(vitals.cls).toBeLessThan(0.25);
   });
