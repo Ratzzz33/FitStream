@@ -2,7 +2,7 @@
 # Multi-stage build for minimal image size
 
 # Stage 1: Build
-FROM docker.io/node:25-alpine AS builder
+FROM docker.io/node:26-alpine AS builder
 
 WORKDIR /app
 
