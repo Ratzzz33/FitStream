@@ -2,7 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 import * as fs from "fs";
 import * as path from "path";
 
-const API_KEY = "AIzaSyAF1MbCqcLIaOboSnHS0YU-qEmLYYOCGaQ";
+const API_KEY = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+if (!API_KEY) {
+    console.error('Не задан GEMINI_API_KEY в переменных окружения — генерация иконок невозможна');
+    process.exit(1);
+}
 
 async function generateIcon(prompt: string, filename: string) {
     const ai = new GoogleGenAI({ apiKey: API_KEY });
