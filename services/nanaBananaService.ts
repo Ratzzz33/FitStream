@@ -15,7 +15,10 @@ import { GoogleGenAI } from '@google/genai';
 // IMAGEN CONFIG
 // ============================================
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAF1MbCqcLIaOboSnHS0YU-qEmLYYOCGaQ';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.warn('[nanaBanana] VITE_GEMINI_API_KEY не задан: генерация через Imagen отключена, работают запасные источники');
+}
 
 // IndexedDB for dish images
 const DISH_IMAGES_DB = 'fitstream_dish_images';
@@ -77,6 +80,7 @@ const saveDishImage = async (key: string, base64Data: string): Promise<void> => 
 
 // Generate image using Imagen
 const generateWithImagen = async (dishName: string, ingredients: string[]): Promise<string | null> => {
+  if (!GEMINI_API_KEY) return null;
   try {
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
